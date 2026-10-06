@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Mercurius.LAN.Web.Components.Pages.Tournaments;
+using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
 using Mercurius.LAN.Web.Localization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -94,6 +95,55 @@ public sealed class LocalizationServiceTests
 
         var date = new DateTime(2026, 9, 8);
         Assert.Equal(date.ToString("d", service.Culture), service.FormatDate(date));
+    }
+
+    [Theory]
+    [InlineData(1, "1st", "1e")]
+    [InlineData(2, "2nd", "2e")]
+    [InlineData(3, "3rd", "3e")]
+    [InlineData(4, "4th", "4e")]
+    [InlineData(11, "11th", "11e")]
+    [InlineData(12, "12th", "12e")]
+    [InlineData(13, "13th", "13e")]
+    [InlineData(21, "21st", "21e")]
+    [InlineData(22, "22nd", "22e")]
+    [InlineData(23, "23rd", "23e")]
+    [InlineData(111, "111th", "111e")]
+    public void PlacementOrdinalsFollowEnglishAndDutchConventions(int place, string expectedEnglish, string expectedDutch)
+    {
+        using var resources = TestResources.Create(
+            ReadResource("translations.en-US.json"),
+            ReadResource("translations.nl-BE.json"));
+
+        var english = resources.CreateService();
+        var dutch = resources.CreateService(ILocalizationService.DutchLanguage);
+
+        Assert.Equal(expectedEnglish, TournamentPlacementsTab.GetOrdinalLabel(english, place));
+        Assert.Equal(expectedDutch, TournamentPlacementsTab.GetOrdinalLabel(dutch, place));
+    }
+
+    [Theory]
+    [InlineData(1, "1st place", "1e plaats")]
+    [InlineData(2, "2nd place", "2e plaats")]
+    [InlineData(3, "3rd place", "3e plaats")]
+    [InlineData(4, "4th place", "4e plaats")]
+    [InlineData(11, "11th place", "11e plaats")]
+    [InlineData(21, "21st place", "21e plaats")]
+    [InlineData(22, "22nd place", "22e plaats")]
+    [InlineData(23, "23rd place", "23e plaats")]
+    [InlineData(111, "111th place", "111e plaats")]
+    public void PlacementLabelsComposeTheOrdinalWithTheLocalizedNoun(int place, string expectedEnglish, string expectedDutch)
+    {
+        using var resources = TestResources.Create(
+            ReadResource("translations.en-US.json"),
+            ReadResource("translations.nl-BE.json"));
+
+        var english = resources.CreateService();
+        var dutch = resources.CreateService(ILocalizationService.DutchLanguage);
+
+        // The Dutch ordinal already ends in "e", so the composed template must not add a second one.
+        Assert.Equal(expectedEnglish, TournamentPlacementsTab.GetPlacementLabel(english, place));
+        Assert.Equal(expectedDutch, TournamentPlacementsTab.GetPlacementLabel(dutch, place));
     }
 
     [Fact]

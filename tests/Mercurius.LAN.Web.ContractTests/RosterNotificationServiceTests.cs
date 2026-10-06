@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using Mercurius.LAN.Web.APIClients;
 using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.DTOs.Registrations;
@@ -22,6 +23,37 @@ public sealed class RosterNotificationServiceTests
         Assert.Contains("DeclineRosterMemberAsync", markup, StringComparison.Ordinal);
         Assert.Contains("Feature.tournaments.acceptRosterPlace", markup, StringComparison.Ordinal);
         Assert.Contains("Feature.tournaments.declineRosterPlace", markup, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TeamWizardKeepsSelectionUntilTheLocalizedNextStepIsChosen()
+    {
+        var markup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Tabs/TournamentParticipantsTab.razor");
+        var code = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Tabs/TournamentParticipantsTab.razor.cs");
+        var start = code.IndexOf("private async Task SelectTeamAsync", StringComparison.Ordinal);
+        var end = code.IndexOf("private async Task HandleTeamChangedAsync", start, StringComparison.Ordinal);
+        var selectTeam = code[start..end];
+
+        Assert.DoesNotContain("_activeTeamStep", selectTeam, StringComparison.Ordinal);
+        Assert.Contains("Feature.tournaments.selectedTeamAria", code, StringComparison.Ordinal);
+        Assert.Contains("Feature.tournaments.chooseRoster", markup, StringComparison.Ordinal);
+        Assert.Contains("Feature.tournaments.editRoster", markup, StringComparison.Ordinal);
+        Assert.Contains("Feature.tournaments.reviewRoster", markup, StringComparison.Ordinal);
+
+        using var english = JsonDocument.Parse(ReadRepositoryFile("src/Mercurius.LAN.Web/wwwroot/locales/translations.en-US.json"));
+        using var dutch = JsonDocument.Parse(ReadRepositoryFile("src/Mercurius.LAN.Web/wwwroot/locales/translations.nl-BE.json"));
+        foreach(var key in new[]
+        {
+            "Feature.tournaments.chooseRoster",
+            "Feature.tournaments.editRoster",
+            "Feature.tournaments.editTeamRosterFor",
+            "Feature.tournaments.reviewRoster",
+            "Feature.tournaments.selectedTeamAria"
+        })
+        {
+            Assert.False(string.IsNullOrWhiteSpace(english.RootElement.GetProperty(key).GetString()), $"English key '{key}' is empty.");
+            Assert.False(string.IsNullOrWhiteSpace(dutch.RootElement.GetProperty(key).GetString()), $"Dutch key '{key}' is empty.");
+        }
     }
 
     [Fact]

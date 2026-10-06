@@ -64,6 +64,12 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private Task? _deadlineRefreshTask;
     private Match? _freshMatchProjection;
     private PublicUserDTO? _selectedUser;
+    private CancellationTokenSource? _opponentProfileCancellation;
+    private bool _isLoadingOpponentProfile;
+    private string? _opponentProfileError;
+    private bool _disposed;
+    private bool CanViewParticipant1Details => _actionState?.AuthorizedParticipant == MatchParticipantSide.Participant2;
+    private bool CanViewParticipant2Details => _actionState?.AuthorizedParticipant == MatchParticipantSide.Participant1;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -81,6 +87,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         }
 
         _loadedMatchId = Match.Id;
+        CancelOpponentProfileLookup();
         _freshMatchProjection = null;
         _hasLoaded = false;
         _actionState = null;
@@ -97,14 +104,61 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private ParticipantViewModel? GetParticipantById(Guid? participantId) =>
         _participantLookup.Resolve(Match.ParticipationMode, participantId);
 
-    private void DisplayUserPopup(PublicUserDTO user)
+    private async Task DisplayUserPopup(PublicUserDTO user)
     {
-        _selectedUser = user;
+        CancelOpponentProfileLookup();
+        using var cancellation = new CancellationTokenSource();
+        _opponentProfileCancellation = cancellation;
+        _selectedUser = null;
+        _opponentProfileError = null;
+        _isLoadingOpponentProfile = true;
+        var matchId = Match.Id;
+
+        try
+        {
+            var profile = await TournamentService.GetMatchOpponentProfileAsync(matchId, cancellation.Token);
+            if(_disposed || cancellation.IsCancellationRequested || Match.Id != matchId)
+                return;
+
+            _selectedUser = new PublicUserDTO
+            {
+                Username = profile.Username,
+                Firstname = profile.Firstname,
+                Lastname = profile.Lastname,
+                DiscordId = profile.DiscordId,
+                SteamId = profile.SteamId,
+                RiotId = profile.RiotId
+            };
+        }
+        catch(OperationCanceledException) when(cancellation.IsCancellationRequested)
+        {
+        }
+        catch(Exception)
+        {
+            if(!_disposed && !cancellation.IsCancellationRequested && Match.Id == matchId)
+                _opponentProfileError = Localization["Feature.match.unavailable"];
+        }
+        finally
+        {
+            if(ReferenceEquals(_opponentProfileCancellation, cancellation))
+            {
+                _opponentProfileCancellation = null;
+                _isLoadingOpponentProfile = false;
+            }
+        }
     }
 
     private void HideUserInfoPopup()
     {
         _selectedUser = null;
+    }
+
+    private void CancelOpponentProfileLookup()
+    {
+        _opponentProfileCancellation?.Cancel();
+        _opponentProfileCancellation?.Dispose();
+        _opponentProfileCancellation = null;
+        _isLoadingOpponentProfile = false;
     }
 
     private bool IsWinner(Guid? participantId) => WinnerId != null && participantId == WinnerId;
@@ -779,6 +833,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+        CancelOpponentProfileLookup();
         var refreshTask = _deadlineRefreshTask;
         StopDeadlineRefresh();
 

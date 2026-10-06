@@ -25,8 +25,12 @@ public partial class ParticipantCardComponent
         return OnParticipantSelected.InvokeAsync(participant);
     }
 
+    private Task ShowParticipantPopupAsync() => OnParticipantSelected.HasDelegate
+        ? ShowParticipantPopup(Participant)
+        : Task.CompletedTask;
+
     private Task HandleKeyDown(KeyboardEventArgs args) =>
-        args.Key is "Enter" or " "
+        OnParticipantSelected.HasDelegate && (args.Key is "Enter" or " ")
             ? ShowParticipantPopup(Participant)
             : Task.CompletedTask;
 

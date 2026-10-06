@@ -1,0 +1,245 @@
+@using System.Globalization
+@using Mercurius.LAN.Web.DTOs.Leaderboards
+@using Mercurius.LAN.Web.DTOs.Search
+@using Mercurius.LAN.Web.Extensions
+@using Mercurius.LAN.Web.Models.Tournaments
+@rendermode InteractiveServer
+
+<div class="leaderboard-dialog-overlay" @onclick="RequestClose">
+    <div class="leaderboard-dialog"
+         role="dialog"
+         aria-modal="true"
+         aria-label='@Localization["Feature.leaderboard.entryDialogTitle"]'
+         @onclick:stopPropagation>
+        <header class="leaderboard-dialog-header">
+            <div>
+                <h2>@Localization["Feature.leaderboard.entryDialogTitle"]</h2>
+                <p class="leaderboard-dialog-subtitle">@GetMetricDescription()</p>
+            </div>
+            <button type="button"
+                    class="leaderboard-dialog-close"
+                    aria-label='@Localization["Feature.leaderboard.close"]'
+                    @onclick="RequestClose">&times;</button>
+        </header>
+
+        @if(_isLoading)
+        {
+            <p class="leaderboard-dialog-state" role="status">@Localization["Feature.leaderboard.loadingEntries"]</p>
+        }
+        else if(_loadError is not null)
+        {
+            <div class="leaderboard-dialog-state leaderboard-dialog-state--error" role="alert">
+                <p>@_loadError</p>
+                <button type="button" class="button-secondary" @onclick="ReloadAdminAsync">@Localization["status.tryAgain"]</button>
+            </div>
+        }
+        else
+        {
+            <div class="leaderboard-dialog-body">
+                <section class="leaderboard-entry-section">
+                    <h3>@Localization["Feature.leaderboard.newAttempt"]</h3>
+
+                    <div class="leaderboard-mode-switch" role="group" aria-label='@Localization["Feature.leaderboard.participant"]'>
+                        <button type="button"
+                                class="leaderboard-mode-option @ModeOptionClass(EntryMode.ExistingParticipant)"
+                                disabled="@(!HasParticipants)"
+                                @onclick="() => SetMode(EntryMode.ExistingParticipant)">
+                            @Localization["Feature.leaderboard.modeExistingParticipant"]
+                        </button>
+                        <button type="button"
+                                class="leaderboard-mode-option @ModeOptionClass(EntryMode.LinkedUser)"
+                                @onclick="() => SetMode(EntryMode.LinkedUser)">
+                            @Localization["Feature.leaderboard.modeLinkedUser"]
+                        </button>
+                        <button type="button"
+                                class="leaderboard-mode-option @ModeOptionClass(EntryMode.Guest)"
+                                @onclick="() => SetMode(EntryMode.Guest)">
+                            @Localization["Feature.leaderboard.modeGuest"]
+                        </button>
+                    </div>
+
+                    @if(_mode == EntryMode.ExistingParticipant)
+                    {
+                        @if(!HasParticipants)
+                        {
+                            <p class="leaderboard-entry-hint">@Localization["Feature.leaderboard.noParticipantsYet"]</p>
+                        }
+                        else
+                        {
+                            <div class="leaderboard-field">
+                                <label for="leaderboard-participant">@Localization["Feature.leaderboard.selectParticipant"]</label>
+                                <select id="leaderboard-participant"
+                                        class="form-select"
+                                        value="@(_selectedParticipantId?.ToString() ?? string.Empty)"
+                                        @onchange="HandleParticipantChanged">
+                                    <option value="">@Localization["Feature.leaderboard.selectParticipantPlaceholder"]</option>
+                                    @foreach(var participant in Participants)
+                                    {
+                                        <option value="@participant.Id">@GetParticipantLabel(participant)</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                    }
+                    else if(_mode == EntryMode.LinkedUser)
+                    {
+                        <div class="leaderboard-field">
+                            <label for="leaderboard-user-search">@Localization["Feature.leaderboard.searchUserLabel"]</label>
+                            <input id="leaderboard-user-search"
+                                   type="search"
+                                   class="form-control"
+                                   placeholder='@Localization["Feature.leaderboard.searchUserPlaceholder"]'
+                                   value="@_userQuery"
+                                   @oninput="HandleUserQueryChangedAsync" />
+
+                            @if(_isSearchingUsers)
+                            {
+                                <p class="leaderboard-entry-hint" role="status">@Localization["Feature.leaderboard.searchingUsers"]</p>
+                            }
+                            else if(!string.IsNullOrWhiteSpace(_userQuery) && _userQuery.Trim().Length >= 3 && !_userResults.Any())
+                            {
+                                <p class="leaderboard-entry-hint">@Localization["Feature.leaderboard.noUserResults"]</p>
+                            }
+
+                            @if(!_isSearchingUsers && _userResults.Any())
+                            {
+                                <ul class="leaderboard-user-results">
+                                    @foreach(var result in _userResults)
+                                    {
+                                        <li>
+                                            <button type="button" @onclick="() => SelectUser(result)">
+                                                @result.DisplayLabel
+                                            </button>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+
+                            @if(_selectedUserId.HasValue)
+                            {
+                                <p class="leaderboard-selected-user">@Localization.Get("Feature.leaderboard.selectedUser", _selectedUserLabel ?? string.Empty)</p>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="leaderboard-field">
+                            <label for="leaderboard-guest-name">@Localization["Feature.leaderboard.guestNameLabel"]</label>
+                            <input id="leaderboard-guest-name"
+                                   type="text"
+                                   class="form-control"
+                                   maxlength="100"
+                                   placeholder='@Localization["Feature.leaderboard.guestNamePlaceholder"]'
+                                   @bind="_guestName" />
+                            <small class="form-help">@Localization["Feature.leaderboard.guestNameHelp"]</small>
+                        </div>
+                    }
+
+                    <div class="leaderboard-field">
+                        <label for="leaderboard-attempt-value">@GetValueLabel()</label>
+                        @if(RankingMetric == LeaderboardRankingMetric.HighestScore)
+                        {
+                            <input id="leaderboard-attempt-value"
+                                   type="text"
+                                   inputmode="decimal"
+                                   class="form-control"
+                                   @bind="_valueInput" />
+                            <small class="form-help">@Localization["Feature.leaderboard.scoreHelp"]</small>
+                        }
+                        else
+                        {
+                            <input id="leaderboard-attempt-value"
+                                   type="number"
+                                   min="1"
+                                   step="1"
+                                   inputmode="numeric"
+                                   class="form-control"
+                                   @bind="_valueInput" />
+                            <small class="form-help">@GetDurationPreview()</small>
+                        }
+                    </div>
+
+                    @if(_submitError is not null)
+                    {
+                        <div class="leaderboard-dialog-error" role="alert">@_submitError</div>
+                    }
+
+                    <div class="leaderboard-dialog-actions">
+                        <button type="button" class="button-primary" disabled="@_isSubmitting" @onclick="SubmitAttemptAsync">
+                            @(_isSubmitting ? Localization["Feature.leaderboard.savingAttempt"] : Localization["Feature.leaderboard.saveAttempt"])
+                        </button>
+                    </div>
+                </section>
+
+                <section class="leaderboard-entry-section">
+                    <h3>@Localization["Feature.leaderboard.attemptHistory"]</h3>
+
+                    @if(SelectedParticipant is null)
+                    {
+                        <p class="leaderboard-entry-hint">@Localization["Feature.leaderboard.attemptHistoryHint"]</p>
+                    }
+                    else if(!SelectedParticipant.Attempts.Any())
+                    {
+                        <p class="leaderboard-entry-hint">@Localization["Feature.leaderboard.attemptHistoryEmpty"]</p>
+                    }
+                    else
+                    {
+                        <ul class="leaderboard-attempt-list">
+                            @foreach(var attempt in SelectedParticipant.Attempts)
+                            {
+                                <li class="leaderboard-attempt-item">
+                                    @if(_editingAttemptId == attempt.Id)
+                                    {
+                                        <div class="leaderboard-attempt-edit">
+                                            <input type="text"
+                                                   class="form-control"
+                                                   aria-label='@Localization["Feature.leaderboard.editAttemptValue"]'
+                                                   @bind="_editValueInput" />
+                                            <button type="button" class="button-primary" disabled="@_isSavingAttempt" @onclick="() => SaveAttemptEditAsync(attempt)">
+                                                @Localization["Feature.leaderboard.saveAttemptEdit"]
+                                            </button>
+                                            <button type="button" class="button-secondary" @onclick="CancelAttemptEdit">
+                                                @Localization["common.cancel"]
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="leaderboard-attempt-summary">
+                                            <span class="leaderboard-attempt-value">@FormatAttemptValue(attempt)</span>
+                                            <span class="leaderboard-attempt-time">@Localization.Get("Feature.leaderboard.attemptRecordedAt", Localization.FormatDateTime(attempt.CreatedAtUtc.ToLocalDisplayTime()))</span>
+                                            <span class="leaderboard-attempt-actions">
+                                                <button type="button" class="button-secondary" @onclick="() => BeginAttemptEdit(attempt)">
+                                                    @Localization["common.edit"]
+                                                </button>
+                                                @if(_pendingRemovalAttemptId == attempt.Id)
+                                                {
+                                                    <button type="button" class="button-danger" disabled="@(_removingAttemptId == attempt.Id)" @onclick="() => RemoveAttemptAsync(attempt)">
+                                                        @Localization["Feature.leaderboard.confirmRemove"]
+                                                    </button>
+                                                    <button type="button" class="button-secondary" @onclick="CancelAttemptRemoval">
+                                                        @Localization["common.cancel"]
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="button-secondary" @onclick="() => BeginAttemptRemoval(attempt)">
+                                                        @Localization["common.delete"]
+                                                    </button>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+            </div>
+        }
+
+        <footer class="leaderboard-dialog-footer">
+            <button type="button" class="button-secondary" @onclick="RequestClose">@Localization["Feature.leaderboard.close"]</button>
+        </footer>
+    </div>
+</div>

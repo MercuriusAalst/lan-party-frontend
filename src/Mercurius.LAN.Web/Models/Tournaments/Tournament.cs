@@ -13,6 +13,7 @@ public class Tournament
     public string? ImageUrl { get; set; }
     public TournamentStatus Status { get; set; }
     public BracketType BracketType { get; set; }
+    public LeaderboardRankingMetric? LeaderboardRankingMetric { get; set; }
     public TournamentFormat Format { get; set; }
     public TournamentFormat FinalsFormat { get; set; }
     public ParticipationMode ParticipationMode { get; set; }

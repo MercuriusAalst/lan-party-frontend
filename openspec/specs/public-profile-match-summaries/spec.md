@@ -5,15 +5,19 @@ TBD - created by archiving change issue-47-profile-match-summaries. Update Purpo
 ## Requirements
 ### Requirement: Public profile match-summary endpoints
 
-The API MUST expose anonymous match-summary reads at
-`GET /v1/lan/public/users/{username}/match-summaries` and
-`GET /v1/lan/public/teams/{teamName}/match-summaries`.
+The API MUST expose anonymous match-summary reads only for public team profiles at
+`GET /v1/lan/public/teams/{teamName}/match-summaries`. User match summaries MUST be available only
+to admins at `GET /v1/lan/users/{username}/match-summaries`.
 
-#### Scenario: Public player summaries
-- **WHEN** an anonymous client requests summaries for a complete, non-deleted player profile
+#### Scenario: Admin requests player summaries
+- **WHEN** an admin requests summaries for a complete, non-deleted player profile
 - **THEN** the response MUST contain at most one previous and at most one upcoming match for each
   tournament in which that player has an active individual registration or an active team
   registration whose confirmed roster or captain snapshot includes that player
+
+#### Scenario: Non-admin requests player summaries
+- **WHEN** an anonymous or non-admin client requests user match summaries
+- **THEN** the request MUST be rejected without disclosing profile or match data
 
 #### Scenario: Public team summaries
 - **WHEN** an anonymous client requests summaries for an existing, non-deleted team profile

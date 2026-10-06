@@ -183,9 +183,6 @@ public partial class PublicTeamProfile
         }
     }
 
-    private static string BuildMemberProfileHref(string username) =>
-        $"/users/{Uri.EscapeDataString(username)}";
-
     private static string GetMemberInitials(string username)
     {
         if(string.IsNullOrWhiteSpace(username))

@@ -1,4 +1,5 @@
 @rendermode InteractiveServer
+@using Mercurius.LAN.Web.DTOs.Leaderboards
 @using Mercurius.LAN.Web.DTOs.Users
 @using Mercurius.LAN.Web.Models.Tournaments
 @using Mercurius.LAN.Web.Models.Matches
@@ -22,7 +23,17 @@
             {
                 <div class="podium-step @(placement.Place == 1 ? "gold" : placement.Place == 2 ? "silver" : "bronze")">
                     <div class="participant-name">
-                        @if(ParticipationMode == ParticipationMode.Team)
+                        @if(BracketType == BracketType.Leaderboard)
+                        {
+                            @foreach(var participant in placement.LeaderboardParticipants)
+                            {
+                                <div class="placement-leaderboard-row">
+                                    <span>@participant.DisplayName</span>
+                                    <span class="placement-leaderboard-value">@FormatLeaderboardParticipantValue(participant)</span>
+                                </div>
+                            }
+                        }
+                        else if(ParticipationMode == ParticipationMode.Team)
                         {
                             @foreach(var team in placement.Teams)
                             {
@@ -38,7 +49,7 @@
                             }
                         }
                     </div>
-                    <div class="placement-title">@GetOrdinalLabel(placement.Place)</div>
+                    <div class="placement-title">@GetOrdinalLabel(Localization, placement.Place)</div>
                 </div>
             }
         </div>
@@ -46,9 +57,19 @@
             @foreach(var placement in Placements.OrderBy(p => p.Place).Skip(3))
             {
                 <li class="placement-item">
-                    <span class="placement-title">@Localization.Get("Feature.tournaments.placementPlace", GetOrdinalLabel(placement.Place))</span>
+                    <span class="placement-title">@GetPlacementLabel(Localization, placement.Place)</span>
                     <ul class="participant-list">
-                        @if(ParticipationMode == ParticipationMode.Team)
+                        @if(BracketType == BracketType.Leaderboard)
+                        {
+                            @foreach(var participant in placement.LeaderboardParticipants)
+                            {
+                                <li class="participant-item placement-leaderboard-row">
+                                    <span>@participant.DisplayName</span>
+                                    <span class="placement-leaderboard-value">@FormatLeaderboardParticipantValue(participant)</span>
+                                </li>
+                            }
+                        }
+                        else if(ParticipationMode == ParticipationMode.Team)
                         {
                             @foreach(var team in placement.Teams)
                             {

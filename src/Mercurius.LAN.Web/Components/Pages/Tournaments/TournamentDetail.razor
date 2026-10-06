@@ -1,4 +1,5 @@
 @page "/tournaments/{TournamentId:guid}"
+@using Mercurius.LAN.Web.Components.Pages.Tournaments.Leaderboard
 @using Mercurius.LAN.Web.Components.Pages.Tournaments.Matches.DetailView
 @using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs
 @using Mercurius.LAN.Web.Components.Shared
@@ -57,28 +58,86 @@ else
                 <div class="Tournament-detail-badges">
                     <span class="badge">@GetParticipationLabel(_tournament.ParticipationMode)</span>
                     <span class="badge">@GetBracketLabel(_tournament.BracketType)</span>
-                    <span class="badge">@GetFormatLabel(_tournament.Format)</span>
+                    @if(IsLeaderboard)
+                    {
+                        <span class="badge">@GetLeaderboardMetricLabel()</span>
+                    }
+                    else
+                    {
+                        <span class="badge">@GetFormatLabel(_tournament.Format)</span>
+                    }
                     <span class="badge Tournament-status @_tournament.Status.GetStatusClass()">@GetStatusLabel(_tournament.Status)</span>
                 </div>
 
                 <div class="Tournament-detail-hero-actions">
-                    <button type="button"
-                            class="button-primary @(CanRegister(_tournament) ? string.Empty : "Tournament-detail-registration-closed")"
-                            disabled="@(!CanRegister(_tournament))"
-                            @onclick="NavigateToRegister">
-                        @(CanRegister(_tournament) ? Localization["Feature.tournaments.viewRegistrationOptions"] : Localization["Feature.tournaments.registrationClosed"])
-                    </button>
-                    <a href="@GetPageAnchorUrl("tournament-bracket")" class="button-secondary">@Localization["Feature.tournaments.viewBracket"]</a>
+                    @if(IsLeaderboard)
+                    {
+                        <span class="Tournament-detail-registration-note">@Localization["Feature.tournaments.leaderboardNoRegistrationHero"]</span>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="button-primary @(CanRegister(_tournament) ? string.Empty : "Tournament-detail-registration-closed")"
+                                disabled="@(!CanRegister(_tournament))"
+                                @onclick="NavigateToRegister">
+                            @(CanRegister(_tournament) ? Localization["Feature.tournaments.viewRegistrationOptions"] : Localization["Feature.tournaments.registrationClosed"])
+                        </button>
+                    }
+                    <a href="@GetPageAnchorUrl("tournament-bracket")" class="button-secondary">@GetCompetitionActionLabel()</a>
                 </div>
 
                 <AuthorizeView Roles="admin">
                     <Authorized>
                         <div class="Tournament-admin-actions">
-                            <button type="button" class="btn btn-primary" @onclick="StartTournamentAsync">@Localization["Feature.tournaments.start"]</button>
-                            <button type="button" class="btn btn-secondary" @onclick="CancelTournamentAsync">@Localization["common.cancel"]</button>
-                            <button type="button" class="btn btn-secondary" @onclick="FinishTournamentAsync">@Localization["Feature.tournaments.finish"]</button>
-                            <button type="button" class="btn btn-secondary" @onclick="ResetTournamentAsync">@Localization["Feature.tournaments.reset"]</button>
-                            <button type="button" class="btn btn-danger" @onclick="DeleteTournamentAsync">@Localization["common.delete"]</button>
+                            @if(_tournament.Status == TournamentStatus.Scheduled)
+                            {
+                                var startBlockReason = GetStartBlockReasonKey(_tournament);
+                                <button type="button"
+                                        class="btn btn-primary"
+                                        disabled="@(IsAdminLifecycleActionPending || !CanStartTournament(_tournament))"
+                                        aria-describedby="@(startBlockReason is null ? null : "tournament-start-blocked")"
+                                        @onclick="StartTournamentAsync">
+                                    @Localization["Feature.tournaments.start"]
+                                </button>
+                                @if(startBlockReason is not null)
+                                {
+                                    <p id="tournament-start-blocked" class="Tournament-admin-action-reason" role="status">@Localization[startBlockReason]</p>
+                                }
+                            }
+                            @if(CanCancelTournament(_tournament))
+                            {
+                                <button type="button" class="btn btn-secondary" disabled="@IsAdminLifecycleActionPending" @onclick="CancelTournamentAsync">@Localization["common.cancel"]</button>
+                            }
+                            @if(_tournament.Status == TournamentStatus.InProgress)
+                            {
+                                var finishBlockReason = GetFinishBlockReasonKey(_tournament);
+                                <button type="button"
+                                        class="btn btn-secondary"
+                                        disabled="@(IsAdminLifecycleActionPending || !CanFinishTournament(_tournament, _hasLeaderboardResults))"
+                                        aria-describedby="@(finishBlockReason is null ? null : "tournament-finish-blocked")"
+                                        @onclick="FinishTournamentAsync">
+                                    @Localization["Feature.tournaments.finish"]
+                                </button>
+                                @if(finishBlockReason is not null)
+                                {
+                                    <p id="tournament-finish-blocked" class="Tournament-admin-action-reason" role="status">@Localization[finishBlockReason]</p>
+                                }
+                            }
+                            @if(CanResetTournament(_tournament))
+                            {
+                                <button type="button" class="btn btn-secondary" disabled="@IsAdminLifecycleActionPending" @onclick="ResetTournamentAsync">@Localization["Feature.tournaments.reset"]</button>
+                            }
+                            <button type="button"
+                                    class="btn btn-danger"
+                                    disabled="@(IsAdminLifecycleActionPending || !CanDeleteTournament(_tournament))"
+                                    aria-describedby="@(_tournament.Status == TournamentStatus.InProgress ? "tournament-delete-blocked" : null)"
+                                    @onclick="DeleteTournamentAsync">
+                                @Localization["common.delete"]
+                            </button>
+                            @if(_tournament.Status == TournamentStatus.InProgress)
+                            {
+                                <p id="tournament-delete-blocked" class="Tournament-admin-action-reason" role="status">@Localization["Feature.tournaments.deleteInProgress"]</p>
+                            }
                         </div>
                     </Authorized>
                 </AuthorizeView>
@@ -97,6 +156,8 @@ else
                     <TournamentOverviewTab Tournament="@_tournament" OnTournamentUpdated="HandleTournamentUpdated" />
                 </section>
 
+                @if(!IsLeaderboard)
+                {
                 <section id="tournament-schedule" class="brand-card Tournament-detail-section Tournament-detail-section--dense Tournament-detail-top-section Tournament-detail-top-section--schedule brand-section-anchor">
                     <div class="Tournament-section-header">
                         <div>
@@ -173,6 +234,7 @@ else
                         </div>
                     }
                 </section>
+                }
 
                 @if(FeaturedPartner is not null)
                 {
@@ -195,21 +257,36 @@ else
                     </section>
                 }
 
+                @if(!IsLeaderboard)
+                {
                 <section id="tournament-participants" class="brand-card Tournament-detail-section Tournament-detail-section--dense Tournament-detail-top-section @(FeaturedPartner is null ? "Tournament-detail-top-section--participants-no-sponsor" : "Tournament-detail-top-section--participants") brand-section-anchor">
                     <TournamentParticipantsTab Tournament="@_tournament"
                                                 OnTournamentUpdated="HandleTournamentUpdated"
                                                 RegistrationDialogOpen="@_isRegistrationDialogOpen"
                                                 RegistrationDialogOpenChanged="HandleRegistrationDialogOpenChanged" />
                 </section>
+                }
             </div>
 
             <section id="tournament-bracket" class="brand-card Tournament-detail-section Tournament-detail-section--full-span brand-section-anchor">
-                <TournamentMatchesTab OnDataReload="HandleMatchDataReloadAsync" OnMatchRefreshed="HandleMatchRefreshedAsync" Tournament="@_tournament" />
+                @if(IsLeaderboard)
+                {
+                    <TournamentLeaderboardTab @key="_tournament.Status"
+                                             Tournament="_tournament"
+                                             OnLeaderboardChanged="HandleLeaderboardChangedAsync" />
+                }
+                else
+                {
+                    <TournamentMatchesTab OnDataReload="HandleMatchDataReloadAsync" OnMatchRefreshed="HandleMatchRefreshedAsync" Tournament="@_tournament" />
+                }
             </section>
 
             <div class="Tournament-detail-secondary">
                 <section id="tournament-results" class="brand-card Tournament-detail-section brand-section-anchor">
-                    <TournamentPlacementsTab Placements="@_tournament.Placements" ParticipationMode="@_tournament.ParticipationMode" />
+                    <TournamentPlacementsTab Placements="@_tournament.Placements"
+                                             ParticipationMode="@_tournament.ParticipationMode"
+                                             BracketType="@_tournament.BracketType"
+                                             RankingMetric="@_tournament.LeaderboardRankingMetric" />
                 </section>
 
                 <AuthorizeView Roles="admin">

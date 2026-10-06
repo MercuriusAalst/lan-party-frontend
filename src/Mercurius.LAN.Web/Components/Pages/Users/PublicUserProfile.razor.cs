@@ -1,4 +1,6 @@
 using Mercurius.LAN.Web.DTOs.PublicProfiles;
+using Mercurius.LAN.Web.DTOs.Users;
+using Mercurius.LAN.Web.APIClients;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
 
@@ -7,11 +9,11 @@ namespace Mercurius.LAN.Web.Components.Pages.Users;
 public partial class PublicUserProfile
     : IDisposable
 {
-    [Inject] private IPublicProfileService PublicProfileService { get; set; } = null!;
+    [Inject] private IUserClient UserClient { get; set; } = null!;
 
     [Parameter] public string Username { get; set; } = string.Empty;
 
-    private PublicUserProfileDTO? _profile;
+    private UserDTO? _profile;
     private PublicProfileMatchSummariesDTO? _matchSummaries;
     private bool _isLoading;
     private bool _hasError;
@@ -58,7 +60,7 @@ public partial class PublicUserProfile
 
             try
             {
-                var profile = await PublicProfileService.GetPublicUserByUsernameAsync(decodedUsername, cancellationToken);
+                var profile = await UserClient.GetUserByUsernameAsync(decodedUsername, cancellationToken);
                 if(!IsCurrentLoad(cancellation))
                     return;
 
@@ -107,7 +109,7 @@ public partial class PublicUserProfile
 
         try
         {
-            var matchSummaries = await PublicProfileService.GetPublicUserMatchSummariesAsync(username, cancellation.Token);
+            var matchSummaries = await UserClient.GetUserMatchSummariesAsync(username, cancellation.Token);
             if(!IsCurrentLoad(cancellation))
                 return;
 
@@ -190,16 +192,16 @@ public partial class PublicUserProfile
         }
     }
 
-    private static string GetFullName(PublicUserProfileDTO? profile)
+    private static string GetFullName(UserDTO? profile)
     {
         if(profile is null)
             return string.Empty;
 
         var fullName = $"{profile.Firstname} {profile.Lastname}".Trim();
-        return string.IsNullOrWhiteSpace(fullName) ? profile.Username : fullName;
+        return string.IsNullOrWhiteSpace(fullName) ? profile.Username ?? string.Empty : fullName;
     }
 
-    private static string GetInitials(PublicUserProfileDTO profile)
+    private static string GetInitials(UserDTO profile)
     {
         var firstInitial = GetFirstCharacter(profile.Firstname);
         var lastInitial = GetFirstCharacter(profile.Lastname);
@@ -218,9 +220,9 @@ public partial class PublicUserProfile
         return trimmed[..2].ToUpperInvariant();
     }
 
-    private static string GetFirstCharacter(string value)
+    private static string GetFirstCharacter(string? value)
     {
-        var trimmed = value.Trim();
+        var trimmed = value?.Trim() ?? string.Empty;
         return trimmed.Length == 0 ? string.Empty : trimmed[..1];
     }
 }

@@ -9,7 +9,6 @@
     else
     {
         var rounds = Tournament.Matches.GroupBy(m => m.RoundNumber).OrderBy(g => g.Key).ToList();
-        int lastRound = rounds.Max(r => r.Key);
         int matchHeight = 60;
         int matchWidth = 220;
         int verticalGap = 32;
@@ -20,7 +19,7 @@
             <div class="bracket-absolute-container" style="width: @(numRounds * columnWidth)px;">
                 @{
                     var roundMatches = rounds.ToDictionary(r => r.Key, r => r.OrderBy(m => m.MatchNumber).ToList());
-                    int firstRound = rounds.Min(r => r.Key);
+                    int firstRound = rounds[0].Key;
                     int numFirstRoundMatches = roundMatches[firstRound].Count;
                     int reservedHeight = matchHeight + verticalGap;
                     var matchPositions = new Dictionary<(int round, int match), (int left, int y)>();
@@ -30,17 +29,26 @@
                         int y = i * reservedHeight;
                         matchPositions[(firstRound, i)] = (colX, y);
                     }
-                    for(int r = firstRound + 1; r <= lastRound; r++)
+                    // Round numbers can be sparse, so walk the present rounds and connect each column to the previous present one.
+                    for(int column = 1; column < numRounds; column++)
                     {
+                        int r = rounds[column].Key;
+                        int previousRound = rounds[column - 1].Key;
                         var matches = roundMatches[r];
                         for(int i = 0; i < matches.Count; i++)
                         {
-                            int colX = (r - firstRound) * columnWidth + (columnWidth - matchWidth) / 2;
+                            int colX = column * columnWidth + (columnWidth - matchWidth) / 2;
                             int srcIdx1 = i * 2;
                             int srcIdx2 = i * 2 + 1;
-                            int y1 = matchPositions[(r - 1, srcIdx1)].y;
-                            int y2 = matchPositions[(r - 1, srcIdx2)].y;
-                            int y = (y1 + y2 + matchHeight) / 2 - matchHeight / 2;
+                            var hasSource1 = matchPositions.TryGetValue((previousRound, srcIdx1), out var source1);
+                            var hasSource2 = matchPositions.TryGetValue((previousRound, srcIdx2), out var source2);
+                            int y = hasSource1 && hasSource2
+                                ? (source1.y + source2.y) / 2
+                                : hasSource1
+                                    ? source1.y
+                                    : hasSource2
+                                        ? source2.y
+                                        : i * reservedHeight;
                             matchPositions[(r, i)] = (colX, y);
                         }
                     }
@@ -48,23 +56,33 @@
                     int svgHeight = numFirstRoundMatches * reservedHeight - verticalGap;
                 }
                 <svg class="bracket-svg" width="@svgWidth" height="@svgHeight">
-                    @for(int r = firstRound + 1; r <= lastRound; r++)
+                    @for(int column = 1; column < numRounds; column++)
                     {
+                        int r = rounds[column].Key;
+                        int previousRound = rounds[column - 1].Key;
                         var matches = roundMatches[r];
                         for(int i = 0; i < matches.Count; i++)
                         {
                             int srcIdx1 = i * 2;
                             int srcIdx2 = i * 2 + 1;
-                            int x0a = matchPositions[(r - 1, srcIdx1)].left + matchWidth;
-                            int y0a = matchPositions[(r - 1, srcIdx1)].y + matchHeight / 2;
-                            int x0b = matchPositions[(r - 1, srcIdx2)].left + matchWidth;
-                            int y0b = matchPositions[(r - 1, srcIdx2)].y + matchHeight / 2;
+                            var hasSource1 = matchPositions.TryGetValue((previousRound, srcIdx1), out var source1);
+                            var hasSource2 = matchPositions.TryGetValue((previousRound, srcIdx2), out var source2);
                             int x1 = matchPositions[(r, i)].left;
                             int y1 = matchPositions[(r, i)].y + matchHeight / 2;
-                            int elbowXa = (x0a + x1) / 2;
-                            int elbowXb = (x0b + x1) / 2;
-                            <polyline points="@x0a,@y0a @elbowXa,@y0a @elbowXa,@y1 @x1,@y1" fill="none" stroke="#4caf50" stroke-width="3" />
-                            <polyline points="@x0b,@y0b @elbowXb,@y0b @elbowXb,@y1 @x1,@y1" fill="none" stroke="#4caf50" stroke-width="3" />
+                            if(hasSource1)
+                            {
+                                int x0 = source1.left + matchWidth;
+                                int y0 = source1.y + matchHeight / 2;
+                                int elbowX = (x0 + x1) / 2;
+                                <polyline points="@x0,@y0 @elbowX,@y0 @elbowX,@y1 @x1,@y1" fill="none" stroke="#4caf50" stroke-width="3" />
+                            }
+                            if(hasSource2)
+                            {
+                                int x0 = source2.left + matchWidth;
+                                int y0 = source2.y + matchHeight / 2;
+                                int elbowX = (x0 + x1) / 2;
+                                <polyline points="@x0,@y0 @elbowX,@y0 @elbowX,@y1 @x1,@y1" fill="none" stroke="#4caf50" stroke-width="3" />
+                            }
                         }
                     }
                 </svg>

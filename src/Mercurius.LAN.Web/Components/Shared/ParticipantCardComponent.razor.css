@@ -3,7 +3,6 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
     box-shadow: none;
-    cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -16,7 +15,11 @@
     transition: border-color 160ms ease, background-color 160ms ease;
 }
 
-.participant-overview-card:hover {
+.participant-overview-card--interactive {
+    cursor: pointer;
+}
+
+.participant-overview-card--interactive:hover {
     border-color: var(--color-primary-green);
     background: var(--color-surface-raised);
 }

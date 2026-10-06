@@ -19,6 +19,13 @@
                     <EditForm EditContext="_editContext" OnValidSubmit="SubmitTournamentAsync" class="Tournament-editor-form">
                         <LocalizedDataAnnotationsValidator FieldLabelKeys="@ValidationFieldLabelKeys" ValidationMessageKeys="@ValidationMessageKeys" />
 
+                        @if(_submitError is not null)
+                        {
+                            <div class="error-message" role="alert">
+                                <p>@_submitError</p>
+                            </div>
+                        }
+
                         <div class="form-group">
                             <label for="name" class="form-label">@Localization["shared.name"]</label>
                             <InputText id="name" class="form-control" @bind-Value="_newTournament.Name" />
@@ -37,6 +44,23 @@
                                 <ValidationMessage For="@(() => _newTournament.BracketType)" />
                             </div>
 
+                            @if(IsLeaderboardSelected)
+                            {
+                                <div class="form-group">
+                                    <label for="leaderboardRankingMetric">@Localization["Feature.tournaments.rankingMetric"]</label>
+                                    <InputSelect id="leaderboardRankingMetric" class="form-control" @bind-Value="_newTournament.LeaderboardRankingMetric">
+                                        <option value="">@Localization["Feature.tournaments.rankingMetricPlaceholder"]</option>
+                                        @foreach(var metric in Enum.GetValues<LeaderboardRankingMetric>())
+                                        {
+                                            <option value="@metric">@GetRankingMetricLabel(metric)</option>
+                                        }
+                                    </InputSelect>
+                                    <small class="form-help">@Localization["Feature.tournaments.rankingMetricHelp"]</small>
+                                    <ValidationMessage For="@(() => _newTournament.LeaderboardRankingMetric)" />
+                                </div>
+                            }
+                            else
+                            {
                             <div class="form-group">
                                 <label for="participationMode">@Localization["tournament.participation"]</label>
                                 <InputSelect id="participationMode" class="form-control" @bind-Value="_newTournament.ParticipationMode">
@@ -57,8 +81,11 @@
                                     <ValidationMessage For="@(() => _newTournament.TeamSize)" />
                                 </div>
                             }
+                            }
                         </div>
 
+                        @if(!IsLeaderboardSelected)
+                        {
                         <div class="form-group-inline grid gap-4 lg:grid-cols-2">
                             <div class="form-group">
                                 <label for="format">@Localization["tournament.format"]</label>
@@ -82,6 +109,7 @@
                                 <ValidationMessage For="@(() => _newTournament.FinalsFormat)" />
                             </div>
                         </div>
+                        }
                         <div class="Tournament-editor-schedule-fields">
                             <div class="form-group">
                                 <label>@Localization["Feature.tournaments.plannedStartTime"]</label>
@@ -111,6 +139,8 @@
                                 }
                             </div>
 
+                            @if(!IsLeaderboardSelected)
+                            {
                             <div class="Tournament-editor-duration-row">
                                 <div class="form-group">
                                     <label for="averageGameDuration">@Localization["Feature.tournaments.averageGameDuration"]</label>
@@ -124,6 +154,7 @@
                                     <ValidationMessage For="@(() => _newTournament.RoundBreakDurationMinutes)" />
                                 </div>
                             </div>
+                            }
                         </div>
 
                         <div class="form-group">
@@ -131,11 +162,6 @@
                             <CustomInputFile @ref="_imageInputRef" id="tournamentImage" @bind-Value="_newTournament.Image" />
                             <ValidationMessage For="@(() => _newTournament.Image)" />
                         </div>
-
-                        @if(_submitError is not null)
-                        {
-                            <div class="validation-message" role="alert">@_submitError</div>
-                        }
 
                         <div class="form-actions">
                             <button type="submit" class="button-primary" disabled="@_isSubmitting">@(_isSubmitting ? Localization["Feature.tournaments.creating"] : Localization["Feature.tournaments.createTournament"])</button>

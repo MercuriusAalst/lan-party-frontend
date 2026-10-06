@@ -4,6 +4,21 @@
     padding-top: 0.25rem;
 }
 
+.placement-leaderboard-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    align-items: baseline;
+    justify-content: space-between;
+    overflow-wrap: anywhere;
+}
+
+.placement-leaderboard-value {
+    color: var(--color-muted-text);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 .placements-header-block h2 {
     margin-bottom: 0;
 }

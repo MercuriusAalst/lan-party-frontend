@@ -1,6 +1,8 @@
 using System.Reflection;
 using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.DTOs.PublicProfiles;
+using Mercurius.LAN.Web.DTOs.Users;
+using Mercurius.LAN.Web.APIClients;
 using Mercurius.LAN.Web.Models.Participants;
 using Mercurius.LAN.Web.Components.Pages.Teams;
 using Mercurius.LAN.Web.Components.Pages.Users;
@@ -18,9 +20,9 @@ public sealed class PublicProfilePageStateTests
     [InlineData("%20%20")]
     public async Task PublicUserProfile_BlankRouteStopsLoadingWithoutRequestingData(string route)
     {
-        var service = new StubPublicProfileService(delayFirstCall: false);
+        var (client, service) = CreateUserClient();
         var page = new TestPublicUserProfile();
-        SetInjectedService(page, nameof(PublicUserProfile), "PublicProfileService", service);
+        SetInjectedService(page, nameof(PublicUserProfile), "UserClient", client);
         SetParameter(page, nameof(PublicUserProfile.Username), route);
 
         await page.LoadAsync();
@@ -56,21 +58,22 @@ public sealed class PublicProfilePageStateTests
     [InlineData(true)]
     public async Task PublicUserProfile_IgnoresSupersededSuccessOrError(bool failFirstCall)
     {
-        var service = new StubPublicProfileService(delayFirstCall: true);
+        var (client, service) = CreateUserClient();
+        service.DelayFirstProfileCall = true;
         var page = new TestPublicUserProfile();
-        SetInjectedService(page, nameof(PublicUserProfile), "PublicProfileService", service);
+        SetInjectedService(page, nameof(PublicUserProfile), "UserClient", client);
         SetParameter(page, nameof(PublicUserProfile.Username), "A");
 
         var firstLoad = page.LoadAsync();
-        await service.FirstCallStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await service.FirstProfileCallStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         SetParameter(page, nameof(PublicUserProfile.Username), "B");
         await page.LoadAsync();
 
         if(failFirstCall)
-            service.FirstCallResult.SetException(new InvalidOperationException("stale failure"));
+            service.FirstProfileCallResult.SetException(new InvalidOperationException("stale failure"));
         else
-            service.FirstCallResult.SetResult(new PublicUserProfileDTO
+            service.FirstProfileCallResult.SetResult(new UserDTO
             {
                 Username = "A",
                 Firstname = "Stale",
@@ -80,7 +83,7 @@ public sealed class PublicProfilePageStateTests
         await firstLoad;
 
         Assert.Equal(["A", "B"], service.RequestedUsernames);
-        Assert.Null(ReadField(page, nameof(PublicUserProfile), "_profile"));
+        Assert.Equal("B", Assert.IsType<UserDTO>(ReadField(page, nameof(PublicUserProfile), "_profile")).Username);
         Assert.False(ReadBoolean(page, nameof(PublicUserProfile), "_isLoading"));
         Assert.False(ReadBoolean(page, nameof(PublicUserProfile), "_hasError"));
         page.Dispose();
@@ -119,15 +122,10 @@ public sealed class PublicProfilePageStateTests
     [Fact]
     public async Task PublicUserProfile_IgnoresStaleSummaryAfterRouteChange()
     {
-        var service = new StubPublicProfileService(
-            delayFirstCall: false,
-            returnProfiles: true,
-            controlSummaries: true)
-        {
-            DelaySecondSummary = false
-        };
+        var (client, service) = CreateUserClient(controlSummaries: true);
+        service.DelaySecondSummary = false;
         var page = new TestPublicUserProfile();
-        SetInjectedService(page, nameof(PublicUserProfile), "PublicProfileService", service);
+        SetInjectedService(page, nameof(PublicUserProfile), "UserClient", client);
         SetParameter(page, nameof(PublicUserProfile.Username), "A");
 
         var firstLoad = page.LoadAsync();
@@ -141,7 +139,7 @@ public sealed class PublicProfilePageStateTests
         service.FirstSummaryResult.SetResult(CreateSummaries("A summary"));
         await firstLoad;
 
-        var profile = Assert.IsType<PublicUserProfileDTO>(ReadField(page, nameof(PublicUserProfile), "_profile"));
+        var profile = Assert.IsType<UserDTO>(ReadField(page, nameof(PublicUserProfile), "_profile"));
         var summaries = Assert.IsType<PublicProfileMatchSummariesDTO>(ReadField(page, nameof(PublicUserProfile), "_matchSummaries"));
         Assert.Equal("B", profile.Username);
         Assert.Equal("B summary", Assert.Single(summaries.UpcomingMatches).TournamentName);
@@ -152,12 +150,9 @@ public sealed class PublicProfilePageStateTests
     [Fact]
     public async Task PublicUserProfile_IgnoresStaleRetryAfterRouteChange()
     {
-        var service = new StubPublicProfileService(
-            delayFirstCall: false,
-            returnProfiles: true,
-            controlSummaries: true);
+        var (client, service) = CreateUserClient(controlSummaries: true);
         var page = new TestPublicUserProfile();
-        SetInjectedService(page, nameof(PublicUserProfile), "PublicProfileService", service);
+        SetInjectedService(page, nameof(PublicUserProfile), "UserClient", client);
         SetParameter(page, nameof(PublicUserProfile.Username), "A");
 
         var initialLoad = page.LoadAsync();
@@ -175,7 +170,7 @@ public sealed class PublicProfilePageStateTests
         service.SecondSummaryResult.SetException(new InvalidOperationException("stale retry failure"));
         await retry;
 
-        var profile = Assert.IsType<PublicUserProfileDTO>(ReadField(page, nameof(PublicUserProfile), "_profile"));
+        var profile = Assert.IsType<UserDTO>(ReadField(page, nameof(PublicUserProfile), "_profile"));
         var summaries = Assert.IsType<PublicProfileMatchSummariesDTO>(ReadField(page, nameof(PublicUserProfile), "_matchSummaries"));
         Assert.Equal("B", profile.Username);
         Assert.Equal("B summary", Assert.Single(summaries.UpcomingMatches).TournamentName);
@@ -253,16 +248,17 @@ public sealed class PublicProfilePageStateTests
     [Fact]
     public async Task PublicUserProfile_DisposeSuppressesPendingLoad()
     {
-        var service = new StubPublicProfileService(delayFirstCall: true);
+        var (client, service) = CreateUserClient();
+        service.DelayFirstProfileCall = true;
         var page = new TestPublicUserProfile();
-        SetInjectedService(page, nameof(PublicUserProfile), "PublicProfileService", service);
+        SetInjectedService(page, nameof(PublicUserProfile), "UserClient", client);
         SetParameter(page, nameof(PublicUserProfile.Username), "A");
 
         var load = page.LoadAsync();
-        await service.FirstCallStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await service.FirstProfileCallStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         page.Dispose();
-        service.FirstCallResult.SetException(new InvalidOperationException("disposed failure"));
+        service.FirstProfileCallResult.SetException(new InvalidOperationException("disposed failure"));
         await load;
 
         Assert.True(ReadBoolean(page, nameof(PublicUserProfile), "_isLoading"));
@@ -329,6 +325,14 @@ public sealed class PublicProfilePageStateTests
             ]
         };
 
+    private static (IUserClient Client, StubUserClientProxy Service) CreateUserClient(bool controlSummaries = false)
+    {
+        var client = DispatchProxy.Create<IUserClient, StubUserClientProxy>();
+        var service = (StubUserClientProxy)(object)client;
+        service.ControlSummaries = controlSummaries;
+        return (client, service);
+    }
+
     private static void SetParameter(object page, string propertyName, object? value)
     {
         var pageType = page.GetType().BaseType ?? throw new InvalidOperationException("Test page base type was not found.");
@@ -358,20 +362,21 @@ public sealed class PublicProfilePageStateTests
         public Task LoadAsync() => base.OnParametersSetAsync();
     }
 
-    private sealed class StubPublicProfileService(
-        bool delayFirstCall,
-        bool returnProfiles = false,
-        bool controlSummaries = false) : IPublicProfileService
+    private class StubUserClientProxy : DispatchProxy
     {
         private readonly object _syncRoot = new();
         private readonly List<string> _requestedUsernames = [];
-        private int _callCount;
+        private int _profileCallCount;
         private int _summaryCallCount;
 
-        public TaskCompletionSource<bool> FirstCallStarted { get; } =
+        public bool DelayFirstProfileCall { get; set; }
+        public bool ControlSummaries { get; set; }
+        public bool DelaySecondSummary { get; set; } = true;
+
+        public TaskCompletionSource<bool> FirstProfileCallStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public TaskCompletionSource<PublicUserProfileDTO?> FirstCallResult { get; } =
+        public TaskCompletionSource<UserDTO> FirstProfileCallResult { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public TaskCompletionSource<bool> FirstSummaryCallStarted { get; } =
@@ -380,13 +385,11 @@ public sealed class PublicProfilePageStateTests
         public TaskCompletionSource<bool> SecondSummaryCallStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public TaskCompletionSource<PublicProfileMatchSummariesDTO?> FirstSummaryResult { get; } =
+        public TaskCompletionSource<PublicProfileMatchSummariesDTO> FirstSummaryResult { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public TaskCompletionSource<PublicProfileMatchSummariesDTO?> SecondSummaryResult { get; } =
+        public TaskCompletionSource<PublicProfileMatchSummariesDTO> SecondSummaryResult { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public bool DelaySecondSummary { get; set; } = true;
 
         public IReadOnlyList<string> RequestedUsernames
         {
@@ -397,47 +400,44 @@ public sealed class PublicProfilePageStateTests
             }
         }
 
-        public Task<PublicUserProfileDTO?> GetPublicUserByUsernameAsync(
-            string username,
-            CancellationToken cancellationToken = default)
+        protected override object Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            lock(_syncRoot)
-                _requestedUsernames.Add(username);
-
-            if(Interlocked.Increment(ref _callCount) == 1 && delayFirstCall)
+            var username = (string)(args?[0] ?? throw new InvalidOperationException("Username was not supplied."));
+            if(targetMethod?.Name == nameof(IUserClient.GetUserByUsernameAsync))
             {
-                FirstCallStarted.TrySetResult(true);
-                return FirstCallResult.Task;
+                lock(_syncRoot)
+                    _requestedUsernames.Add(username);
+
+                if(Interlocked.Increment(ref _profileCallCount) == 1 && DelayFirstProfileCall)
+                {
+                    FirstProfileCallStarted.TrySetResult(true);
+                    return FirstProfileCallResult.Task;
+                }
+
+                return Task.FromResult(new UserDTO { Username = username });
             }
 
-            return returnProfiles
-                ? Task.FromResult<PublicUserProfileDTO?>(new PublicUserProfileDTO { Username = username })
-                : Task.FromResult<PublicUserProfileDTO?>(null);
-        }
-
-        public Task<PublicProfileMatchSummariesDTO?> GetPublicUserMatchSummariesAsync(
-            string username,
-            CancellationToken cancellationToken = default)
-        {
-            if(!controlSummaries)
+            if(targetMethod?.Name == nameof(IUserClient.GetUserMatchSummariesAsync))
             {
-                return Task.FromException<PublicProfileMatchSummariesDTO?>(
-                    new InvalidOperationException("Match summaries must not be requested by this state test."));
+                if(!ControlSummaries)
+                    return Task.FromResult(CreateSummaries($"{username} summary"));
+
+                switch(Interlocked.Increment(ref _summaryCallCount))
+                {
+                    case 1:
+                        FirstSummaryCallStarted.TrySetResult(true);
+                        return FirstSummaryResult.Task;
+                    case 2:
+                        SecondSummaryCallStarted.TrySetResult(true);
+                        return DelaySecondSummary
+                            ? SecondSummaryResult.Task
+                            : Task.FromResult(CreateSummaries($"{username} summary"));
+                    default:
+                        return Task.FromResult(CreateSummaries($"{username} summary"));
+                }
             }
 
-            switch(Interlocked.Increment(ref _summaryCallCount))
-            {
-                case 1:
-                    FirstSummaryCallStarted.TrySetResult(true);
-                    return FirstSummaryResult.Task;
-                case 2:
-                    SecondSummaryCallStarted.TrySetResult(true);
-                    return DelaySecondSummary
-                        ? SecondSummaryResult.Task
-                        : Task.FromResult<PublicProfileMatchSummariesDTO?>(CreateSummaries($"{username} summary"));
-                default:
-                    return Task.FromResult<PublicProfileMatchSummariesDTO?>(CreateSummaries($"{username} summary"));
-            }
+            throw new NotSupportedException($"User API method '{targetMethod?.Name}' is not configured for this state test.");
         }
     }
 

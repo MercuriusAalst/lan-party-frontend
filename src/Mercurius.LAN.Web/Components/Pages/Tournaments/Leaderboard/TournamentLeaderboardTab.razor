@@ -1,0 +1,94 @@
+@using Mercurius.LAN.Web.DTOs.Leaderboards
+@using Mercurius.LAN.Web.Extensions
+@using Mercurius.LAN.Web.Models.Tournaments
+@rendermode InteractiveServer
+
+<div class="leaderboard-shell">
+    <div class="leaderboard-header">
+        <div>
+            <h2 class="section-eyebrow">@Localization["Feature.leaderboard.heading"]</h2>
+            <p class="leaderboard-metric">@GetMetricDescription()</p>
+        </div>
+
+        <AuthorizeView Roles="admin">
+            <Authorized>
+                <div class="leaderboard-entry-actions">
+                    <button type="button"
+                            class="leaderboard-entry-button button-primary"
+                            disabled="@(!CanManageResults)"
+                            aria-describedby="@(ResultEntryUnavailableReason is null ? null : ResultEntryUnavailableDescriptionId)"
+                            title="@ResultEntryUnavailableReason"
+                            @onclick="OpenResultEntry">
+                        @Localization["Feature.leaderboard.recordResult"]
+                    </button>
+                    @if(ResultEntryUnavailableReason is not null)
+                    {
+                        <p id="@ResultEntryUnavailableDescriptionId" class="leaderboard-entry-unavailable">@ResultEntryUnavailableReason</p>
+                    }
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    @if(_isLoading)
+    {
+        <p class="leaderboard-state" role="status">@Localization["Feature.leaderboard.loading"]</p>
+    }
+    else if(_loadError is not null)
+    {
+        <div class="leaderboard-state leaderboard-state--error" role="alert">
+            <p>@_loadError</p>
+            <button type="button" class="button-secondary" @onclick="RefreshAsync">@Localization["status.tryAgain"]</button>
+        </div>
+    }
+    else if(!Rows.Any())
+    {
+        <div class="leaderboard-empty-state">
+            <h3>@Localization["Feature.leaderboard.noResultsHeading"]</h3>
+            <p>@Localization["Feature.leaderboard.noResultsText"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="leaderboard-table-scroll">
+            <table class="leaderboard-table">
+                <caption class="leaderboard-caption">@Localization["Feature.leaderboard.tableCaption"]</caption>
+                <thead>
+                    <tr>
+                        <th scope="col" class="leaderboard-col-rank">@Localization["Feature.leaderboard.rank"]</th>
+                        <th scope="col">@Localization["Feature.leaderboard.participant"]</th>
+                        <th scope="col" class="leaderboard-col-result">@GetResultColumnLabel()</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(var row in Rows)
+                    {
+                        <tr class="leaderboard-row">
+                            <td class="leaderboard-cell-rank" data-label="@Localization["Feature.leaderboard.rank"]">
+                                <span class="leaderboard-rank">@row.Rank</span>
+                            </td>
+                            <td class="leaderboard-cell-participant" data-label="@Localization["Feature.leaderboard.participant"]">
+                                <span class="leaderboard-name">@row.DisplayName</span>
+                                @if(row.ParticipantKind == LeaderboardParticipantKind.Guest)
+                                {
+                                    <span class="leaderboard-kind-badge">@Localization["Feature.leaderboard.guest"]</span>
+                                }
+                            </td>
+                            <td class="leaderboard-cell-result" data-label="@GetResultColumnLabel()">
+                                @LeaderboardFormattingExtensions.FormatLeaderboardValue(Metric, row.Score, row.DurationMilliseconds)
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if(_isEntryOpen)
+{
+    <RecordLeaderboardAttemptDialog @key="Tournament.Id"
+                                    TournamentId="@Tournament.Id"
+                                    RankingMetric="@Metric"
+                                    OnClose="CloseResultEntryAsync" />
+}

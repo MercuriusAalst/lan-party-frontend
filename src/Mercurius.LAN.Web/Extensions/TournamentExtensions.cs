@@ -25,6 +25,7 @@ public static class TournamentExtensions
             BracketType.DoubleElimination => "Double Elimination",
             BracketType.RoundRobin => "Round Robin (unsupported)",
             BracketType.Swiss => "Swiss (unsupported)",
+            BracketType.Leaderboard => "Leaderboard",
             _ => bracketType.ToString()
         };
     }
@@ -38,6 +39,14 @@ public static class TournamentExtensions
             TournamentFormat.BestOf5 => "Best of 5",
             _ => tournamentFormat.ToString()
         };
+    }
+
+    public static string GetFormatDetailLabel(this Tournament tournament)
+    {
+        if(tournament.IsLeaderboard())
+            return tournament.BracketType.GetLabel();
+
+        return $"{tournament.BracketType.GetLabel()} · {tournament.Format.GetLabel()}";
     }
 
     public static string GetStatusClass(this TournamentStatus status)

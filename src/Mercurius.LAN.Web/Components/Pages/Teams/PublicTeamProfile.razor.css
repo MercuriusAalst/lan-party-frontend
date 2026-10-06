@@ -85,7 +85,7 @@
     list-style: none;
 }
 
-.public-team-member-link,
+.public-team-member,
 .public-team-tournament-link {
     width: 100%;
     border: 1px solid var(--color-border);
@@ -95,9 +95,9 @@
     transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
-.public-team-member-link {
+.public-team-member {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
     align-items: center;
     gap: 0.7rem;
     padding: 0.76rem 0.85rem;
@@ -111,14 +111,12 @@
     font-weight: 700;
 }
 
-.public-team-member-link:hover,
 .public-team-tournament-link:hover {
     border-color: var(--color-primary-green);
     background: var(--color-surface-raised);
     transform: translateY(-1px);
 }
 
-.public-team-member-link:focus-visible,
 .public-team-tournament-link:focus-visible {
     border-color: var(--color-primary-green);
     box-shadow: 0 0 0 3px rgba(57, 201, 101, 0.26);
@@ -152,12 +150,6 @@
     flex-wrap: wrap;
 }
 
-.public-team-member-copy span {
-    color: var(--color-muted-text);
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
 .public-team-captain-badge {
     display: inline-flex;
     align-items: center;
@@ -171,11 +163,6 @@
     font-weight: 800;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-}
-
-.public-team-member-arrow {
-    color: var(--color-subtle);
-    font-size: 0.92rem;
 }
 
 @media (min-width: 960px) {
@@ -212,13 +199,12 @@
     margin-top: 0;
 }
 
-.public-team-member-link,
+.public-team-member,
 .public-team-tournament-link {
     border: 0;
     background: var(--color-surface-muted);
 }
 
-.public-team-member-link:hover,
 .public-team-tournament-link:hover {
     border-color: transparent;
     background: var(--color-success-soft);
@@ -240,12 +226,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .public-team-member-link,
     .public-team-tournament-link {
         transition: none;
     }
 
-    .public-team-member-link:hover,
     .public-team-tournament-link:hover {
         transform: none;
     }

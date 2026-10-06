@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>060acddd-9ac9-4709-869a-d4f13615ee12</UserSecretsId>
@@ -37,7 +37,10 @@
 	<ItemGroup>
 		<PackageReference Include="Blazored.Toast" Version="4.2.1" />
     <PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.7.0" />
-		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.7" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.12" />
+		<PackageReference Include="Microsoft.Bcl.Cryptography" Version="10.0.12" />
+		<PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.23.0" />
 		<PackageReference Include="MudBlazor" Version="9.4.0" />
 		<PackageReference Include="Refit" Version="8.0.0" />
 		<PackageReference Include="Refit.HttpClientFactory" Version="8.0.0" />

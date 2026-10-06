@@ -33,16 +33,6 @@ public sealed class ParticipantViewModel
 
     private static string GetUserDisplayName(PublicUserDTO user)
     {
-        if(!string.IsNullOrWhiteSpace(user.Username))
-            return user.Username.Trim();
-
-        if(!string.IsNullOrWhiteSpace(user.DisplayName))
-            return user.DisplayName.Trim();
-
-        var fullName = string.Join(" ", new[] { user.Firstname, user.Lastname }
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value!.Trim()));
-
-        return fullName;
+        return user.Username?.Trim() ?? string.Empty;
     }
 }

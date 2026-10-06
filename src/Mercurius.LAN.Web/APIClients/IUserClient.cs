@@ -1,4 +1,5 @@
 using Mercurius.LAN.Web.DTOs.Users;
+using Mercurius.LAN.Web.DTOs.PublicProfiles;
 using Refit;
 
 namespace Mercurius.LAN.Web.APIClients;
@@ -38,6 +39,14 @@ public interface IUserClient
 
     [Get("/v1/lan/users/{id}")]
     Task<UserDTO> GetUserByIdAsync(Guid id);
+
+    [Get("/v1/lan/users/{username}")]
+    Task<UserDTO> GetUserByUsernameAsync(string username, CancellationToken cancellationToken = default);
+
+    [Get("/v1/lan/users/{username}/match-summaries")]
+    Task<PublicProfileMatchSummariesDTO> GetUserMatchSummariesAsync(
+        string username,
+        CancellationToken cancellationToken = default);
 
     [Patch("/v1/lan/users/{id}")]
     Task<UserDTO> UpdateUserAsync(Guid id, [Body] UpdateUserProfileRequest request);

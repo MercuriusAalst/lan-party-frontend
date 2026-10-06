@@ -82,6 +82,18 @@
     max-width: none;
 }
 
+.Tournament-editor-form-container .error-message {
+    justify-content: flex-start;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    text-align: left;
+}
+
+.Tournament-editor-form-container .error-message p {
+    text-align: left;
+}
+
 .form-group {
     display: grid;
     gap: 0.45rem;

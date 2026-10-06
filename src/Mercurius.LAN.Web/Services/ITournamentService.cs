@@ -1,4 +1,5 @@
 using Mercurius.LAN.Web.DTOs.Tournaments;
+using Mercurius.LAN.Web.DTOs.Leaderboards;
 using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.DTOs.Registrations;
 using Mercurius.LAN.Web.Models.Tournaments;
@@ -52,6 +53,8 @@ public interface ITournamentService
     Task<Match> GetMatchByIdAsync(Guid matchId, CancellationToken cancellationToken = default);
 
     Task<MatchActionStateDTO> GetMatchActionStateAsync(Guid matchId, CancellationToken cancellationToken = default);
+
+    Task<MatchOpponentProfileDTO> GetMatchOpponentProfileAsync(Guid matchId, CancellationToken cancellationToken = default);
 
     Task<Match> ConfirmMatchEndedAsync(Guid matchId, CancellationToken cancellationToken = default);
 
@@ -135,5 +138,30 @@ public interface ITournamentService
         Guid tournamentId,
         Guid teamId,
         string? reason = null,
+        CancellationToken cancellationToken = default);
+
+    Task<PublicLeaderboardDTO> GetLeaderboardAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminLeaderboardResponseDTO> GetAdminLeaderboardAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken = default);
+
+    Task<AdminLeaderboardParticipantDTO> RecordLeaderboardAttemptAsync(
+        Guid tournamentId,
+        RecordLeaderboardAttemptDTO request,
+        CancellationToken cancellationToken = default);
+
+    Task<LeaderboardAttemptDTO> UpdateLeaderboardAttemptAsync(
+        Guid tournamentId,
+        Guid attemptId,
+        UpdateLeaderboardAttemptDTO request,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteLeaderboardAttemptAsync(
+        Guid tournamentId,
+        Guid attemptId,
+        Guid rowVersion,
         CancellationToken cancellationToken = default);
 }

@@ -1,13 +1,13 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
-<div class="participant-overview-card"
-     role="button"
-     tabindex="0"
-     aria-haspopup="dialog"
-     aria-label='@Localization.Get("shared.viewParticipantDetails", ParticipantLabel)'
+<div class="@(OnParticipantSelected.HasDelegate ? "participant-overview-card participant-overview-card--interactive" : "participant-overview-card")"
+     role="@(OnParticipantSelected.HasDelegate ? "button" : null)"
+     tabindex="@(OnParticipantSelected.HasDelegate ? 0 : null)"
+     aria-haspopup="@(OnParticipantSelected.HasDelegate ? "dialog" : null)"
+     aria-label="@(OnParticipantSelected.HasDelegate ? Localization.Get("shared.viewParticipantDetails", ParticipantLabel) : null)"
      @onmouseover="() => _showDeleteIcon = true"
      @onmouseout="() => _showDeleteIcon = false"
-     @onclick="() => ShowParticipantPopup(Participant)"
+     @onclick="ShowParticipantPopupAsync"
      @onkeydown="HandleKeyDown">
     @if(_showDeleteIcon && AllowDeleteFunction)
     {

@@ -6,18 +6,27 @@ TBD - created by archiving change issue-42-internal-registration-ui. Update Purp
 ### Requirement: Tournament registration stays inside the application
 
 The tournament detail page MUST use the internal registration workflow and MUST NOT present an
-external registration URL as the registration path.
+external registration URL as the registration path. Leaderboard tournaments MUST NOT expose a
+registration surface because leaderboard participation is created only through authorized
+administrative result entry.
 
 #### Scenario: Visitor opens a scheduled tournament
 
-- **WHEN** a visitor views a scheduled tournament detail page
+- **WHEN** a visitor views a scheduled non-leaderboard tournament detail page
 - **THEN** the page MUST expose an in-application registration surface
 - **AND** no registration action MAY navigate to Google Forms or another external form
 
 #### Scenario: Visitor opens a closed tournament
 
-- **WHEN** a tournament is no longer scheduled
+- **WHEN** a non-leaderboard tournament is no longer scheduled
 - **THEN** the page MUST show registration as closed and MUST NOT offer a registration mutation
+
+#### Scenario: Visitor opens a leaderboard tournament
+
+- **WHEN** a visitor views a leaderboard tournament detail page or tournament list entry
+- **THEN** the page MUST NOT offer a registration action or registration mutation
+- **AND** any related explanation MUST NOT imply that registration is required, pending, or merely
+  closed
 
 ### Requirement: Individual registration requires authenticated confirmation
 
@@ -30,6 +39,12 @@ registration through explicit confirmation and backend-authoritative refresh.
 - **THEN** the page MUST ask for explicit confirmation before sending the mutation
 - **AND** a confirmed mutation MUST refresh the tournament and current-user registration state
 - **AND** the page MUST show the state returned by the backend
+
+#### Scenario: Eligible player registers individually
+
+- **WHEN** an eligible authenticated player selects the individual registration action
+- **THEN** the UI MUST use a concise action label without restating that the player is an individual
+- **AND** the next interaction MUST be a friendly confirmation describing the tournament outcome before the existing mutation is sent
 
 #### Scenario: Registered user unregisters
 
@@ -61,34 +76,56 @@ registration through explicit confirmation and backend-authoritative refresh.
 
 ### Requirement: Team registration uses a three-step MudBlazor Stepper
 
-An authenticated captain MUST use a MudBlazor Stepper with exactly three logical steps: team
-selection, roster selection, and review/submit.
+An authenticated captain MUST use a MudBlazor Stepper with exactly three logical steps: team selection, roster selection, and review/submit.
 
 #### Scenario: Captain selects a team
 
 - **WHEN** a captain opens team registration
-- **THEN** Step 1 MUST list only teams the current user captains
-- **AND** the selected team MUST be checked against backend team eligibility before the captain can
-  continue
-- **AND** eligibility for another team MAY be loaded when that team is selected rather than when
-  the page first opens
-- **AND** an ineligible team MUST be disabled or clearly marked with its reason
+- **THEN** Step 1 MUST list only teams the current user captains that have at least the tournament's required team size in current members
+- **AND** teams below the required size MUST be hidden, including teams with an existing registration
+- **AND** any restored or automatically selected team MUST satisfy the same captain and member-count criteria
+- **AND** the popup MUST explain that undersized teams are hidden
+- **AND** the popup MUST identify whether the captain is registering the team or editing its existing registration
+- **AND** the selected team MUST be visibly and accessibly identified
+- **AND** the selected team MUST be checked against backend team eligibility before the captain can continue
+- **AND** the team selection step MUST remain active until a valid team is selected
+- **AND** the step MUST remain on team selection after an eligible selection until the captain chooses an action labelled for the next step, such as `Choose roster` or `Edit roster`
+
+#### Scenario: Captain sees an unavailable team option
+
+- **WHEN** a captained team fails backend team eligibility
+- **THEN** the team option MUST remain visible only as a visibly disabled or status-marked option with the visual label `Unavailable`
+- **AND** validation reasons, raw reason codes, and explanatory paragraphs MUST not be rendered beside the option
 
 #### Scenario: Captain selects a roster
 
 - **WHEN** the captain reaches Step 2
-- **THEN** the page MUST list members from the selected team
-- **AND** the configured tournament team size MUST be shown as the exact number required,
-      including the captain
-- **AND** the captain MUST remain selected
-- **AND** ineligible members MUST be disabled or clearly marked with their backend reason
-- **AND** the captain MUST NOT progress to review until the local roster constraints pass
+- **THEN** the step title MUST identify the selected team as `Roster members for {team}` and show selected versus required roster count inline
+- **AND** the page MUST list members from the selected team
+- **AND** the separate selected-team block and roster-size label/help MUST NOT be shown
+- **AND** the current captain MUST remain selected automatically and MUST NOT appear as a roster candidate
+- **AND** ineligible roster candidates MUST retain a meaningful disabled state and error handling
+- **AND** standalone eligible/unavailable status messages MUST NOT occupy the roster status area
+- **AND** the captain MUST NOT progress to review until local roster constraints pass
+- **AND** when navigating backward and forward, the current draft MUST be preserved and revalidated
 - **AND** when a preserved dirty draft is rechecked, the current captain MUST be added without
   removing an existing selected member
 - **AND** a roster made oversized by a captain transfer MUST remain invalid until the captain
   explicitly removes a member
 - **AND** a selected draft member who is no longer in the current team projection MUST remain
   listed as removable until the draft is repaired or cleared
+- **AND** the forward action from roster selection MUST be labelled `Review roster`
+
+#### Scenario: Unavailable roster members remain visible but excluded
+
+- **WHEN** a roster member is marked unavailable or ineligible for the tournament
+- **THEN** the member MUST remain visible in the roster selection
+- **AND** the member's selection control MUST initialize unchecked and render as non-selectable/disabled with the accessible state `Unavailable`
+- **AND** the accessible label MUST communicate `Unavailable` without exposing raw backend reason codes or technical refresh terminology
+- **AND** the member MUST be excluded from any restored or realtime-preserved roster draft
+- **AND** the member MUST be excluded from the submitted roster even if a stale draft or client state previously contained that member
+- **AND** eligible roster members MUST retain their existing selectable and checked-state semantics
+- **AND** captain and team selection semantics MUST remain unchanged
 
 #### Scenario: Candidate discovery does not invalidate the selected roster
 
@@ -110,11 +147,25 @@ selection, roster selection, and review/submit.
 - **AND** the selected exact roster MUST still be validated separately and remain eligible to
   advance when it satisfies the configured team size
 
+#### Scenario: Captain advances out of the roster step
+
+- **WHEN** the captain advances from Step 2 through the primary action or a later step header and the draft is revalidated against backend roster eligibility
+- **THEN** the revalidation MUST keep the current roster, eligibility, and action state rendered until the backend response arrives
+- **AND** the focused action MUST NOT be replaced or disabled while the revalidation is in flight
+- **AND** the captain MUST advance only when the revalidation confirms the current selection
+- **AND** a rejected revalidation MUST show one concise inline reason above the steps and MUST NOT advance the step
+
 #### Scenario: Captain reviews and submits
 
 - **WHEN** the captain reaches Step 3
-- **THEN** the page MUST summarize the team, roster, required size, and pending confirmation behavior
-- **AND** submission MUST send the exact selected roster through the backend team roster route
+- **THEN** the step title MUST be `Summary` and show selected versus required roster count inline
+- **AND** the page MUST summarize the team, roster, required size, and pending confirmation behavior
+- **AND** the separate required-size section MUST NOT be shown
+- **AND** roster member cards MUST visually distinguish confirmed and pending members using each member's actual confirmation state
+- **AND** a captain member card MUST show its localized captain badge after the member name
+- **AND** the final action MUST clearly indicate whether it submits a new registration or saves an edited roster
+- **AND** submission MUST send the exact selected roster through the existing backend team roster route
+- **AND** cancellation of an existing registration MUST appear beside the save action when Summary is reachable
 - **AND** a pending response MUST remain visible as pending until all required confirmations complete
 
 #### Scenario: Captain edits an existing registration
@@ -123,6 +174,22 @@ selection, roster selection, and review/submit.
 - **THEN** the page MUST load its current roster into the Stepper
 - **AND** the captain MUST be able to submit an edited roster when backend rules allow it
 - **AND** the UI MUST not block editing solely because the team is already registered
+
+#### Scenario: Captain cancels without reaching the summary
+
+- **WHEN** a captain-managed registration exists and filtering or invalid/unavailable roster eligibility prevents the captain from reaching Summary
+- **THEN** cancellation MUST remain available before Summary, including when no team option remains
+- **AND** confirmation and deletion MUST target the current captain-managed registration independently of the filtered selection
+- **AND** cancelling MUST NOT change another selected team or roster draft
+
+#### Scenario: Captain navigates between steps
+
+- **WHEN** the captain activates a step header to navigate through the Stepper
+- **THEN** the step headers MUST be keyboard navigable and expose visible focus and active states
+- **AND** a clickable step header MUST show a soft rounded hover surface
+- **AND** navigation to a later step MUST be blocked unless all prior team and roster requirements pass
+- **AND** navigation to an earlier step MUST remain available while a request is not submitting
+- **AND** the existing forward and back action buttons MUST NOT be duplicated outside the Stepper
 
 #### Scenario: Captain edits after captain transfer
 
@@ -260,60 +327,30 @@ registration data.
 
 ### Requirement: Tournament registration is an accessible popup workflow
 
-The tournament detail page MUST expose a concise registration trigger and render
-the registration workflow in an accessible modal popup rather than inline in the
-page content.
+The tournament detail page MUST expose a concise registration trigger and render the registration workflow in an accessible modal popup rather than inline in the page content.
 
 #### Scenario: Visitor opens registration
 
 - **WHEN** a visitor selects the tournament registration action
-- **THEN** the workflow MUST open in a labelled dialog with a clear close action
-- **AND** keyboard focus MUST move into the dialog, remain usable within it,
-  and return to the trigger after dismissal
-- **AND** the underlying tournament page MUST not render a second inline
-  registration component
+- **THEN** the workflow MUST open in a labelled dialog with a clear borderless close control
+- **AND** the dialog MUST retain an accessible name when the visible `Registration` eyebrow is removed
+- **AND** the first step MUST NOT show the redundant sentence `Choose a team you captain to register or update.`
+- **AND** keyboard focus MUST move into the dialog, remain usable within it, and return to the trigger after dismissal
+- **AND** the underlying tournament page MUST not render a second inline registration component
 
-#### Scenario: Eligible captain selects a team
+#### Scenario: Captain uses registration actions
 
-- **WHEN** an eligible captain selects a team in the team-registration popup
-- **THEN** the selection MUST advance automatically to roster selection after
-  eligibility is confirmed
-- **AND** an unavailable team MUST stay selectable only as a visibly disabled or
-  status-marked option with the visual label `Unavailable`
-- **AND** validation reasons, raw reason codes, and explanatory paragraphs MUST
-  not be rendered beside the option
+- **WHEN** a captain reaches a registration step where an action is disabled
+- **THEN** the primary action MUST retain a clearly disabled visual style
+- **AND** the popup MUST NOT render separate `Change team` or `Back` buttons when the stepper provides navigable steps
+- **AND** summary and roster content MUST preserve accessible labels and meaningful disabled states
 
-#### Scenario: Eligible player registers individually
+#### Scenario: Captain reads registration options
 
-- **WHEN** an eligible authenticated player selects the individual registration
-  action
-- **THEN** the UI MUST use a concise action label without restating that the
-  player is an individual
-- **AND** the next interaction MUST be a friendly confirmation describing the
-  tournament outcome before the existing mutation is sent
-
-#### Scenario: User sees an unavailable roster option
-
-- **WHEN** a team or roster member cannot be used for the tournament
-- **THEN** the UI MUST communicate unavailability through disabled/status
-  styling and an icon or label, not explanatory validation text
-- **AND** the accessible label MUST communicate `Unavailable` without exposing
-  raw backend reason codes or technical refresh terminology
-
-#### Scenario: Unavailable roster members remain visible but excluded
-
-- **WHEN** a roster member is marked unavailable or ineligible for the
-  tournament
-- **THEN** the member MUST remain visible in the roster selection
-- **AND** the member's selection control MUST initialize unchecked and render
-  as non-selectable/disabled with the accessible state `Unavailable`
-- **AND** the member MUST be excluded from any restored or realtime-preserved
-  roster draft
-- **AND** the member MUST be excluded from the submitted roster even if a
-  stale draft or client state previously contained that member
-- **AND** eligible roster members MUST retain their existing selectable and
-  checked-state semantics
-- **AND** captain and team selection semantics MUST remain unchanged
+- **WHEN** a captain views the team, roster, or summary options in the popup
+- **THEN** team, roster, and summary cards MUST keep their natural width when only a few options are shown instead of stretching across the whole dialog
+- **AND** every registration cancellation action MUST render with the shared danger treatment
+- **AND** the dialog MUST remain readable without page-wide horizontal overflow at narrow widths
 
 ### Requirement: Registration context recovers when the popup is reopened
 
@@ -440,3 +477,4 @@ the supported en-US and nl-BE resources and MUST use the existing localization f
 - **THEN** the player MUST see a clear statement that they were selected for a team and tournament
 - **AND** the message MUST avoid raw placeholders, backend reason codes, and technical refresh terms
 - **AND** Accept and Decline labels MUST remain understandable without relying on color alone
+

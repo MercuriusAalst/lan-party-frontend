@@ -1,3 +1,4 @@
+using System.Net;
 using Blazored.Toast.Services;
 using Mercurius.LAN.Web.Components.Shared;
 using Mercurius.LAN.Web.DTOs.Registrations;
@@ -29,13 +30,15 @@ public partial class TournamentOverviewTab
     private static readonly BracketType[] SupportedBracketTypes =
     [
         BracketType.SingleElimination,
-        BracketType.DoubleElimination
+        BracketType.DoubleElimination,
+        BracketType.Leaderboard
     ];
 
     private static readonly IReadOnlyDictionary<string, string> ValidationFieldLabelKeys = new Dictionary<string, string>
     {
         [nameof(UpdateTournamentDTO.Name)] = "shared.name",
         [nameof(UpdateTournamentDTO.BracketType)] = "Feature.tournament.bracketType",
+        [nameof(UpdateTournamentDTO.LeaderboardRankingMetric)] = "Feature.tournaments.rankingMetric",
         [nameof(UpdateTournamentDTO.Format)] = "Feature.tournaments.matchFormat",
         [nameof(UpdateTournamentDTO.FinalsFormat)] = "Feature.tournaments.finalsFormat",
         [nameof(UpdateTournamentDTO.ParticipationMode)] = "tournament.participation",
@@ -49,8 +52,14 @@ public partial class TournamentOverviewTab
     private static readonly IReadOnlyDictionary<string, string> ValidationMessageKeys = new Dictionary<string, string>
     {
         ["Planned start time is required."] = "form.plannedStartTimeRequired",
-        ["Team tournaments require a team size between 1 and 50."] = "form.teamSizeRange"
+        ["Team tournaments require a team size between 1 and 50."] = "form.teamSizeRange",
+        ["Leaderboard tournaments require a ranking metric."] = "form.leaderboardMetricRequired",
+        ["Leaderboard tournaments are individual competitions."] = "form.leaderboardIndividualOnly"
     };
+
+    private bool IsLeaderboard => Tournament.BracketType == BracketType.Leaderboard;
+
+    private bool IsLeaderboardEdit => _editTournament.BracketType == BracketType.Leaderboard;
 
     private void EnableEditMode()
     {
@@ -61,6 +70,7 @@ public partial class TournamentOverviewTab
             Format = Tournament.Format,
             FinalsFormat = Tournament.FinalsFormat,
             BracketType = Tournament.BracketType,
+            LeaderboardRankingMetric = Tournament.LeaderboardRankingMetric,
             ParticipationMode = Tournament.ParticipationMode,
             TeamSize = Tournament.TeamSize,
             PlannedStartTime = Tournament.PlannedStartTime.ToLocalDisplayTime(),
@@ -69,7 +79,32 @@ public partial class TournamentOverviewTab
         };
         _editContext = new(_editTournament);
         _editContext.SetFieldCssClassProvider(new BootstrapValidationFieldClassProvider());
-        _editContext.OnFieldChanged += (sender, args) => _editContext.Validate();
+        _editContext.OnFieldChanged += (sender, args) =>
+        {
+            if(args.FieldIdentifier.FieldName == nameof(UpdateTournamentDTO.BracketType))
+                ApplyBracketTypeDefaults();
+            _editContext.Validate();
+        };
+    }
+
+    internal void ApplyBracketTypeDefaults()
+    {
+        if(!IsLeaderboardEdit)
+        {
+            _editTournament.LeaderboardRankingMetric = null;
+            return;
+        }
+
+        _editTournament.ParticipationMode = ParticipationMode.Individual;
+        _editTournament.TeamSize = null;
+    }
+
+    internal string ResolveEditSaveError(ApiException exception)
+    {
+        // The backend signals a concurrent leaderboard change with the "leaderboard_changed" code.
+        return string.Equals(exception.GetApiError()?.Code, "leaderboard_changed", StringComparison.OrdinalIgnoreCase)
+            ? Localization["Feature.tournaments.editConflict"]
+            : Localization["Feature.tournaments.updateFailed"];
     }
 
     private void CancelEditMode()
@@ -119,6 +154,7 @@ public partial class TournamentOverviewTab
             Tournament.Format = updatedTournament.Format;
             Tournament.FinalsFormat = updatedTournament.FinalsFormat;
             Tournament.BracketType = updatedTournament.BracketType;
+            Tournament.LeaderboardRankingMetric = updatedTournament.LeaderboardRankingMetric;
             Tournament.ParticipationMode = updatedTournament.ParticipationMode;
             Tournament.TeamSize = updatedTournament.TeamSize;
             Tournament.PlannedStartTime = updatedTournament.PlannedStartTime;
@@ -133,7 +169,7 @@ public partial class TournamentOverviewTab
         }
         catch(ApiException ex)
         {
-            _saveError = string.IsNullOrWhiteSpace(ex.Content) ? Localization["Feature.tournaments.updateFailed"] : ex.Content;
+            _saveError = ResolveEditSaveError(ex);
             ToastService.ShowError(_saveError);
         }
         catch(UnauthorizedAccessException)
@@ -167,7 +203,15 @@ public partial class TournamentOverviewTab
         BracketType.DoubleElimination => Localization["Feature.tournament.bracketDouble"],
         BracketType.RoundRobin => Localization["Feature.tournament.bracketRoundRobin"],
         BracketType.Swiss => Localization["Feature.tournament.bracketSwiss"],
+        BracketType.Leaderboard => Localization["Feature.tournament.bracketLeaderboard"],
         _ => bracketType.ToString()
+    };
+
+    private string GetRankingMetricLabel(LeaderboardRankingMetric metric) => metric switch
+    {
+        LeaderboardRankingMetric.HighestScore => Localization["Feature.tournaments.rankingMetricHighestScore"],
+        LeaderboardRankingMetric.FastestTime => Localization["Feature.tournaments.rankingMetricFastestTime"],
+        _ => metric.ToString()
     };
 
     private string GetParticipationLabel(ParticipationMode mode) => mode switch

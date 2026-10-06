@@ -1,0 +1,4 @@
+schema: spec-driven
+
+change-id: issue-66-leaderboard-tournament-ui
+summary: Add leaderboard tournament configuration, presentation, and admin result entry for score/time competitions.

@@ -97,7 +97,7 @@
                             }
                         </div>
                     }
-                    <ParticipantComponent Participant="GetParticipantById(Participant1Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant1IsBYE)" OnUserSelected="DisplayUserPopup" />
+                    <ParticipantComponent Participant="GetParticipantById(Participant1Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant1IsBYE)" CanViewUserDetails="@CanViewParticipant1Details" OnUserSelected="DisplayUserPopup" />
                     @if(_hasLoaded)
                     {
                         <div class="match-confirmation-status">
@@ -120,7 +120,7 @@
                             }
                         </div>
                     }
-                    <ParticipantComponent Participant="GetParticipantById(Participant2Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant2IsBYE)" OnUserSelected="DisplayUserPopup" />
+                    <ParticipantComponent Participant="GetParticipantById(Participant2Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant2IsBYE)" CanViewUserDetails="@CanViewParticipant2Details" OnUserSelected="DisplayUserPopup" />
                     @if(_hasLoaded)
                     {
                         <div class="match-confirmation-status">
@@ -130,6 +130,15 @@
                     }
                 </section>
             </div>
+
+            @if(_isLoadingOpponentProfile)
+            {
+                <div class="match-state-message" role="status">@Localization["Feature.match.loading"]</div>
+            }
+            else if(_opponentProfileError is not null)
+            {
+                <div class="match-state-message match-state-message--error" role="status">@_opponentProfileError</div>
+            }
 
             @if(_requiresAuthentication)
             {

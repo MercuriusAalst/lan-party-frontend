@@ -254,6 +254,12 @@ public partial class TournamentsOverview : IAsyncDisposable
 
     private void OpenRegistration(Tournament tournament)
     {
+        if(tournament.BracketType == BracketType.Leaderboard)
+        {
+            ToastService.ShowWarning(Localization["Feature.tournaments.leaderboardNoRegistration"]);
+            return;
+        }
+
         if(tournament.Status != TournamentStatus.Scheduled)
         {
             ToastService.ShowWarning(Localization["tournament.registrationClosedShort"]);
@@ -378,7 +384,9 @@ public partial class TournamentsOverview : IAsyncDisposable
             : Localization["Feature.tournamentsOverview.estimateUnavailable"];
     }
 
-    private static bool CanRegister(Tournament tournament) => tournament.Status == TournamentStatus.Scheduled;
+    private static bool CanRegister(Tournament tournament) =>
+        tournament.BracketType != BracketType.Leaderboard &&
+        tournament.Status == TournamentStatus.Scheduled;
 
     private string GetStatusLabel(TournamentStatus status) => status switch
     {
@@ -402,6 +410,7 @@ public partial class TournamentsOverview : IAsyncDisposable
         BracketType.DoubleElimination => Localization["Feature.tournament.bracketDouble"],
         BracketType.RoundRobin => Localization["Feature.tournament.bracketRoundRobin"],
         BracketType.Swiss => Localization["Feature.tournament.bracketSwiss"],
+        BracketType.Leaderboard => Localization["Feature.tournament.bracketLeaderboard"],
         _ => bracketType.ToString()
     };
 

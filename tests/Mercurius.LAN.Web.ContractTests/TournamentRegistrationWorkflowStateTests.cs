@@ -1,4 +1,7 @@
 using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
+using Mercurius.LAN.Web.DTOs.Participants.Teams;
+using Mercurius.LAN.Web.DTOs.Registrations;
+using Mercurius.LAN.Web.DTOs.Users;
 using Xunit;
 
 namespace Mercurius.LAN.Web.ContractTests;
@@ -44,6 +47,93 @@ public sealed class TournamentRegistrationWorkflowStateTests
             TournamentParticipantsTab.ShouldPreserveRosterDraftAfterRefresh(
                 draftTeamId,
                 selectedTeamId));
+    }
+
+    [Fact]
+    public void CaptainedTeamOptionsRequireTheTournamentRosterSize()
+    {
+        var teamAtRequiredSize = new TeamManagementSummaryDTO
+        {
+            Id = Guid.NewGuid(),
+            Members = Enumerable.Range(0, 3).Select(_ => new PublicUserDTO { Id = Guid.NewGuid() }).ToArray()
+        };
+        var largerTeam = new TeamManagementSummaryDTO
+        {
+            Id = Guid.NewGuid(),
+            Members = Enumerable.Range(0, 4).Select(_ => new PublicUserDTO { Id = Guid.NewGuid() }).ToArray()
+        };
+        var undersizedTeam = new TeamManagementSummaryDTO
+        {
+            Id = Guid.NewGuid(),
+            Members = Enumerable.Range(0, 2).Select(_ => new PublicUserDTO { Id = Guid.NewGuid() }).ToArray()
+        };
+
+        var options = TournamentParticipantsTab.FilterCaptainedTeamsByRequiredSize(
+            [teamAtRequiredSize, undersizedTeam, largerTeam],
+            requiredTeamSize: 3);
+
+        Assert.Equal([teamAtRequiredSize.Id, largerTeam.Id], options.Select(team => team.Id));
+        Assert.Empty(TournamentParticipantsTab.FilterCaptainedTeamsByRequiredSize(options, requiredTeamSize: 0));
+    }
+
+    [Fact]
+    public void UndersizedCaptainManagedRegistrationRemainsCancellableBeforeSummary()
+    {
+        var hiddenTeamId = Guid.NewGuid();
+        var hiddenTeam = new TeamManagementSummaryDTO
+        {
+            Id = hiddenTeamId,
+            Members = Enumerable.Range(0, 2).Select(_ => new PublicUserDTO { Id = Guid.NewGuid() }).ToArray()
+        };
+        var registration = new TournamentRegistrationDTO
+        {
+            Team = new TeamParticipantDTO { Id = hiddenTeamId, Name = "Undersized" }
+        };
+
+        var visibleTeams = TournamentParticipantsTab.FilterCaptainedTeamsByRequiredSize([hiddenTeam], requiredTeamSize: 3);
+        var managedRegistration = TournamentParticipantsTab.FindCaptainManagedRegistration([registration], [hiddenTeam]);
+
+        Assert.Empty(visibleTeams);
+        Assert.Same(registration, managedRegistration);
+        Assert.Equal(
+            hiddenTeamId,
+            TournamentParticipantsTab.GetTeamCancellationTarget(
+                activeStep: 1,
+                selectedTeamId: null,
+                canUnregisterSelectedTeam: false,
+                captainManagedTeamId: managedRegistration?.Team?.Id,
+                canUnregisterCaptainManagedTeam: true));
+        Assert.Equal(
+            Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            TournamentParticipantsTab.GetTeamCancellationTarget(
+                activeStep: 2,
+                selectedTeamId: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+                canUnregisterSelectedTeam: true,
+                captainManagedTeamId: hiddenTeamId,
+                canUnregisterCaptainManagedTeam: true));
+    }
+
+    [Theory]
+    [InlineData(0, 1, false, true, true)]
+    [InlineData(0, 2, false, true, false)]
+    [InlineData(1, 2, false, false, false)]
+    [InlineData(1, 2, false, true, true)]
+    [InlineData(2, 0, false, false, true)]
+    [InlineData(2, 1, true, false, false)]
+    public void TeamStepNavigationRequiresValidAdjacentForwardSteps(
+        int currentStep,
+        int requestedStep,
+        bool isBusy,
+        bool canAdvanceCurrentStep,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            TournamentParticipantsTab.CanNavigateTeamStep(
+                currentStep,
+                requestedStep,
+                isBusy,
+                canAdvanceCurrentStep));
     }
 
     [Fact]

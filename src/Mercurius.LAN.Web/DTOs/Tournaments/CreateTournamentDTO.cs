@@ -10,11 +10,12 @@ public class CreateTournamentDTO : IValidatableObject
     public string Name { get; set; } = string.Empty;
 
     public BracketType BracketType { get; set; }
+    public LeaderboardRankingMetric? LeaderboardRankingMetric { get; set; }
     public TournamentFormat Format { get; set; }
     public TournamentFormat FinalsFormat { get; set; }
 
     [Required]
-    public ParticipationMode? ParticipationMode { get; set; }
+    public ParticipationMode? ParticipationMode { get; set; } = Models.Tournaments.ParticipationMode.Individual;
 
     [Required]
     public IBrowserFile Image { get; set; } = null!;
@@ -43,6 +44,21 @@ public class CreateTournamentDTO : IValidatableObject
             yield return new ValidationResult(
                 "Team tournaments require a team size between 1 and 50.",
                 [nameof(TeamSize)]);
+        }
+
+        if(BracketType == Models.Tournaments.BracketType.Leaderboard && !LeaderboardRankingMetric.HasValue)
+        {
+            yield return new ValidationResult(
+                "Leaderboard tournaments require a ranking metric.",
+                [nameof(LeaderboardRankingMetric)]);
+        }
+
+        if(BracketType == Models.Tournaments.BracketType.Leaderboard &&
+           ParticipationMode == Models.Tournaments.ParticipationMode.Team)
+        {
+            yield return new ValidationResult(
+                "Leaderboard tournaments are individual competitions.",
+                [nameof(ParticipationMode)]);
         }
     }
 }

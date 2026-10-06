@@ -1,4 +1,5 @@
 using Mercurius.LAN.Web.DTOs.Matches;
+using Mercurius.LAN.Web.DTOs.Leaderboards;
 using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.DTOs.PublicProfiles;
 using Mercurius.LAN.Web.DTOs.Registrations;
@@ -70,7 +71,7 @@ public interface ILANClient
         CancellationToken cancellationToken = default);
 
     [Put("/v1/lan/tournaments/{tournamentId}/lifecycle-state")]
-    Task<HttpResponseMessage> SetTournamentLifecycleStateAsync(
+    Task<IApiResponse> SetTournamentLifecycleStateAsync(
         Guid tournamentId,
         [Body] UpdateTournamentLifecycleStateRequestDTO request,
         CancellationToken cancellationToken = default);
@@ -161,6 +162,36 @@ public interface ILANClient
         [Body] RemoveRegistrationDTO request,
         CancellationToken cancellationToken = default);
 
+    [Get("/v1/lan/tournaments/{tournamentId}/leaderboard")]
+    Task<PublicLeaderboardDTO> GetLeaderboardAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken = default);
+
+    [Get("/v1/lan/tournaments/{tournamentId}/leaderboard/attempts")]
+    Task<AdminLeaderboardResponseDTO> GetAdminLeaderboardAsync(
+        Guid tournamentId,
+        CancellationToken cancellationToken = default);
+
+    [Post("/v1/lan/tournaments/{tournamentId}/leaderboard/attempts")]
+    Task<AdminLeaderboardParticipantDTO> RecordLeaderboardAttemptAsync(
+        Guid tournamentId,
+        [Body] RecordLeaderboardAttemptDTO request,
+        CancellationToken cancellationToken = default);
+
+    [Put("/v1/lan/tournaments/{tournamentId}/leaderboard/attempts/{attemptId}")]
+    Task<LeaderboardAttemptDTO> UpdateLeaderboardAttemptAsync(
+        Guid tournamentId,
+        Guid attemptId,
+        [Body] UpdateLeaderboardAttemptDTO request,
+        CancellationToken cancellationToken = default);
+
+    [Delete("/v1/lan/tournaments/{tournamentId}/leaderboard/attempts/{attemptId}")]
+    Task DeleteLeaderboardAttemptAsync(
+        Guid tournamentId,
+        Guid attemptId,
+        [AliasAs("rowVersion")] Guid rowVersion,
+        CancellationToken cancellationToken = default);
+
     [Get("/v1/lan/matches/{matchId}")]
     Task<Match> GetMatchByIdAsync(
         Guid matchId,
@@ -168,6 +199,11 @@ public interface ILANClient
 
     [Get("/v1/lan/matches/{matchId}/me")]
     Task<MatchActionStateDTO> GetMatchActionStateAsync(
+        Guid matchId,
+        CancellationToken cancellationToken = default);
+
+    [Get("/v1/lan/matches/{matchId}/opponent-profile")]
+    Task<MatchOpponentProfileDTO> GetMatchOpponentProfileAsync(
         Guid matchId,
         CancellationToken cancellationToken = default);
 
@@ -292,11 +328,6 @@ public interface ILANClient
 
     [Get("/v1/lan/public/users/{username}")]
     Task<PublicUserProfileDTO> GetPublicUserByUsernameAsync(
-        string username,
-        CancellationToken cancellationToken = default);
-
-    [Get("/v1/lan/public/users/{username}/match-summaries")]
-    Task<PublicProfileMatchSummariesDTO> GetPublicUserMatchSummariesAsync(
         string username,
         CancellationToken cancellationToken = default);
 

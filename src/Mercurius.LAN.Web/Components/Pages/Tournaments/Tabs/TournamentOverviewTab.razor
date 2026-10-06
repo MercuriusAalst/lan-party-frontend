@@ -46,10 +46,20 @@
                         <dd>@Localization.Get("Feature.tournament.teamSizePlayers", Tournament.TeamSize)</dd>
                         </div>
                     }
-                    <div>
-                        <dt>@Localization["tournament.format"]</dt>
-                        <dd>@GetFormatLabel(Tournament.Format)</dd>
-                    </div>
+                    @if(IsLeaderboard)
+                    {
+                        <div>
+                            <dt>@Localization["Feature.tournaments.rankingMetric"]</dt>
+                            <dd>@GetRankingMetricLabel(Tournament.ResolveLeaderboardMetric())</dd>
+                        </div>
+                    }
+                    else
+                    {
+                        <div>
+                            <dt>@Localization["tournament.format"]</dt>
+                            <dd>@GetFormatLabel(Tournament.Format)</dd>
+                        </div>
+                    }
                 </dl>
             </section>
 
@@ -64,14 +74,24 @@
                         <dt>@Localization["Feature.tournamentsOverview.estimatedEnd"]</dt>
                         <dd>@GetEstimatedEndLabel()</dd>
                     </div>
-                    <div>
-                        <dt>@Localization["Feature.tournamentsOverview.finals"]</dt>
-                        <dd>@GetFormatLabel(Tournament.FinalsFormat)</dd>
-                    </div>
-                    <div>
-                        <dt>@Localization["Feature.tournaments.registration"]</dt>
-                        <dd><span class="badge @Tournament.Status.GetStatusClass()">@GetRegistrationStateLabel()</span></dd>
-                    </div>
+                    @if(IsLeaderboard)
+                    {
+                        <div>
+                            <dt>@Localization["Feature.tournaments.registration"]</dt>
+                            <dd>@Localization["Feature.tournaments.leaderboardRegistrationNotApplicable"]</dd>
+                        </div>
+                    }
+                    else
+                    {
+                        <div>
+                            <dt>@Localization["Feature.tournamentsOverview.finals"]</dt>
+                            <dd>@GetFormatLabel(Tournament.FinalsFormat)</dd>
+                        </div>
+                        <div>
+                            <dt>@Localization["Feature.tournaments.registration"]</dt>
+                            <dd><span class="badge @Tournament.Status.GetStatusClass()">@GetRegistrationStateLabel()</span></dd>
+                        </div>
+                    }
                 </dl>
             </section>
         </div>
@@ -100,6 +120,23 @@
                             <ValidationMessage For="@(() => _editTournament.BracketType)" />
                         </div>
 
+                        @if(IsLeaderboardEdit)
+                        {
+                            <div class="form-group">
+                                <label for="leaderboardRankingMetric">@Localization["Feature.tournaments.rankingMetric"]</label>
+                                <InputSelect id="leaderboardRankingMetric" class="form-control" @bind-Value="_editTournament.LeaderboardRankingMetric">
+                                    <option value="">@Localization["Feature.tournaments.rankingMetricPlaceholder"]</option>
+                                    @foreach(var metric in Enum.GetValues<LeaderboardRankingMetric>())
+                                    {
+                                        <option value="@metric">@GetRankingMetricLabel(metric)</option>
+                                    }
+                                </InputSelect>
+                                <small class="form-help">@Localization["Feature.tournaments.rankingMetricHelp"]</small>
+                                <ValidationMessage For="@(() => _editTournament.LeaderboardRankingMetric)" />
+                            </div>
+                        }
+                        else
+                        {
                         <div class="form-group">
                             <label for="participationMode">@Localization["tournament.participation"]</label>
                             <InputSelect id="participationMode" class="form-control" @bind-Value="_editTournament.ParticipationMode">
@@ -120,7 +157,10 @@
                                 <ValidationMessage For="@(() => _editTournament.TeamSize)" />
                             </div>
                         }
+                        }
 
+                        @if(!IsLeaderboardEdit)
+                        {
                         <div class="form-group">
                             <label for="format">@Localization["Feature.tournaments.matchFormat"]</label>
                             <InputSelect id="format" class="form-control" @bind-Value="_editTournament.Format">
@@ -142,6 +182,7 @@
                             </InputSelect>
                             <ValidationMessage For="@(() => _editTournament.FinalsFormat)" />
                         </div>
+                        }
                         <div class="overview-edit-schedule-fields">
                             <div class="form-group">
                                 <label for="plannedStartTime">@Localization["Feature.tournaments.plannedStartTime"]</label>
@@ -149,6 +190,8 @@
                                 <ValidationMessage For="@(() => _editTournament.PlannedStartTime)" />
                             </div>
 
+                            @if(!IsLeaderboardEdit)
+                            {
                             <div class="overview-edit-duration-row">
                                 <div class="form-group">
                                     <label for="averageGameDuration">@Localization["Feature.tournaments.averageGameDuration"]</label>
@@ -162,6 +205,7 @@
                                     <ValidationMessage For="@(() => _editTournament.RoundBreakDurationMinutes)" />
                                 </div>
                             </div>
+                            }
                         </div>
 
                         <div class="form-group">

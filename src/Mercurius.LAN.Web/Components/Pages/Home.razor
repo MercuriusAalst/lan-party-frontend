@@ -130,7 +130,7 @@
                                     <strong>@leadTournament.Name</strong>
                                     <span class="tournament-status @leadTournament.Status.GetStatusClass()">@leadTournament.Status.GetStatusLabel()</span>
                                 </span>
-                                <span class="home-tournament-detail">@leadTournament.BracketType.GetLabel() · @leadTournament.Format.GetLabel()</span>
+                                <span class="home-tournament-detail">@leadTournament.GetFormatDetailLabel()</span>
                             </span>
                         </button>
 
@@ -142,7 +142,7 @@
                                     <img src="@imageUrl" alt="" class="home-tournament-image home-tournament-image--row" />
                                     <span class="home-tournament-row-copy">
                                         <strong>@tournament.Name</strong>
-                                        <span class="home-tournament-detail">@tournament.BracketType.GetLabel() · @tournament.Format.GetLabel()</span>
+                                        <span class="home-tournament-detail">@tournament.GetFormatDetailLabel()</span>
                                     </span>
                                     <span class="tournament-status @tournament.Status.GetStatusClass()">@tournament.Status.GetStatusLabel()</span>
                                 </button>

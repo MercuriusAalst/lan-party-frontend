@@ -11,6 +11,7 @@ using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Models.Tournaments;
+using Mercurius.LAN.Web.Services;
 using Microsoft.Extensions.Configuration;
 using Refit;
 using Xunit;
@@ -100,18 +101,26 @@ public sealed class ApiContractTests
     public async Task LifecycleAndProfileCompletion_UsePutRoutesAndCurrentBodies()
     {
         var tournamentId = Guid.Parse("44444444-4444-4444-4444-444444444444");
-        var lifecycleHandler = new RecordingHandler();
+        var lifecycleHandler = new RecordingHandler("[{\"placement\":1}]");
         using var lifecycleHttpClient = CreateHttpClient(lifecycleHandler);
         var lanClient = RestService.For<ILANClient>(lifecycleHttpClient, CreateRefitSettings());
 
         using var response = await lanClient.SetTournamentLifecycleStateAsync(
             tournamentId,
-            new UpdateTournamentLifecycleStateRequestDTO { State = TournamentStatus.InProgress });
+            new UpdateTournamentLifecycleStateRequestDTO { State = TournamentStatus.Completed });
 
         Assert.Equal(HttpMethod.Put, lifecycleHandler.Request!.Method);
         Assert.Equal($"/v1/lan/tournaments/{tournamentId}/lifecycle-state", lifecycleHandler.Request.RequestUri!.AbsolutePath);
         using var lifecycleBody = JsonDocument.Parse(lifecycleHandler.RequestBody!);
-        Assert.Equal("InProgress", lifecycleBody.RootElement.GetProperty("state").GetString());
+        Assert.Equal("Completed", lifecycleBody.RootElement.GetProperty("state").GetString());
+        Assert.Null(response.Error);
+
+        lifecycleHandler.ResponseBody = "";
+        using var emptyBodyResponse = await lanClient.SetTournamentLifecycleStateAsync(
+            tournamentId,
+            new UpdateTournamentLifecycleStateRequestDTO { State = TournamentStatus.InProgress });
+
+        Assert.Null(emptyBodyResponse.Error);
 
         var profileHandler = new RecordingHandler("{\"isComplete\":true,\"user\":null,\"email\":null,\"emailVerified\":false}");
         using var profileHttpClient = CreateHttpClient(profileHandler);
@@ -128,6 +137,21 @@ public sealed class ApiContractTests
         Assert.Equal("/v1/lan/users/me", profileHandler.Request.RequestUri!.AbsolutePath);
         using var profileBody = JsonDocument.Parse(profileHandler.RequestBody!);
         Assert.Equal("testuser", profileBody.RootElement.GetProperty("username").GetString());
+    }
+
+    [Fact]
+    public async Task LifecycleServicePreservesBackendProblemDetails()
+    {
+        const string message = "Tournament has to be scheduled before it can be started.";
+        var handler = new RecordingHandler($"{{\"message\":\"{message}\"}}", HttpStatusCode.BadRequest);
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        var exception = await Assert.ThrowsAsync<ApiException>(() =>
+            service.SetTournamentLifecycleStateAsync(Guid.NewGuid(), TournamentStatus.InProgress));
+
+        Assert.Equal(message, exception.GetApiError()?.Message);
     }
 
     [Fact]
@@ -194,7 +218,7 @@ public sealed class ApiContractTests
     }
 
     [Fact]
-    public async Task PublicProfileMatchSummaryRoutes_DeserializeSafeGuidProjection()
+    public async Task UserMatchSummariesUseAdminRouteAndTeamSummariesRemainPublic()
     {
         var matchId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         var tournamentId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
@@ -202,10 +226,11 @@ public sealed class ApiContractTests
         using var httpClient = CreateHttpClient(handler);
         var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
 
-        var userSummaries = await client.GetPublicUserMatchSummariesAsync("public-user");
+        var userClient = RestService.For<IUserClient>(httpClient, CreateRefitSettings());
+        var userSummaries = await userClient.GetUserMatchSummariesAsync("public-user");
 
         Assert.Equal(HttpMethod.Get, handler.Request!.Method);
-        Assert.Equal("/v1/lan/public/users/public-user/match-summaries", handler.Request.RequestUri!.AbsolutePath);
+        Assert.Equal("/v1/lan/users/public-user/match-summaries", handler.Request.RequestUri!.AbsolutePath);
         var previous = Assert.Single(userSummaries.PreviousMatches);
         Assert.Equal(matchId, previous.MatchId);
         Assert.Equal(tournamentId, previous.TournamentId);
@@ -270,7 +295,9 @@ public sealed class ApiContractTests
         ContentSerializer = new SystemTextJsonContentSerializer(JsonOptions)
     };
 
-    private sealed class RecordingHandler(string responseBody = "{}") : HttpMessageHandler
+    private sealed class RecordingHandler(
+        string responseBody = "{}",
+        HttpStatusCode responseStatus = HttpStatusCode.OK) : HttpMessageHandler
     {
         public HttpRequestMessage? Request { get; private set; }
 
@@ -285,7 +312,7 @@ public sealed class ApiContractTests
                 ? null
                 : await request.Content.ReadAsStringAsync(cancellationToken);
 
-            return new HttpResponseMessage(HttpStatusCode.OK)
+            return new HttpResponseMessage(responseStatus)
             {
                 RequestMessage = request,
                 Content = new StringContent(ResponseBody, Encoding.UTF8, "application/json")

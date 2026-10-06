@@ -470,7 +470,7 @@
     width: 100%;
     box-sizing: border-box;
     gap: 0.75rem;
-    padding: clamp(1rem, 2vw, 1.5rem);
+    padding: clamp(1rem, 2vw, 2rem);
 }
 
 .home-tournament-meta {

@@ -1,6 +1,7 @@
 using System.Reflection;
 using Blazored.Toast.Services;
 using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
+using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.DTOs.Registrations;
 using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Localization;
@@ -233,6 +234,49 @@ public sealed class TournamentParticipantsMutationTests
         Assert.False(GetField<bool>(tab, "_isIndividualUnregistrationConfirmationOpen"));
     }
 
+    [Fact]
+    public async Task RosterRevalidationKeepsTheStepStateAndExplainsABlockedStep()
+    {
+        var teamId = Guid.NewGuid();
+        var captainId = Guid.NewGuid();
+        var tab = CreateTab(out _);
+        var service = CreateRosterEligibilityService();
+        SetPrivateProperty(tab, "TournamentService", service);
+        tab.SetTournamentForTest(CreateTeamTournament(Guid.NewGuid()));
+        SeedSelectedRegistrableTeam(tab, teamId, captainId);
+
+        var previousEligibility = new RosterCandidateEligibilityResponseDTO { Eligible = true };
+        SetPrivateField(tab, "_rosterEligibility", previousEligibility);
+        SetPrivateField(tab, "_selectedRosterUserIds", new HashSet<Guid> { captainId });
+
+        bool? loadingDuringCheck = null;
+        object? eligibilityDuringCheck = null;
+        service.OnCheck = () =>
+        {
+            loadingDuringCheck = GetField<bool>(tab, "_isLoadingRoster");
+            eligibilityDuringCheck = GetField(tab, "_rosterEligibility");
+        };
+        service.Eligibility = new RosterCandidateEligibilityResponseDTO
+        {
+            Eligible = false,
+            ReasonCodes = ["roster-member-ineligible"]
+        };
+
+        var method = typeof(TournamentParticipantsTab).GetMethod("RevalidateRosterBeforeSubmitAsync", PrivateInstance)!;
+        var request = new SubmitTeamRosterDTO { TeamId = teamId, UserIds = [captainId] };
+        var testTab = (TestableTournamentParticipantsTab)tab;
+        var requestGeneration = GetField<long>(tab, "_requestGeneration");
+
+        var revalidated = await testTab.InvokeOnRendererAsync(
+            () => (Task<bool>)method.Invoke(tab, [teamId, request, requestGeneration])!);
+
+        Assert.False(revalidated);
+        Assert.False(loadingDuringCheck);
+        Assert.Same(previousEligibility, eligibilityDuringCheck);
+        Assert.Equal("Feature.tournaments.rosterMemberIneligible", GetField<string>(tab, "_teamError"));
+        Assert.Single(service.Calls);
+    }
+
     private static TestableTournamentParticipantsTab CreateTab(out RecordingToastServiceProxy toastService)
     {
         var tab = new TestableTournamentParticipantsTab();
@@ -254,6 +298,47 @@ public sealed class TournamentParticipantsMutationTests
     private static RecordingIndividualRegistrationServiceProxy CreateIndividualRegistrationService() =>
         (RecordingIndividualRegistrationServiceProxy)(object)
         DispatchProxy.Create<ITournamentService, RecordingIndividualRegistrationServiceProxy>();
+
+    private static RosterEligibilityServiceProxy CreateRosterEligibilityService() =>
+        (RosterEligibilityServiceProxy)(object)
+        DispatchProxy.Create<ITournamentService, RosterEligibilityServiceProxy>();
+
+    private static TournamentExtended CreateTeamTournament(Guid id) => new()
+    {
+        Id = id,
+        Name = id.ToString(),
+        Status = TournamentStatus.Scheduled,
+        ParticipationMode = ParticipationMode.Team,
+        TeamSize = 2
+    };
+
+    private static void SeedSelectedRegistrableTeam(
+        TournamentParticipantsTab tab,
+        Guid teamId,
+        Guid captainId)
+    {
+        SetPrivateField(
+            tab,
+            "_teamSummary",
+            new CurrentUserTeamSummaryDTO
+            {
+                CaptainedTeams =
+                [
+                    new TeamManagementSummaryDTO
+                    {
+                        Id = teamId,
+                        Name = "Alpha",
+                        CaptainUserId = captainId,
+                        Members =
+                        [
+                            CreateUser(captainId, "captain"),
+                            CreateUser(Guid.NewGuid(), "teammate")
+                        ]
+                    }
+                ]
+            });
+        SetPrivateField(tab, "_selectedTeamId", teamId);
+    }
 
     private static void SeedIndividualState(
         TournamentParticipantsTab tab,
@@ -399,6 +484,8 @@ public sealed class TournamentParticipantsMutationTests
         }
 
         public Task InvokeOnRendererAsync(Func<Task> action) => _renderer.Dispatcher.InvokeAsync(action);
+
+        public Task<T> InvokeOnRendererAsync<T>(Func<Task<T>> action) => _renderer.Dispatcher.InvokeAsync(action);
     }
 
     private sealed class TestRenderer : Renderer
@@ -483,6 +570,26 @@ public sealed class TournamentParticipantsMutationTests
             }
 
             throw new NotSupportedException($"Unexpected tournament service call: {targetMethod?.Name}");
+        }
+    }
+
+    public class RosterEligibilityServiceProxy : DispatchProxy
+    {
+        public RosterCandidateEligibilityResponseDTO Eligibility { get; set; } = new() { Eligible = true };
+        public Action? OnCheck { get; set; }
+        public List<string> Calls { get; } = [];
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            var methodName = targetMethod?.Name ?? "<unknown>";
+            Calls.Add(methodName);
+            if(methodName == nameof(ITournamentService.CheckTeamRosterEligibilityAsync))
+            {
+                OnCheck?.Invoke();
+                return Task.FromResult(Eligibility);
+            }
+
+            throw new NotSupportedException("Unexpected tournament service call: " + methodName);
         }
     }
 

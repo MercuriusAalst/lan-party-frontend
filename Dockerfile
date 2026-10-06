@@ -1,5 +1,5 @@
 # Build Stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0-azurelinux3.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-azurelinux3.0 AS build
 
 # Arguments
 ARG BUILD_CONFIGURATION=Release
@@ -26,7 +26,9 @@ RUN dotnet publish \
     --output /app/publish
 
 # Run Stage
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-azurelinux3.0 AS run
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-azurelinux3.0 AS run
+RUN tdnf upgrade -y pcre2 \
+    && tdnf clean all
 WORKDIR /app
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "Mercurius.LAN.Web.dll"]

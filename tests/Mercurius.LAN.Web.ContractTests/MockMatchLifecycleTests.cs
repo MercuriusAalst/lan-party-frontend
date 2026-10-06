@@ -81,10 +81,20 @@ public sealed class MockMatchLifecycleTests
                 DataFilePath = Path.Combine(repositoryRoot, "src", "Mercurius.LAN.Web", "MockData.Local", "backend.json")
             }));
 
+        store.SetTournamentLifecycleState(FeaturedTournamentId, Mercurius.LAN.Web.Models.Tournaments.TournamentStatus.Canceled);
         store.SetTournamentLifecycleState(FeaturedTournamentId, Mercurius.LAN.Web.Models.Tournaments.TournamentStatus.Scheduled);
         store.SetTournamentLifecycleState(FeaturedTournamentId, Mercurius.LAN.Web.Models.Tournaments.TournamentStatus.InProgress);
         var before = store.GetTournament(FeaturedTournamentId)!;
-        var source = before.Matches.Single(match => match.Id == Guid.Parse("31111111-1111-1111-1111-111111111015"));
+        var source = before.Matches
+            .Where(match =>
+                !match.IsLowerBracketMatch &&
+                match.RoundNumber == 1 &&
+                match.TeamParticipant1Id.HasValue &&
+                match.TeamParticipant2Id.HasValue &&
+                match.WinnerNextMatchId.HasValue &&
+                match.LoserNextMatchId.HasValue)
+            .OrderBy(match => match.MatchNumber)
+            .First();
         var winnerNextId = source.WinnerNextMatchId ?? throw new InvalidOperationException("Fixture winner path is missing.");
         var loserNextId = source.LoserNextMatchId ?? throw new InvalidOperationException("Fixture loser path is missing.");
         var participant1Id = source.TeamParticipant1Id;
@@ -109,18 +119,30 @@ public sealed class MockMatchLifecycleTests
     }
 
     [Fact]
-    public void MockReversalFailsClosedForUnprovenancedFeaturedGrandFinalAssignment()
+    public void MockReversalClearsProvenancedFeaturedGrandFinalAssignment()
     {
         var store = CreateFeaturedStore();
 
         var actionState = store.GetMatchActionState("admin", FeaturedLowerBracketFinalId);
 
-        Assert.False(actionState.CanReverse);
-        Assert.Equal("match_reversal_blocked", actionState.ReverseBlockedReason);
+        Assert.True(actionState.CanReverse);
+        store.ReverseMatch("admin", FeaturedLowerBracketFinalId);
+        var final = store.GetTournament(FeaturedTournamentId)!.Matches.Single(match => match.Id == FeaturedGrandFinalId);
+        Assert.Null(final.TeamParticipant2Id);
+        Assert.Null(final.Participant2SourceMatchId);
+    }
+    [Fact]
+    public void MockReversalStillRejectsUnprovenancedDownstreamAssignment()
+    {
+        var store = CreateFeaturedStore();
+        var document = (MockBackendDocument)typeof(MockBackendStore)
+            .GetField("_document", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(store)!;
+        document.Tournaments.Single(tournament => tournament.Id == FeaturedTournamentId)
+            .Matches.Single(match => match.Id == FeaturedGrandFinalId).Participant2SourceMatchId = null;
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            store.ReverseMatch("admin", FeaturedLowerBracketFinalId));
-
+        Assert.False(store.GetMatchActionState("admin", FeaturedLowerBracketFinalId).CanReverse);
+        var exception = Assert.Throws<InvalidOperationException>(() => store.ReverseMatch("admin", FeaturedLowerBracketFinalId));
         Assert.StartsWith("match_reversal_blocked:", exception.Message, StringComparison.Ordinal);
     }
 
@@ -378,13 +400,14 @@ public sealed class MockMatchLifecycleTests
 
         var userSummaries = store.GetPublicUserMatchSummaries("alpha1");
         Assert.NotNull(userSummaries);
-        Assert.Single(userSummaries!.PreviousMatches);
+        Assert.Equal(2, userSummaries!.PreviousMatches.Count);
+        Assert.Contains(userSummaries.PreviousMatches, summary => summary.TournamentName == "Rocket League");
         Assert.Single(userSummaries.UpcomingMatches);
-        Assert.Equal("Gamma Grid", userSummaries.UpcomingMatches[0].OpponentDisplayName);
+        Assert.Equal("Valorant Gamma Grid", userSummaries.UpcomingMatches[0].OpponentDisplayName);
         Assert.Equal(MatchLifecycleState.AwaitingEndedConfirmation, userSummaries.UpcomingMatches[0].LifecycleState);
         Assert.NotNull(userSummaries.PreviousMatches[0].ParticipantScore);
 
-        var teamSummaries = store.GetPublicTeamMatchSummaries("Team Alpha");
+        var teamSummaries = store.GetPublicTeamMatchSummaries("Valorant Team Alpha");
         Assert.NotNull(teamSummaries);
         Assert.Single(teamSummaries!.PreviousMatches);
         Assert.Single(teamSummaries.UpcomingMatches);
@@ -392,7 +415,7 @@ public sealed class MockMatchLifecycleTests
 
         var emptySummaries = store.GetPublicUserMatchSummaries("track1");
         Assert.NotNull(emptySummaries);
-        Assert.Empty(emptySummaries!.PreviousMatches);
+        Assert.Equal("Rocket League", Assert.Single(emptySummaries!.PreviousMatches).TournamentName);
         Assert.Empty(emptySummaries.UpcomingMatches);
 
         var individualSummaries = store.GetPublicUserMatchSummaries("solo1");
@@ -440,14 +463,14 @@ public sealed class MockMatchLifecycleTests
             Firstname = "Current",
             Lastname = "Opponent"
         });
-        var opponentTeam = Assert.Single(store.GetTeams(1, 100).Where(team => team.Name == "Gamma Grid"));
+        var opponentTeam = Assert.Single(store.GetTeams(1, 100).Where(team => team.Name == "Valorant Gamma Grid"));
         store.UpdateTeam(opponentTeam.Id, new UpdateTeamDTO
         {
             Name = "Current Gamma Grid"
         });
 
         var userSummaries = store.GetPublicUserMatchSummaries("solo1");
-        var teamSummaries = store.GetPublicTeamMatchSummaries("Team Alpha");
+        var teamSummaries = store.GetPublicTeamMatchSummaries("Valorant Team Alpha");
 
         Assert.Equal("current-opponent", Assert.Single(userSummaries!.PreviousMatches).OpponentDisplayName);
         Assert.Equal("current-opponent", Assert.Single(userSummaries.UpcomingMatches).OpponentDisplayName);

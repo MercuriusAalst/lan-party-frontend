@@ -12,14 +12,15 @@ env:
   CONTEXT_PATH: .
 
 permissions:
-  id-token: write
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   release-please:
     runs-on: ubuntu-24.04
     name: Calculate SemVersion and Create Release
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,24 +51,51 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build release image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.CONTEXT_PATH }}
+          file: ${{ env.DOCKERFILE_PATH }}
+          load: true
+          push: false
+          tags: ghcr.io/mercuriusaalst/mercurius-frontend:${{ needs.release-please.outputs.VERSION }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      - name: Scan release image
+        id: trivy
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ghcr.io/mercuriusaalst/mercurius-frontend:${{ needs.release-please.outputs.VERSION }}
+          severity: "CRITICAL,HIGH"
+          format: json
+          output: trivy-results.json
+          exit-code: "1"
+
+      - name: Upload Trivy results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results-${{ needs.release-please.outputs.VERSION }}
+          path: trivy-results.json
+          if-no-files-found: warn
+
       - name: Login to GHCR
+        if: ${{ steps.trivy.outcome == 'success' }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: ghcr.io/mercuriusaalst/mercurius-frontend:${{ needs.release-please.outputs.VERSION }}
-          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+      - name: Push release image
+        if: ${{ steps.trivy.outcome == 'success' }}
+        run: docker push ghcr.io/mercuriusaalst/mercurius-frontend:${{ needs.release-please.outputs.VERSION }}
 
       - name: Announce to gitops
+        if: ${{ steps.trivy.outcome == 'success' }}
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GITOPS_DISPATCH_TOKEN }}

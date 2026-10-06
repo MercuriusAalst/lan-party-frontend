@@ -126,19 +126,24 @@
     right: 1rem;
     width: 2.6rem;
     height: 2.6rem;
-    border: 1px solid var(--color-border);
+    border: 0;
     border-radius: var(--radius-button);
-    background: var(--color-surface-raised);
+    background: transparent;
+    box-shadow: none;
     color: var(--color-ink);
     font-size: 1.4rem;
     line-height: 1;
 }
 
 .participants-modal-close:hover {
-    border-color: var(--color-border-strong);
     background: var(--color-success-soft);
     color: var(--color-link);
     box-shadow: none;
+}
+
+.participants-modal-close:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
 }
 
 .centered-grid {
@@ -487,8 +492,37 @@ html[data-theme="dark"] .registration-cancel-button {
 
 .registration-roster-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
     gap: 0.5rem;
+}
+
+.registration-roster-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.registration-roster-heading h4 {
+    margin: 0;
+}
+
+.registration-roster-count {
+    flex: none;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 0.88rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.registration-team-filter-note {
+    margin: 0;
+    color: var(--color-muted-text);
+    font-size: 0.82rem;
 }
 
 .registration-roster-member {
@@ -503,12 +537,10 @@ html[data-theme="dark"] .registration-cancel-button {
 }
 
 .registration-roster-member.is-selected {
-    box-shadow: inset 3px 0 0 var(--color-success);
     background: var(--color-success-soft);
 }
 
 .registration-roster-member--ineligible {
-    box-shadow: inset 3px 0 0 var(--color-warning);
     background: var(--color-warning-soft);
 }
 
@@ -571,6 +603,22 @@ html[data-theme="dark"] .registration-cancel-button {
     row-gap: 0.25rem;
 }
 
+.registration-stepper ::deep .mud-step.mud-clickable {
+    cursor: pointer;
+    border-radius: var(--radius-control);
+}
+
+.registration-stepper ::deep .mud-step.mud-clickable:hover .mud-step-label-content {
+    color: var(--color-link);
+}
+
+.registration-stepper ::deep .mud-step:focus-visible,
+.registration-stepper ::deep .mud-step :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 3px;
+    border-radius: var(--radius-control);
+}
+
 .registration-stepper ::deep .mud-step .mud-step-label-content {
     color: var(--color-muted-text);
 }
@@ -602,8 +650,18 @@ html[data-theme="dark"] .registration-cancel-button {
 
 .registration-team-options {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
     gap: 0.65rem;
+}
+
+.registration-team-flow-heading h3,
+.registration-team-flow-heading p {
+    margin: 0;
+}
+
+.registration-team-flow-heading p {
+    margin-top: 0.35rem;
+    color: var(--color-muted-text);
 }
 
 .registration-team-option {
@@ -625,6 +683,18 @@ html[data-theme="dark"] .registration-cancel-button {
     display: grid;
     min-width: 0;
     gap: 0.2rem;
+}
+
+.registration-team-option-meta {
+    justify-items: end;
+}
+
+.registration-team-selection {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--color-success);
+    font-weight: 700;
 }
 
 .registration-team-option small {
@@ -670,7 +740,7 @@ html[data-theme="dark"] .registration-cancel-button {
 .registration-stepper-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 0.75rem;
     width: 100%;
     padding-top: 0.75rem;
@@ -696,8 +766,24 @@ html[data-theme="dark"] .registration-cancel-button {
     opacity: 0.55;
 }
 
-.registration-stepper-actions-secondary {
-    align-items: center;
+.registration-dialog .button-primary:disabled,
+.registration-dialog .button-primary[disabled] {
+    background: var(--color-neutral-soft);
+    border-color: var(--color-border);
+    color: var(--color-muted-text);
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 1;
+    transform: none;
+}
+
+.registration-dialog .button-primary:disabled:hover,
+.registration-dialog .button-primary[disabled]:hover {
+    background: var(--color-neutral-soft);
+    border-color: var(--color-border);
+    color: var(--color-muted-text);
+    box-shadow: none;
+    transform: none;
 }
 
 
@@ -757,8 +843,55 @@ html[data-theme="dark"] .registration-cancel-button {
     background: var(--color-success-soft);
 }
 
-.registration-review-member--selected {
+.registration-review-roster--cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.55rem;
+}
+
+.registration-review-player {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+    padding: 0.7rem 0.8rem;
     border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+}
+
+.registration-review-player--pending {
+    background: var(--color-surface);
+}
+
+.registration-review-player--confirmed {
+    border-color: color-mix(in srgb, var(--color-success) 32%, transparent);
+    background: var(--color-success-soft);
+}
+
+.registration-review-player-name {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.registration-review-player-name strong {
+    overflow-wrap: anywhere;
+}
+
+.registration-review-player-status {
+    color: var(--color-muted-text);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.registration-review-summary {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.registration-review-team {
+    color: var(--color-ink);
 }
 
 .registration-captain-chip {
@@ -810,6 +943,10 @@ html[data-theme="dark"] .registration-cancel-button {
 }
 
 @media (max-width: 640px) {
+    .registration-roster-heading {
+        align-items: flex-start;
+    }
+
     .registration-panel-header,
     .registration-entry-actions,
     .registration-confirmation,
@@ -828,6 +965,10 @@ html[data-theme="dark"] .registration-cancel-button {
 
     .registration-team-option {
         flex-direction: column;
+    }
+
+    .registration-team-option-meta {
+        justify-items: start;
     }
 
     .registration-team-status {

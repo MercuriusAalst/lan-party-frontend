@@ -31,7 +31,7 @@ malformed.
 Keep `Auth0:ClientSecret` out of committed configuration. Use user-secrets locally:
 
 ```powershell
-dotnet user-secrets set "Auth0:Domain" "<tenant>.auth0.com" --project src\Mercurius.LAN.Web
+dotnet user-secrets set "Auth0:Domain" "auth.mercurius-aalst.be" --project src\Mercurius.LAN.Web
 dotnet user-secrets set "Auth0:ClientId" "<client-id>" --project src\Mercurius.LAN.Web
 dotnet user-secrets set "Auth0:ClientSecret" "<client-secret>" --project src\Mercurius.LAN.Web
 dotnet user-secrets set "Auth0:Audience" "<api-audience>" --project src\Mercurius.LAN.Web

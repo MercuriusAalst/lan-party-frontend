@@ -11,7 +11,7 @@
                     @Localization["shared.user"]
                 </span>
                 <h4 class="participant-name">
-                    @if(CanOpenUserInfo)
+                    @if(CanOpenUserInfo && CanViewUserDetails)
                     {
                         <button type="button"
                                 class="participant-profile-link participant-profile-button"
@@ -29,7 +29,7 @@
             <div class="participant-detail-row">
                 <dt>@Localization["shared.username"]</dt>
                 <dd>
-                    @if(CanOpenUserInfo)
+                    @if(CanOpenUserInfo && CanViewUserDetails)
                     {
                         <button type="button"
                                 class="participant-profile-link participant-profile-button"
@@ -42,34 +42,6 @@
                     }
                 </dd>
             </div>
-            @if(!string.IsNullOrWhiteSpace(GetFullName(user)))
-            {
-                <div class="participant-detail-row">
-                    <dt>@Localization["shared.name"]</dt>
-                    <dd>@GetFullName(user)</dd>
-                </div>
-            }
-            @if(!string.IsNullOrWhiteSpace(user.DiscordId))
-            {
-                <div class="participant-detail-row">
-                    <dt>@Localization["shared.discord"]</dt>
-                    <dd>@user.DiscordId</dd>
-                </div>
-            }
-            @if(!string.IsNullOrWhiteSpace(user.SteamId))
-            {
-                <div class="participant-detail-row">
-                    <dt>@Localization["shared.steam"]</dt>
-                    <dd>@user.SteamId</dd>
-                </div>
-            }
-            @if(!string.IsNullOrWhiteSpace(user.RiotId))
-            {
-                <div class="participant-detail-row">
-                    <dt>@Localization["shared.riot"]</dt>
-                    <dd>@user.RiotId</dd>
-                </div>
-            }
         </dl>
     </article>
 }
@@ -104,7 +76,7 @@ else if(Participant?.Team is Models.Participants.Team team)
                     {
                         var isCaptain = member.Id == team.CaptainUserId;
 
-                        @if(CanOpenUserInfo)
+                        @if(CanOpenUserInfo && CanViewUserDetails && isCaptain)
                         {
                             <button type="button"
                                     class="participant-member-chip participant-member-link @(isCaptain ? "participant-member-chip--captain" : null)"

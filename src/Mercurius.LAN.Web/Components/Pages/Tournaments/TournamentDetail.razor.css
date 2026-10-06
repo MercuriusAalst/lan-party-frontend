@@ -81,6 +81,12 @@
     gap: 0.75rem;
 }
 
+.Tournament-admin-action-reason {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
 .Tournament-detail-hero-actions .Tournament-detail-registration-closed[disabled] {
     background: rgba(15, 23, 42, 0.08);
     border-color: rgba(15, 23, 42, 0.08);
@@ -88,6 +94,12 @@
     box-shadow: none;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+.Tournament-detail-hero-actions .Tournament-detail-registration-note {
+    align-self: center;
+    color: var(--color-muted-text);
+    font-size: 0.85rem;
 }
 
 .Tournament-detail-hero-visual {

@@ -127,14 +127,17 @@ else
                         </div>
 
                         <dl class="brand-tournament-card-meta tournaments-card-meta">
-                            <div>
-                                <dt>@Localization["tournament.format"]</dt>
-                                <dd>@GetFormatLabel(tournament.Format)</dd>
-                            </div>
-                            <div>
-                                <dt>@Localization["Feature.tournamentsOverview.finals"]</dt>
-                                <dd>@GetFormatLabel(tournament.FinalsFormat)</dd>
-                            </div>
+                            @if(tournament.BracketType != BracketType.Leaderboard)
+                            {
+                                <div>
+                                    <dt>@Localization["tournament.format"]</dt>
+                                    <dd>@GetFormatLabel(tournament.Format)</dd>
+                                </div>
+                                <div>
+                                    <dt>@Localization["Feature.tournamentsOverview.finals"]</dt>
+                                    <dd>@GetFormatLabel(tournament.FinalsFormat)</dd>
+                                </div>
+                            }
                             <div>
                                 <dt>@Localization["Feature.tournamentsOverview.estimatedEnd"]</dt>
                                 <dd>@GetEstimatedEndLabel(tournament)</dd>
@@ -151,9 +154,16 @@ else
 
                     <div class="brand-tournament-card-actions tournaments-card-actions grid gap-3">
                         <button type="button" class="button-secondary" @onclick="() => NavigateToTournamentDetail(tournament.Id)">@Localization["Feature.tournamentsOverview.viewDetails"]</button>
-                        <button type="button" class="button-primary" disabled="@(!CanRegister(tournament))" @onclick="() => OpenRegistration(tournament)">
-                            @(CanRegister(tournament) ? Localization["Feature.tournaments.viewRegistrationOptions"] : Localization["Feature.tournamentsOverview.registrationClosed"])
-                        </button>
+                        @if(tournament.BracketType == BracketType.Leaderboard)
+                        {
+                            <a class="button-primary" href="@($"/tournaments/{tournament.Id}#tournament-bracket")">@Localization["Feature.tournaments.viewLeaderboard"]</a>
+                        }
+                        else
+                        {
+                            <button type="button" class="button-primary" disabled="@(!CanRegister(tournament))" @onclick="() => OpenRegistration(tournament)">
+                                @(CanRegister(tournament) ? Localization["Feature.tournaments.viewRegistrationOptions"] : Localization["Feature.tournamentsOverview.registrationClosed"])
+                            </button>
+                        }
                     </div>
                 </article>
             }

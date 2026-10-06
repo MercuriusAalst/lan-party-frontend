@@ -8,6 +8,7 @@ public partial class ParticipantComponent
     [Parameter] public ParticipantViewModel? Participant { get; set; }
     [Parameter] public string EmptyLabel { get; set; } = string.Empty;
     [Parameter] public bool ShowIdentityHeader { get; set; } = true;
+    [Parameter] public bool CanViewUserDetails { get; set; }
     [Parameter] public EventCallback<PublicUserDTO> OnUserSelected { get; set; }
 
     private bool CanOpenUserInfo => OnUserSelected.HasDelegate;
@@ -17,11 +18,7 @@ public partial class ParticipantComponent
         if(!string.IsNullOrWhiteSpace(user.Username))
             return user.Username.Trim();
 
-        if(!string.IsNullOrWhiteSpace(user.DisplayName))
-            return user.DisplayName.Trim();
-
-        var fullName = GetFullName(user);
-        return string.IsNullOrWhiteSpace(fullName) ? Localization["shared.user"] : fullName;
+        return Localization["shared.user"];
     }
 
     private Task SelectUserAsync(PublicUserDTO user) => OnUserSelected.InvokeAsync(user);
@@ -34,10 +31,4 @@ public partial class ParticipantComponent
     private static bool HasTeamName(Models.Participants.Team team) =>
         !string.IsNullOrWhiteSpace(team.Name);
 
-    private static string GetFullName(PublicUserDTO user)
-    {
-        return string.Join(" ", new[] { user.Firstname, user.Lastname }
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value!.Trim()));
-    }
 }

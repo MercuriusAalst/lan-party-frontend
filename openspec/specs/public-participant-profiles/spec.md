@@ -5,30 +5,21 @@ TBD - created by archiving change add-global-menu-search-public-profiles. Update
 ## Requirements
 ### Requirement: Public user profile exposes privacy-scoped fields
 
-The system SHALL provide a public `/users/{username:string}` route that renders
-the back-end public user profile response, offers clear links to related public
-team/tournament context when returned by existing projections, and never renders
-raw user account DTOs.
+The system SHALL provide `/users/{username:string}` as an admin-only user-detail page. The page
+MUST load the full record through the admin user resource. Other public surfaces MUST display a
+user by username only.
 
-#### Scenario: Anonymous user profile shows public identity fields
+#### Scenario: Anonymous or non-admin visitor opens a user-detail page
 
-- **WHEN** an anonymous visitor opens `/users/{username}` for a known complete
-  user
-- **THEN** the page MUST show the user's first name, last name, and username
-- **AND** it MUST show Discord ID, Steam ID, and Riot ID when those values are
-  returned by the public API
-- **AND** it MUST not show email, email verification state, Auth0 ID, roles,
-  timestamps, deletion state, or admin/internal fields
+- **WHEN** an anonymous visitor or authenticated non-admin opens `/users/{username}`
+- **THEN** the route MUST require the admin role
+- **AND** it MUST NOT request or render user detail data
 
-#### Scenario: Authenticated user profile uses the same public response shape
+#### Scenario: Admin opens a user-detail page
 
-- **WHEN** an authenticated visitor opens `/users/{username}` for a known
-  complete user
-- **THEN** the page MUST show the same public fields as an anonymous visitor
-- **AND** it MUST not call current-user, admin-user, or other private account
-  endpoints to enrich the profile
-- **AND** it MUST not show email, email verification state, Auth0 ID, roles,
-  timestamps, deletion state, or admin/internal fields
+- **WHEN** an admin opens `/users/{username}` for a known user
+- **THEN** the page MUST request `GET /v1/lan/users/{username}`
+- **AND** it MAY render the returned full user record
 
 #### Scenario: Missing linked identities are omitted cleanly
 
@@ -37,6 +28,12 @@ raw user account DTOs.
 - **THEN** the page MUST not render rows, cards, placeholders, or labels for the
   missing linked IDs
 - **AND** the remaining profile content MUST stay visible and well-formed
+
+#### Scenario: Public surface renders a user identity
+
+- **WHEN** a public-facing surface renders a user outside an authorized match context
+- **THEN** it MUST display only the username
+- **AND** it MUST not render a user-detail link or expose names, linked IDs, email, roles, or other account fields
 
 #### Scenario: User profile uses focused branded layout
 
@@ -58,7 +55,7 @@ raw user account DTOs.
 - **AND** no private lookup error details MUST be exposed
 
 ### Requirement: Public team profile exposes team name, members, captain label, and tournaments
-The system SHALL provide a public `/teams/{teamname:string}` route that renders a privacy-safe team profile response with team name, members, captain identity, and participating tournaments while excluding invites.
+The system SHALL provide a public `/teams/{teamname:string}` route that renders a privacy-safe team profile response with team name, members, captain identity, and participating tournaments while excluding invites. Public rosters MUST render member usernames as non-navigable text.
 
 #### Scenario: Team page is public and excludes invites
 - **WHEN** an anonymous visitor opens `/teams/{teamname}` for a known team
@@ -78,9 +75,10 @@ The system SHALL provide a public `/teams/{teamname:string}` route that renders 
 - **THEN** the page shows a "Playing in" section
 - **AND** each listed tournament links to its game detail page
 
-#### Scenario: Team member click navigates to public user profile
+#### Scenario: Team member click does not open a public user profile
 - **WHEN** a visitor selects a team member on a public team page
-- **THEN** the application navigates to `/users/{username}` for that member
+- **THEN** the member is rendered as username text without a `/users/{username}` link
+- **AND** the captain may be identified inline
 
 #### Scenario: Team profile uses focused branded layout
 - **WHEN** a visitor opens `/teams/{teamname}` for a known team
@@ -94,28 +92,25 @@ The system SHALL provide a public `/teams/{teamname:string}` route that renders 
 - **AND** the state gives the visitor a way to recover to a known site destination
 - **AND** no private lookup error details are exposed
 
-### Requirement: Tournament participant popups link to public profiles
-The system SHALL make tournament participant popup usernames navigable to their public user profiles when a public username is available.
+### Requirement: Tournament participant list identities are username-only
+The tournament participant list SHALL render user identities by username only and MUST NOT open a user-detail popup from a participant-list entry.
 
-#### Scenario: Individual participant username opens public profile
-- **WHEN** a visitor opens a participant popup for an individual participant with a public username
-- **THEN** the username is rendered as a link to `/users/{username}`
+#### Scenario: Visitor selects a participant-list identity
+- **WHEN** a visitor selects a team or user in a tournament participant list
+- **THEN** the user identity is rendered as username text without a `/users/{username}` link
+- **AND** no specific user-detail popup opens
 
-#### Scenario: Team participant member usernames open public profiles
-- **WHEN** a visitor opens a participant popup for a team participant
-- **THEN** each member with a public username is rendered as a link to `/users/{username}`
-
-#### Scenario: Team captain is labeled inline in participant popup
-- **WHEN** a visitor opens a participant popup for a team participant that has a captain
+#### Scenario: Team captain is labeled inline in participant list
+- **WHEN** a visitor views a team participant in a tournament participant list
 - **THEN** the captain appears in the member list with a Captain label
 - **AND** no separate captain row or duplicate captain entry is rendered
 
 ### Requirement: Participant surfaces link only returned public identifiers
-Tournament participant surfaces SHALL link to public user and team profile routes only when the loaded public participant data includes the required public route identifier.
+Tournament participant surfaces SHALL display user identities by username only and MUST NOT link them to `/users/{username}`; team name links MAY continue to use a returned team name and MUST NOT be discovered through an extra endpoint.
 
 #### Scenario: Public username is present
 - **WHEN** a public participant surface renders an individual participant or team member with a returned username
-- **THEN** that username links to `/users/{username}`
+- **THEN** that username is rendered as text without a `/users/{username}` link
 - **AND** the surface does not call a profile, current-user, or admin endpoint to discover a missing username
 
 #### Scenario: Public username is missing
@@ -134,13 +129,22 @@ Tournament participant surfaces SHALL link to public user and team profile route
 - **AND** the surface does not call a team profile or admin team endpoint to discover a missing route name
 
 ### Requirement: Public profile services use the current public resource contracts
-Public participant pages SHALL load public user and team profiles through the versioned public
-resources and SHALL keep private current-user and admin resources out of anonymous profile flows.
+Admin user-detail and public participant pages SHALL load their data through the versioned resource
+defined for each role: the public user resource returns the username only, the admin user resource
+returns the detailed record, and private current-user resources stay out of anonymous profile flows.
 
-#### Scenario: Public user profile is loaded
-- **WHEN** a visitor opens `/users/{username}`
-- **THEN** the front-end requests `/v1/lan/public/users/{username}`
-- **AND** it renders only the privacy-safe public user fields returned by that resource
+#### Scenario: Public user lookup is loaded
+- **WHEN** the front-end loads a public user lookup
+- **THEN** it requests `/v1/lan/public/users/{username}`
+- **AND** it renders only the username returned by that resource
+
+#### Scenario: Admin user-detail lookup
+- **WHEN** an admin opens `/users/{username}`
+- **THEN** the front-end requests the admin user resource at `/v1/lan/users/{username}`
+
+#### Scenario: Admin opens user match summaries
+- **WHEN** an admin opens `/users/{username}`
+- **THEN** the front-end requests match summaries from `/v1/lan/users/{username}/match-summaries`
 
 #### Scenario: Public team profile is loaded
 - **WHEN** a visitor opens `/teams/{teamName}`
@@ -188,18 +192,21 @@ canonical existing routes and preserving omission behavior for unavailable data.
 
 ### Requirement: Contextual user identities open privacy-safe information popups
 
-User identities shown in contextual lists MUST open an information popup rather
-than forcing navigation to a public profile route. This includes team
-management, tournament participants, and tournament team lineups.
+Detailed user information MUST be requested through the match-authorized opponent-profile resource
+only from tournament match context. Tournament participant-list identities MUST NOT open user
+detail popups.
 
-#### Scenario: User selects a contextual identity
+#### Scenario: Participant selects an opponent in a match
 
-- **WHEN** a visitor or authenticated player selects a user in one of those
-  contextual lists
-- **THEN** the popup MUST show returned first name, last name, username, and
-  available public linked IDs only
-- **AND** missing linked IDs MUST be omitted without placeholder text
-- **AND** email, Auth0 ID, roles, timestamps, and other private fields MUST not
-  be rendered
-- **AND** the popup MUST not issue a private enrichment call or change the
-  current route
+- **WHEN** an authenticated participant requests their opponent's details from a match view
+- **THEN** the frontend MUST request `GET /v1/lan/matches/{id}/opponent-profile`
+- **AND** it MUST render only the authorized username, first name, last name, Discord ID, Steam ID,
+  and Riot ID returned by that resource
+- **AND** it MUST handle forbidden or missing opponent details without falling back to public or
+  admin user resources
+
+#### Scenario: Visitor selects a participant-list identity
+
+- **WHEN** a visitor selects a team or user in a tournament participant list
+- **THEN** the list MUST NOT open a specific user-detail popup
+- **AND** user identities MUST remain username-only

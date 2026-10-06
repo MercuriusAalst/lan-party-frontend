@@ -1,6 +1,8 @@
 using Blazored.Toast.Services;
 using System.Net;
 using Mercurius.LAN.Web.Components.Shared;
+using Mercurius.LAN.Web.DTOs.Leaderboards;
+using Mercurius.LAN.Web.DTOs.Registrations;
 using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Localization;
@@ -41,6 +43,8 @@ public partial class TournamentDetail : IDisposable
     private List<Sponsor> _availableSponsors = [];
     private bool _isLoading = true;
     private bool _isActionRunning;
+    private bool _hasLeaderboardResults;
+    private string? _leaderboardResultLoadError;
     private bool _isSavingSponsor;
     private string? _loadError;
     private bool _notFound;
@@ -83,6 +87,10 @@ public partial class TournamentDetail : IDisposable
         _tournament?.SponsorPlacement;
 
     private string PageTitleText => FormatDetailPageTitle(Localization, _tournament?.Name);
+
+    private bool IsLeaderboard => _tournament?.BracketType == BracketType.Leaderboard;
+
+    private bool IsAdminLifecycleActionPending => _isActionRunning || _isLoading || _loadError is not null;
 
     private string SponsorAdminHeading =>
         FormatSponsorAdminHeading(Localization, SelectedSponsor?.Name);
@@ -132,6 +140,8 @@ public partial class TournamentDetail : IDisposable
         _loadError = null;
         _notFound = false;
         _sponsorError = null;
+        _hasLeaderboardResults = false;
+        _leaderboardResultLoadError = null;
         ++_tournamentActionGeneration;
         ++_sponsorActionGeneration;
         _isActionRunning = false;
@@ -164,6 +174,31 @@ public partial class TournamentDetail : IDisposable
             ReconcileSelectedMatchProjection();
             _participantLookup = TournamentParticipantLookup.FromTournament(_tournament);
             SyncSelectedSponsor();
+
+            _hasLeaderboardResults = false;
+            _leaderboardResultLoadError = null;
+            if(_tournament.BracketType == BracketType.Leaderboard && _tournament.Status == TournamentStatus.InProgress)
+            {
+                try
+                {
+                    var leaderboard = await TournamentService.GetLeaderboardAsync(tournamentId, loadCancellation.Token);
+                    if(!IsCurrentLoad(tournamentId, loadGeneration))
+                        return;
+
+                    _hasLeaderboardResults = HasRankedLeaderboardResult(leaderboard);
+                }
+                catch(OperationCanceledException) when(loadCancellation.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch(Exception)
+                {
+                    if(!IsCurrentLoad(tournamentId, loadGeneration))
+                        return;
+
+                    _leaderboardResultLoadError = "Feature.leaderboard.loadFailed";
+                }
+            }
 
             var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             if(!IsCurrentLoad(tournamentId, loadGeneration))
@@ -273,6 +308,67 @@ public partial class TournamentDetail : IDisposable
         return InvokeAsync(StateHasChanged);
     }
 
+    internal static string? GetStartBlockReasonKey(TournamentExtended tournament)
+    {
+        if(tournament.Status != TournamentStatus.Scheduled)
+            return null;
+        if(tournament.BracketType == BracketType.Swiss)
+            return "Feature.tournaments.unsupportedSwissBracket";
+        if(tournament.BracketType == BracketType.Leaderboard)
+            return null;
+
+        var registrationKind = tournament.ParticipationMode switch
+        {
+            ParticipationMode.Individual => TournamentRegistrationKind.Individual,
+            ParticipationMode.Team => TournamentRegistrationKind.Team,
+            _ => (TournamentRegistrationKind?)null
+        };
+        var activeRegistrations = registrationKind.HasValue
+            ? tournament.Registrations.Count(registration =>
+                registration.Status == TournamentRegistrationStatus.Active &&
+                registration.Kind == registrationKind.Value)
+            : 0;
+
+        return activeRegistrations < 2
+            ? "Feature.tournaments.startRequiresRegistrations"
+            : null;
+    }
+
+    internal static bool CanStartTournament(TournamentExtended tournament) =>
+        tournament.Status == TournamentStatus.Scheduled && GetStartBlockReasonKey(tournament) is null;
+
+    internal static bool HasRankedLeaderboardResult(PublicLeaderboardDTO leaderboard) =>
+        leaderboard.Rows.Any(row =>
+            row.Rank > 0 &&
+            (leaderboard.RankingMetric == LeaderboardRankingMetric.HighestScore
+                ? row.Score.HasValue
+                : row.DurationMilliseconds.HasValue));
+
+    internal static bool CanCancelTournament(TournamentExtended tournament) =>
+        tournament.Status is not (TournamentStatus.Completed or TournamentStatus.Canceled);
+
+    internal static bool CanFinishTournament(TournamentExtended tournament, bool hasLeaderboardResults) =>
+        tournament.Status == TournamentStatus.InProgress &&
+        (tournament.BracketType != BracketType.Leaderboard || hasLeaderboardResults);
+
+    internal static bool CanResetTournament(TournamentExtended tournament) =>
+        tournament.Status is TournamentStatus.Completed or TournamentStatus.Canceled;
+
+    internal static bool CanDeleteTournament(TournamentExtended tournament) =>
+        tournament.Status != TournamentStatus.InProgress;
+
+    private string? GetFinishBlockReasonKey(TournamentExtended tournament)
+    {
+        if(tournament.BracketType != BracketType.Leaderboard)
+            return null;
+        if(_leaderboardResultLoadError is not null)
+            return _leaderboardResultLoadError;
+
+        return _hasLeaderboardResults
+            ? null
+            : "Feature.tournaments.leaderboardResultsRequired";
+    }
+
     private Task FinishTournamentAsync()
     {
         var tournamentId = TournamentId;
@@ -327,12 +423,16 @@ public partial class TournamentDetail : IDisposable
             ToastService.ShowSuccess(Localization.Get("Feature.tournaments.deleted", tournamentName));
             Navigation.NavigateTo("/tournaments");
         }
-        catch(ApiException)
+        catch(ApiException exception)
         {
             if(!IsCurrentAction(tournamentId, actionGeneration))
                 return;
 
-            ToastService.ShowError(Localization["Feature.tournaments.deleteFailed"]);
+            ToastService.ShowError(exception.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden
+                ? Localization["Feature.tournaments.deleteUnauthorized"]
+                : ResolveTournamentActionError(exception));
+            if(exception.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict or HttpStatusCode.PreconditionFailed)
+                await LoadTournamentDataAsync(tournamentId);
         }
         catch(UnauthorizedAccessException)
         {
@@ -371,12 +471,21 @@ public partial class TournamentDetail : IDisposable
             ToastService.ShowSuccess(successMessage);
             await LoadTournamentDataAsync(tournamentId);
         }
-        catch(ApiException)
+        catch(ApiException exception)
         {
             if(!IsCurrentAction(tournamentId, actionGeneration))
                 return;
 
-            ToastService.ShowError(Localization["Feature.tournaments.actionFailed"]);
+            ToastService.ShowError(ResolveTournamentActionError(exception));
+            if(exception.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict or HttpStatusCode.PreconditionFailed)
+                await LoadTournamentDataAsync(tournamentId);
+        }
+        catch(InvalidOperationException exception) when(IndicatesEmptyLeaderboardCompletion(exception.Message))
+        {
+            if(!IsCurrentAction(tournamentId, actionGeneration))
+                return;
+
+            ToastService.ShowError(Localization["Feature.tournaments.completionRequiresResult"]);
         }
         catch(UnauthorizedAccessException)
         {
@@ -398,6 +507,26 @@ public partial class TournamentDetail : IDisposable
                 _isActionRunning = false;
         }
     }
+
+    internal string ResolveTournamentActionError(ApiException exception)
+    {
+        if(exception.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            return Localization["Feature.tournaments.actionUnauthorized"];
+
+        var apiError = exception.GetApiError();
+        if(IndicatesEmptyLeaderboardCompletion(apiError?.Message))
+            return Localization["Feature.tournaments.completionRequiresResult"];
+
+        return (int)exception.StatusCode is >= 400 and < 500 && !string.IsNullOrWhiteSpace(apiError?.Message)
+            ? apiError.Message
+            : Localization["Feature.tournaments.actionFailed"];
+    }
+
+    internal static bool IndicatesEmptyLeaderboardCompletion(string? message) =>
+        !string.IsNullOrWhiteSpace(message) &&
+        message.Contains("leaderboard", StringComparison.OrdinalIgnoreCase) &&
+        message.Contains("at least one", StringComparison.OrdinalIgnoreCase) &&
+        message.Contains("result", StringComparison.OrdinalIgnoreCase);
 
     private string GetImageUrl(string? imageUrl)
     {
@@ -555,7 +684,20 @@ public partial class TournamentDetail : IDisposable
         return match.EstimatedStartTime.HasValue && !IsMatchDecided(match);
     }
 
-    private static bool CanRegister(Tournament Tournament) => Tournament.Status == TournamentStatus.Scheduled;
+    private static bool CanRegister(Tournament Tournament) =>
+        Tournament.BracketType != BracketType.Leaderboard &&
+        Tournament.Status == TournamentStatus.Scheduled;
+
+    private string GetCompetitionActionLabel() => IsLeaderboard
+        ? Localization["Feature.tournaments.viewLeaderboard"]
+        : Localization["Feature.tournaments.viewBracket"];
+
+    private string GetLeaderboardMetricLabel() =>
+        _tournament?.ResolveLeaderboardMetric() == LeaderboardRankingMetric.FastestTime
+            ? Localization["Feature.tournaments.rankingMetricFastestTime"]
+            : Localization["Feature.tournaments.rankingMetricHighestScore"];
+
+    private Task HandleLeaderboardChangedAsync() => LoadTournamentDataAsync(TournamentId);
 
     private string GetScheduleBracketLabel(Match match)
     {
@@ -778,6 +920,7 @@ public partial class TournamentDetail : IDisposable
         BracketType.DoubleElimination => Localization["Feature.tournament.bracketDouble"],
         BracketType.RoundRobin => Localization["Feature.tournament.bracketRoundRobin"],
         BracketType.Swiss => Localization["Feature.tournament.bracketSwiss"],
+        BracketType.Leaderboard => Localization["Feature.tournament.bracketLeaderboard"],
         _ => bracketType.ToString()
     };
 

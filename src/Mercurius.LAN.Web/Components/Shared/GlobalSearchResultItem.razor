@@ -9,8 +9,8 @@
         @onmouseover="HoverAsync">
     <span class="@GetSearchResultIconClass(Result.Type)" aria-hidden="true"></span>
     <span class="nav-search-result-copy">
-        <span class="nav-search-result-label">@Result.DisplayLabel</span>
-        @if(!string.IsNullOrWhiteSpace(Result.SupportingText))
+        <span class="nav-search-result-label">@GetDisplayLabel()</span>
+        @if(Result.Type != GlobalSearchResultType.User && !string.IsNullOrWhiteSpace(Result.SupportingText))
         {
             <span class="nav-search-result-support">@Result.SupportingText</span>
         }
@@ -54,6 +54,10 @@
         if(!Disabled)
             await Hovered.InvokeAsync();
     }
+
+    private string GetDisplayLabel() => Result.Type == GlobalSearchResultType.User
+        ? string.IsNullOrWhiteSpace(Result.Username) ? Localization["shared.user"] : Result.Username.Trim()
+        : Result.DisplayLabel;
 
     private string GetSearchResultTypeLabel(GlobalSearchResultType resultType)
     {

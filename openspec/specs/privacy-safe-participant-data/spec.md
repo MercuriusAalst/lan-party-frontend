@@ -6,30 +6,33 @@ Defines the front-end public participant data boundary for game, team, match, br
 ## Requirements
 
 ### Requirement: Public participant data excludes private account fields
-The front-end SHALL model public game and team participant response data with DTOs that exclude private account/internal fields such as email, email verification state, Auth0 ID, roles, deletion state, and timestamps while allowing public profile fields such as first name, last name, Discord ID, Steam ID, and Riot ID when returned by the public API.
+The front-end SHALL model public game and team participant response data with DTOs that exclude private account/internal fields such as email, email verification state, Auth0 ID, roles, deletion state, and timestamps. Public participant user identity MUST carry only a navigation ID and a username, or a display label equal to that username, and MUST NOT carry first name, last name, Discord ID, Steam ID, or Riot ID.
 
 #### Scenario: Anonymous game response contains individual participants
 - **WHEN** the front-end deserializes an anonymous public game detail response with individual participants
 - **THEN** each participant is represented without email, email verification state, Auth0 ID, roles, deletion state, or timestamps
-- **AND** the participant can provide an ID, username, first name, last name, display label, Discord ID, Steam ID, and Riot ID when those values are returned by the public API
+- **AND** the participant provides a navigation ID and a username, or a display label equal to the username
+- **AND** the participant provides no first name, last name, Discord ID, Steam ID, or Riot ID
 
 #### Scenario: Anonymous team response contains members
 - **WHEN** the front-end deserializes an anonymous public team or team participant response with members
 - **THEN** each member is represented without email, email verification state, Auth0 ID, roles, deletion state, or timestamps
-- **AND** member usernames, first names, last names, linked identities, and captain identity are represented when returned by the public API
+- **AND** member usernames and captain identity are represented when returned by the public API
+- **AND** the team and captain technical identifiers required for navigation remain available
+- **AND** no member first name, last name, Discord ID, Steam ID, or Riot ID is represented
 
-### Requirement: Public participant data exposes returned public profile fields
-The front-end SHALL treat first name, last name, Discord ID, Steam ID, and Riot ID in public participant data as public profile fields that may be rendered when the loaded public API response includes them.
+### Requirement: Public participant data renders usernames only
+The front-end MUST render public participant data by username only. It MUST NOT render first name, last name, Discord ID, Steam ID, or Riot ID from public participant DTOs, and detailed opponent identity MUST come from the match-authorized opponent-profile response.
 
-#### Scenario: Public profile fields are present in public data
-- **WHEN** a public game or team response includes first name, last name, Discord ID, Steam ID, or Riot ID fields for a participant
-- **THEN** the front-end may render those returned public profile fields in participant displays
-- **AND** the front-end does not infer or fetch missing public profile fields from current-user, admin-user, or full team endpoints
+#### Scenario: Public participant fields are present in a response
+- **WHEN** a public game, team, tournament, bracket, or placement response contains a user's name or linked platform IDs
+- **THEN** the front-end renders only the username
+- **AND** the front-end does not issue enrichment requests for those details
 
-#### Scenario: Public profile fields are absent from public data
-- **WHEN** a public participant response omits first name, last name, Discord ID, Steam ID, or Riot ID fields
-- **THEN** the front-end omits those rows, labels, chips, or placeholders from public participant displays
-- **AND** the front-end does not render copy implying that missing public profile fields are hidden or withheld
+#### Scenario: Match-authorized opponent details are returned
+- **WHEN** the opponent-profile endpoint authorizes a matched individual or team captain
+- **THEN** the front-end may display the username, first name, last name, Discord ID, Steam ID, and Riot ID returned by that endpoint in the match context
+- **AND** the front-end does not reuse those details in public participant surfaces
 
 ### Requirement: Authorized participant data remains separate from public participant data
 The front-end SHALL keep authorized admin/current-user participant models and service flows separate from privacy-safe public participant models.

@@ -94,6 +94,7 @@
                         var result = _searchResults[index];
                         <GlobalSearchResultItem Result="result"
                                                 IsActive="@(_highlightedSearchIndex == index)"
+                                                Disabled="@IsSearchResultDisabled(result)"
                                                 Selected="SelectSearchResultAsync"
                                                 Hovered="@(() => SetSearchHighlight(index))" />
                     }
@@ -159,6 +160,14 @@
                         <div class="dropdown-menu-custom nav-user-menu mt-2 flex min-w-full flex-col gap-1 md:mt-0" @onclick:stopPropagation="true">
                             <NavLink href="/profile" Match="NavLinkMatch.All" class="dropdown-item" ActiveClass="dropdown-item--active" @onclick="HandleNavigationClicked">@Localization["nav.profile"]</NavLink>
                             <NavLink href="/teams/manage" Match="NavLinkMatch.All" class="dropdown-item" ActiveClass="dropdown-item--active" @onclick="HandleNavigationClicked">@Localization["nav.teams"]</NavLink>
+                            @{
+#if INCLUDE_MOCK_BACKEND
+                                if(IsMockBackendEnabled && authState.User.IsInRole("admin"))
+                                {
+                                    <a href="@MockUserLoginHref" class="dropdown-item" @onclick="HandleNavigationClicked">@Localization["nav.devUser"]</a>
+                                }
+#endif
+                            }
                             <button type="button" class="dropdown-item dropdown-button" @onclick="Logout">@Localization["nav.logout"]</button>
                         </div>
                     }

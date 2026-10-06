@@ -68,7 +68,7 @@ else
                                 var isCaptain = !string.IsNullOrWhiteSpace(_team.CaptainUsername) &&
                                     string.Equals(member.Username, _team.CaptainUsername, StringComparison.OrdinalIgnoreCase);
                                 <li>
-                                    <a href="@BuildMemberProfileHref(member.Username)" class="public-team-member-link">
+                                    <div class="public-team-member">
                                         <span class="public-team-member-avatar" aria-hidden="true">@GetMemberInitials(member.Username)</span>
                                         <span class="public-team-member-copy">
                                             <strong>
@@ -78,10 +78,8 @@ else
                                                     <span class="public-team-captain-badge">@Localization["team.captain"]</span>
                                                 }
                                             </strong>
-                                            <span>@Localization["General.PublicTeam.ViewParticipantProfile"]</span>
                                         </span>
-                                        <span class="bi bi-arrow-up-right public-team-member-arrow" aria-hidden="true"></span>
-                                    </a>
+                                    </div>
                                 </li>
                             }
                         </ul>

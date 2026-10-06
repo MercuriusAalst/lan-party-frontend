@@ -22,7 +22,9 @@ follow the back-end response.
 ### Requirement: Global search returns normalized safe result records
 The global search API SHALL return a response wrapper containing bounded normalized search result
 records and pagination metadata, and each result SHALL identify the result type and provide only
-the data needed to render a result and navigate to its public destination.
+the data needed to render a result and navigate to its public destination. User results MUST be
+limited to the username and MUST NOT send non-admin visitors to the admin-only
+`/users/{username}` user-detail route.
 
 #### Scenario: Search response includes wrapper metadata
 - **WHEN** a valid global search request completes
@@ -35,7 +37,8 @@ the data needed to render a result and navigate to its public destination.
 - **THEN** the response includes result records whose type identifies `user`, `team`, or `tournament`
 - **AND** each record includes a display label suitable for the dropdown
 - **AND** each record includes supporting text suitable for the dropdown
-- **AND** each user result includes the username needed for `/users/{username}`
+- **AND** each user result includes the username needed to render the result, and only an admin is
+  sent to the admin-only `/users/{username}` user-detail page
 - **AND** each team result includes the team name needed for `/teams/{teamname}`
 - **AND** each tournament result includes the tournament id needed for the `/tournaments/{tournamentId}` presentation page
 

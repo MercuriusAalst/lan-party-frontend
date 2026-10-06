@@ -6,6 +6,8 @@ using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Refit;
+using System.Net;
+using System.Text.Json;
 
 namespace Mercurius.LAN.Web.Components.Pages.Tournaments;
 
@@ -34,13 +36,15 @@ public partial class AddTournamentDialog
     private static readonly BracketType[] SupportedBracketTypes =
     [
         BracketType.SingleElimination,
-        BracketType.DoubleElimination
+        BracketType.DoubleElimination,
+        BracketType.Leaderboard
     ];
 
     private static readonly IReadOnlyDictionary<string, string> ValidationFieldLabelKeys = new Dictionary<string, string>
     {
         [nameof(CreateTournamentDTO.Name)] = "shared.name",
         [nameof(CreateTournamentDTO.BracketType)] = "Feature.tournament.bracketType",
+        [nameof(CreateTournamentDTO.LeaderboardRankingMetric)] = "Feature.tournaments.rankingMetric",
         [nameof(CreateTournamentDTO.Format)] = "tournament.format",
         [nameof(CreateTournamentDTO.FinalsFormat)] = "Feature.tournaments.finalsFormat",
         [nameof(CreateTournamentDTO.ParticipationMode)] = "tournament.participation",
@@ -54,18 +58,36 @@ public partial class AddTournamentDialog
     private static readonly IReadOnlyDictionary<string, string> ValidationMessageKeys = new Dictionary<string, string>
     {
         ["Planned start time is required."] = "form.plannedStartTimeRequired",
-        ["Team tournaments require a team size between 1 and 50."] = "form.teamSizeRange"
+        ["Team tournaments require a team size between 1 and 50."] = "form.teamSizeRange",
+        ["Leaderboard tournaments require a ranking metric."] = "form.leaderboardMetricRequired",
+        ["Leaderboard tournaments are individual competitions."] = "form.leaderboardIndividualOnly"
     };
+
+    private bool IsLeaderboardSelected => _newTournament.BracketType == BracketType.Leaderboard;
 
 
     protected override void OnInitialized() {
 
         SetPlannedStartInputs(_newTournament.PlannedStartTime);
         _editContext = new(_newTournament);
-       _editContext.SetFieldCssClassProvider(new BootstrapValidationFieldClassProvider());
+        _editContext.SetFieldCssClassProvider(new BootstrapValidationFieldClassProvider());
         _editContext.OnFieldChanged += (sender, args) => {
+            if(args.FieldIdentifier.FieldName == nameof(CreateTournamentDTO.BracketType))
+                ApplyBracketTypeDefaults();
             _editContext.Validate();
         };
+    }
+
+    internal void ApplyBracketTypeDefaults()
+    {
+        if(!IsLeaderboardSelected)
+        {
+            _newTournament.LeaderboardRankingMetric = null;
+            return;
+        }
+
+        _newTournament.ParticipationMode = ParticipationMode.Individual;
+        _newTournament.TeamSize = null;
     }
     private async Task SubmitTournamentAsync(EditContext editContext)
     {
@@ -89,9 +111,7 @@ public partial class AddTournamentDialog
         }
         catch(ApiException ex)
         {
-            _submitError = string.IsNullOrWhiteSpace(ex.Content)
-                ? Localization["Feature.tournaments.createFailed"]
-                : ex.Content;
+            _submitError = ResolveCreateError(ex);
             ToastService.ShowError(_submitError);
         }
         catch(UnauthorizedAccessException)
@@ -108,6 +128,97 @@ public partial class AddTournamentDialog
         {
             _isSubmitting = false;
         }
+    }
+
+    internal string ResolveCreateError(ApiException exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+
+        if(exception.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            return Localization["Feature.tournaments.createUnauthorized"];
+
+        if(IsClientError(exception.StatusCode) && TryReadStructuredMessage(exception.Content, out var validationMessage))
+            return validationMessage;
+
+        return Localization["Feature.tournaments.createFailed"];
+    }
+
+    private static bool IsClientError(HttpStatusCode statusCode) =>
+        (int)statusCode is >= 400 and < 500;
+
+    // Only intentional copy from a structured JSON error object is surfaced. Plain-text bodies, JSON
+    // string roots, and objects without a recognized message, detail, or validation-error field fall
+    // back to the localized message, so a raw response body can never reach the dialog. The
+    // ProblemDetails "title" field is deliberately ignored because RFC 7807 leaves it as a generic
+    // HTTP reason phrase rather than copy meant for a person.
+    private static bool TryReadStructuredMessage(string? content, out string message)
+    {
+        message = string.Empty;
+        if(string.IsNullOrWhiteSpace(content))
+            return false;
+
+        try
+        {
+            using var document = JsonDocument.Parse(content);
+            if(document.RootElement.ValueKind != JsonValueKind.Object)
+                return false;
+
+            var candidate = ReadStringProperty(document.RootElement, "message")
+                ?? ReadStringProperty(document.RootElement, "detail")
+                ?? ReadFirstValidationError(document.RootElement);
+
+            if(string.IsNullOrWhiteSpace(candidate))
+                return false;
+
+            candidate = candidate.Trim();
+            if(candidate.Length == 0 || LooksLikeTransportDetail(candidate))
+                return false;
+
+            message = candidate;
+            return true;
+        }
+        catch(JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static string? ReadStringProperty(JsonElement root, string propertyName) =>
+        root.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
+
+    private static string? ReadFirstValidationError(JsonElement root)
+    {
+        if(!root.TryGetProperty("errors", out var errors) || errors.ValueKind != JsonValueKind.Object)
+            return null;
+
+        foreach(var error in errors.EnumerateObject())
+        {
+            if(error.Value.ValueKind == JsonValueKind.Array)
+            {
+                foreach(var entry in error.Value.EnumerateArray())
+                {
+                    if(entry.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(entry.GetString()))
+                        return entry.GetString();
+                }
+            }
+            else if(error.Value.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(error.Value.GetString()))
+            {
+                return error.Value.GetString();
+            }
+        }
+
+        return null;
+    }
+
+    private static bool LooksLikeTransportDetail(string message)
+    {
+        var trimmed = message.TrimStart();
+        return trimmed.StartsWith('{')
+            || trimmed.StartsWith('[')
+            || trimmed.StartsWith('<')
+            || trimmed.Contains("traceId", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool TryApplyPlannedStartTime()
@@ -162,6 +273,7 @@ public partial class AddTournamentDialog
         BracketType.DoubleElimination => Localization["Feature.tournament.bracketDouble"],
         BracketType.RoundRobin => Localization["Feature.tournament.bracketRoundRobin"],
         BracketType.Swiss => Localization["Feature.tournament.bracketSwiss"],
+        BracketType.Leaderboard => Localization["Feature.tournament.bracketLeaderboard"],
         _ => type.ToString()
     };
 
@@ -178,5 +290,12 @@ public partial class AddTournamentDialog
         TournamentFormat.BestOf3 => Localization["Feature.tournament.formatBestOf3"],
         TournamentFormat.BestOf5 => Localization["Feature.tournament.formatBestOf5"],
         _ => format.ToString()
+    };
+
+    private string GetRankingMetricLabel(LeaderboardRankingMetric metric) => metric switch
+    {
+        LeaderboardRankingMetric.HighestScore => Localization["Feature.tournaments.rankingMetricHighestScore"],
+        LeaderboardRankingMetric.FastestTime => Localization["Feature.tournaments.rankingMetricFastestTime"],
+        _ => metric.ToString()
     };
 }
