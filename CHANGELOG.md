@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.4.0...frontend-v0.5.0) (2026-10-06)
+
+
+### Features
+
+* Add English and Dutch Localization ([#64](https://github.com/MercuriusAalst/lan-party-frontend/issues/64)) ([8796d32](https://github.com/MercuriusAalst/lan-party-frontend/commit/8796d32257ac237d1e0167d81e6dd32b4b4e0aae))
+* Add Leaderboard Tournament UI ([#79](https://github.com/MercuriusAalst/lan-party-frontend/issues/79)) ([6da9de8](https://github.com/MercuriusAalst/lan-party-frontend/commit/6da9de8c0d2ea1ee54285725e32cd26eb04668c8)), closes [#66](https://github.com/MercuriusAalst/lan-party-frontend/issues/66)
+* Add Playwright E2E Suite For Frontend And API Flows ([#92](https://github.com/MercuriusAalst/lan-party-frontend/issues/92)) ([487c9de](https://github.com/MercuriusAalst/lan-party-frontend/commit/487c9de752abd68b21dd4ed909d77aec76a4ccef))
+* Add Tournament Lifecycle Action Criteria and Mock Parity to Registration Flow ([#87](https://github.com/MercuriusAalst/lan-party-frontend/issues/87)) ([b54e96f](https://github.com/MercuriusAalst/lan-party-frontend/commit/b54e96f703e0c1f94d009b02d50712b1d9ec614c))
+* Redesign the Mercurius LAN Front End ([#63](https://github.com/MercuriusAalst/lan-party-frontend/issues/63)) ([5da0be9](https://github.com/MercuriusAalst/lan-party-frontend/commit/5da0be9425550357de1ee4155cb9dc20a29b1081))
+
+
+### Bug Fixes
+
+* Align Home Sponsor Scroller With Hero Fadeout ([#80](https://github.com/MercuriusAalst/lan-party-frontend/issues/80)) ([9dd24f0](https://github.com/MercuriusAalst/lan-party-frontend/commit/9dd24f0c21e3b4824ae559ad63ebb06673f2ef18))
+* Restrict Public User Data To Usernames And Match Opponents + migrate frontend to .NET 10 ([#88](https://github.com/MercuriusAalst/lan-party-frontend/issues/88)) ([e4c06c6](https://github.com/MercuriusAalst/lan-party-frontend/commit/e4c06c6a1497dc8c56b3ac9d057090c374d4c50f))
+
 ## [0.4.0](https://github.com/mercurius-aalst/lan-party/compare/frontend-v0.3.3...frontend-v0.4.0) (2025-11-19)
 
 
