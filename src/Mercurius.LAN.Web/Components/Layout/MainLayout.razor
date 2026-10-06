@@ -31,7 +31,7 @@
                 <button type="button"
                         class="theme-toggle"
                         @onclick="ToggleThemeAsync"
-                        aria-pressed="@_isDarkMode"
+                        aria-pressed="@(_isDarkMode ? "true" : "false")"
                         aria-label="@ThemeToggleLabel"
                         title="@ThemeToggleLabel">
                     <span class="bi @(_isDarkMode ? "bi-sun" : "bi-moon-stars")" aria-hidden="true"></span>

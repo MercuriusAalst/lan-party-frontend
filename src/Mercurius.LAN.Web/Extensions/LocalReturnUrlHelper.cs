@@ -6,6 +6,7 @@ internal static class LocalReturnUrlHelper
     [
         "/profile",
         "/complete-profile",
+        "/users",
         "/teams/manage",
         "/admin/sponsors",
         "/account/logout"

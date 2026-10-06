@@ -1,4 +1,5 @@
 using Auth0.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Mercurius.LAN.Web.APIClients;
 #if INCLUDE_MOCK_BACKEND
@@ -12,7 +13,6 @@ using Refit;
 using System.Text.Json;
 using System.Web;
 #if INCLUDE_MOCK_BACKEND
-using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 #endif
 
@@ -38,12 +38,16 @@ public static class DependencyExtensions
                     options.AccessDeniedPath = "/";
                     options.ClaimsIssuer = "MercuriusMock";
                     options.Cookie.Name = "mercurius-mock-auth";
+                    options.Events.OnRedirectToAccessDenied = context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        return Task.CompletedTask;
+                    };
                 });
 
             return services;
         }
 #endif
-
         var auth0Options = GetAuth0Options(configuration);
 
         services.AddAuthorization();
@@ -83,6 +87,13 @@ public static class DependencyExtensions
                 return Task.CompletedTask;
             };
         });
+
+        services.Configure<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            });
 
         return services;
     }
@@ -271,7 +282,7 @@ public static class DependencyExtensions
 
     private static string BuildLoginFailureRedirectUri(string? redirectUri, string reason)
     {
-        var safeReturnUrl = LocalReturnUrlHelper.GetSafeLocalReturnUrl(redirectUri);
+        var safeReturnUrl = LocalReturnUrlHelper.GetSafeLogoutReturnUrl(redirectUri);
         var uriBuilder = new UriBuilder($"http://localhost{safeReturnUrl}");
         var query = HttpUtility.ParseQueryString(uriBuilder.Query);
         query["login"] = reason;

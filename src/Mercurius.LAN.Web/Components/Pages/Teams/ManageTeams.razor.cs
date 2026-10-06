@@ -23,6 +23,7 @@ public partial class ManageTeams : IAsyncDisposable
 
     private CurrentUserTeamSummaryDTO _summary = new();
     private bool _isLoading = true;
+    private bool _isRealtimeReady;
     private string? _loadError;
     private Guid? _selectedTeamId;
     private bool _isCreateTeamDialogOpen;
@@ -61,25 +62,61 @@ public partial class ManageTeams : IAsyncDisposable
     private async Task InitializeAsync()
     {
         var cancellationToken = _lifetimeCancellationTokenSource.Token;
-        await LoadSummaryAsync(cancellationToken);
-        if(!IsActive(cancellationToken))
-            return;
-
         try
         {
-            await RealtimeService.StartAsync(cancellationToken);
+            await LoadSummaryAsync(cancellationToken);
             if(!IsActive(cancellationToken))
                 return;
 
-            await RealtimeService.JoinTeamsAsync(ManageableTeams.Select(team => team.Id), cancellationToken);
+            if(_loadError is null)
+            {
+                var initiallyDisplayedTeamIds = ManageableTeams
+                    .Select(team => team.Id)
+                    .ToHashSet();
+                _isLoading = false;
+                await RenderIfActiveAsync();
+                if(!IsActive(cancellationToken))
+                    return;
+
+                try
+                {
+                    await RealtimeService.StartAsync(cancellationToken);
+                    if(!IsActive(cancellationToken))
+                        return;
+
+                    await RealtimeService.JoinTeamsAsync(initiallyDisplayedTeamIds, cancellationToken);
+                    if(!IsActive(cancellationToken))
+                        return;
+                    if(!RealtimeService.IsConnected)
+                    {
+                        ToastService.ShowWarning(Localization["General.TeamManage.LiveUpdatesUnavailable"]);
+                        return;
+                    }
+
+                    await ReconcileSummaryAfterRealtimeStartupAsync(initiallyDisplayedTeamIds, cancellationToken);
+                    if(IsActive(cancellationToken) && RealtimeService.IsConnected)
+                    {
+                        _isRealtimeReady = true;
+                        await RenderIfActiveAsync();
+                    }
+                }
+                catch(OperationCanceledException) when(!IsActive(cancellationToken))
+                {
+                }
+                catch(Exception)
+                {
+                    if(IsActive(cancellationToken))
+                        ToastService.ShowWarning(Localization["General.TeamManage.LiveUpdatesUnavailable"]);
+                }
+            }
         }
-        catch(OperationCanceledException) when(!IsActive(cancellationToken))
+        finally
         {
-        }
-        catch(Exception)
-        {
-            if(IsActive(cancellationToken))
-                ToastService.ShowWarning(Localization["General.TeamManage.LiveUpdatesUnavailable"]);
+            if(IsActive(cancellationToken) && _isLoading)
+            {
+                _isLoading = false;
+                await RenderIfActiveAsync();
+            }
         }
     }
 
@@ -127,13 +164,60 @@ public partial class ManageTeams : IAsyncDisposable
             _summary = new();
             _loadError = GetErrorMessage(exception);
         }
-        finally
+    }
+
+    private async Task ReconcileSummaryAfterRealtimeStartupAsync(
+        IReadOnlySet<Guid> initiallyDisplayedTeamIds,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var currentSummary = await TeamService.GetCurrentUserTeamSummaryAsync(cancellationToken);
+            if(!IsActive(cancellationToken))
+                return;
+
+            var newlyIntroducedTeamIds = currentSummary.CaptainedTeams
+                .Concat(currentSummary.MemberTeams)
+                .Select(team => team.Id)
+                .Where(teamId => !initiallyDisplayedTeamIds.Contains(teamId))
+                .Distinct()
+                .ToArray();
+            try
+            {
+                if(newlyIntroducedTeamIds.Length > 0)
+                    await RealtimeService.JoinTeamsAsync(newlyIntroducedTeamIds, cancellationToken);
+            }
+            catch(OperationCanceledException) when(!IsActive(cancellationToken))
+            {
+                return;
+            }
+            catch(Exception)
+            {
+                if(IsActive(cancellationToken))
+                    ToastService.ShowWarning(Localization["General.TeamManage.LiveUpdatesUnavailable"]);
+                return;
+            }
+            if(!IsActive(cancellationToken))
+                return;
+            if(!RealtimeService.IsConnected)
+            {
+                ToastService.ShowWarning(Localization["General.TeamManage.LiveUpdatesUnavailable"]);
+                return;
+            }
+
+            _summary = currentSummary;
+            EnsureSelectedTeam();
+            await RenderIfActiveAsync();
+            if(IsActive(cancellationToken))
+                await NotificationService.RefreshAsync(cancellationToken);
+        }
+        catch(OperationCanceledException) when(!IsActive(cancellationToken))
+        {
+        }
+        catch(Exception exception)
         {
             if(IsActive(cancellationToken))
-            {
-                _isLoading = false;
-                await RenderIfActiveAsync();
-            }
+                ToastService.ShowWarning(GetErrorMessage(exception));
         }
     }
 
@@ -156,7 +240,10 @@ public partial class ManageTeams : IAsyncDisposable
 
         await RealtimeService.JoinTeamsAsync(ManageableTeams.Select(team => team.Id), activeCancellationToken);
         if(IsActive(activeCancellationToken))
+        {
+            _isRealtimeReady = RealtimeService.IsConnected;
             await RenderIfActiveAsync();
+        }
     }
 
     private async Task RefreshFromSignalAsync()

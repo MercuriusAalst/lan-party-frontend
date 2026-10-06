@@ -1,0 +1,29 @@
+@page "/status/{StatusCode:int}"
+@rendermode InteractiveServer
+
+<PageTitle>@Title</PageTitle>
+<StatusPage Eyebrow='@Localization["common.system"]'
+            Title="@Title"
+            Message="@Message"
+            PrimaryHref="/"
+            PrimaryLabel='@Localization["common.backHome"]'
+            SecondaryHref="/tournaments"
+            SecondaryLabel='@Localization["common.browseTournaments"]' />
+
+@code {
+    [Parameter] public int StatusCode { get; set; }
+
+    private string Title => StatusCode switch
+    {
+        403 => Localization["common.forbidden"],
+        404 => Localization["common.pageNotFound"],
+        _ => Localization["common.error"]
+    };
+
+    private string Message => StatusCode switch
+    {
+        403 => Localization["auth.accessDenied"],
+        404 => Localization["common.pageMoved"],
+        _ => Localization["common.unexpectedError"]
+    };
+}

@@ -16,6 +16,7 @@ else if(!string.IsNullOrWhiteSpace(_loadError))
                 Title='@Localization["General.TeamManage.Unavailable"]'
                 Message="@_loadError"
                 PrimaryHref="/teams/manage"
+                PrimaryForceLoad="true"
                 PrimaryLabel='@Localization["status.tryAgain"]'
                 SecondaryHref="/tournaments"
                 SecondaryLabel='@Localization["common.browseTournaments"]' />
@@ -67,7 +68,7 @@ else
             </section>
         }
 
-        <section id="team-workspace" class="team-workspace brand-section-anchor" aria-label='@Localization["General.TeamManage.WorkspaceAria"]'>
+        <section id="team-workspace" class="team-workspace brand-section-anchor" aria-label='@Localization["General.TeamManage.WorkspaceAria"]' data-live-updates-ready="@(_isRealtimeReady ? "true" : "false")">
             <aside class="team-selector" aria-label='@Localization["General.TeamManage.YourTeamsAria"]'>
                 <div class="team-selector-heading">
                     <div class="team-selector-title">
@@ -98,7 +99,7 @@ else
                             <div role="listitem">
                                 <button type="button"
                                         class="@GetTeamSelectorClass(team.Id)"
-                                        aria-pressed="@(_selectedTeamId == team.Id)"
+                                        aria-pressed="@(_selectedTeamId == team.Id ? "true" : "false")"
                                         @onclick="@(() => SelectTeam(team.Id))">
                                     <TeamIdentityDisplay Name="@team.Name"
                                                          LogoUrl="@team.LogoUrl"
@@ -149,7 +150,7 @@ else
                             <button type="button"
                                     class="@GetTabClass(TeamManagementTab.Members)"
                                     role="tab"
-                                    aria-selected="@(_activeTab == TeamManagementTab.Members)"
+                                    aria-selected="@(_activeTab == TeamManagementTab.Members ? "true" : "false")"
                                     aria-controls="team-roster-panel"
                                         @onclick="() => SelectTab(TeamManagementTab.Members)">@Localization["team.members"]</button>
                             @if(isCaptain)
@@ -157,7 +158,7 @@ else
                                 <button type="button"
                                         class="@GetTabClass(TeamManagementTab.Management)"
                                         role="tab"
-                                        aria-selected="@(_activeTab == TeamManagementTab.Management)"
+                                        aria-selected="@(_activeTab == TeamManagementTab.Management ? "true" : "false")"
                                         aria-controls="team-tools-panel"
                                         @onclick="() => SelectTab(TeamManagementTab.Management)">@Localization["General.TeamManage.TeamTools"]</button>
                             }

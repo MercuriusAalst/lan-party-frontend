@@ -6,10 +6,8 @@
             <NotAuthorized Context="authState">
                 @if(authState.User.Identity?.IsAuthenticated == true)
                 {
-                    <LayoutView Layout="typeof(Layout.MainLayout)">
-                        <PageTitle>@Localization["common.forbidden"]</PageTitle>
-                        <StatusPage Eyebrow='@Localization["common.system"]' Title='@Localization["common.forbidden"]' Message='@Localization["auth.accessDenied"]' PrimaryHref="/" PrimaryLabel='@Localization["common.backHome"]' SecondaryHref="/tournaments" SecondaryLabel='@Localization["common.browseTournaments"]' />
-                    </LayoutView>
+                    <PageTitle>@Localization["common.forbidden"]</PageTitle>
+                    <StatusPage Eyebrow='@Localization["common.system"]' Title='@Localization["common.forbidden"]' Message='@Localization["auth.accessDenied"]' PrimaryHref="/" PrimaryLabel='@Localization["common.backHome"]' SecondaryHref="/tournaments" SecondaryLabel='@Localization["common.browseTournaments"]' />
                 }
                 else
                 {

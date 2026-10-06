@@ -1,4 +1,5 @@
 @rendermode InteractiveServer
+@inject NavigationManager NavigationManager
 
 <section class="status-page brand-section" role="alert" aria-live="assertive">
     <div class="brand-card status-page-card">
@@ -18,7 +19,14 @@
             <div class="status-page-actions">
                 @if(!string.IsNullOrWhiteSpace(PrimaryHref) && !string.IsNullOrWhiteSpace(PrimaryLabel))
                 {
-                    <a href="@PrimaryHref" class="button-primary">@PrimaryLabel</a>
+                    @if(PrimaryForceLoad)
+                    {
+                        <a href="@PrimaryHref" class="button-primary" @onclick="ForceLoadPrimary" @onclick:preventDefault="true">@PrimaryLabel</a>
+                    }
+                    else
+                    {
+                        <a href="@PrimaryHref" class="button-primary">@PrimaryLabel</a>
+                    }
                 }
 
                 @if(!string.IsNullOrWhiteSpace(SecondaryHref) && !string.IsNullOrWhiteSpace(SecondaryLabel))
@@ -36,7 +44,10 @@
     [Parameter] public string Message { get; set; } = string.Empty;
     [Parameter] public string? PrimaryHref { get; set; }
     [Parameter] public string? PrimaryLabel { get; set; }
+    [Parameter] public bool PrimaryForceLoad { get; set; }
     [Parameter] public string? SecondaryHref { get; set; }
     [Parameter] public string? SecondaryLabel { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private void ForceLoadPrimary() => NavigationManager.NavigateTo(PrimaryHref!, forceLoad: true);
 }

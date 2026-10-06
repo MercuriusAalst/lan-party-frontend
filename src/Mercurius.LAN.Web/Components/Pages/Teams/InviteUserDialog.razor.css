@@ -62,7 +62,7 @@
 .team-dialog-form-container {
     width: 100%;
     min-height: 0;
-    overflow: visible;
+    overflow-y: auto;
     padding: clamp(1.25rem, 2vw, 1.65rem) clamp(0.75rem, 1.8vw, 1.25rem);
 }
 
@@ -87,11 +87,6 @@
 .team-search-input-shell {
     position: relative;
     border-radius: 16px;
-}
-
-.team-search-field {
-    position: relative;
-    z-index: 2;
 }
 
 .team-search-input-shell .bi {
@@ -135,14 +130,11 @@
 }
 
 .team-search-results {
-    position: absolute;
-    top: calc(100% + 0.6rem);
-    right: 0;
-    left: 0;
-    z-index: 30;
+    position: static;
     display: grid;
     gap: 0.35rem;
     max-height: min(18rem, 46vh);
+    margin-top: 0.5rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 0.5rem;
@@ -206,8 +198,6 @@
     }
 
     .team-search-results {
-        position: static;
-        margin-top: 0.5rem;
         max-height: 16rem;
     }
 

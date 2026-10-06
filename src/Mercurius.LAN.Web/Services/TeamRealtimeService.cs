@@ -18,7 +18,9 @@ public sealed class TeamRealtimeService : ITeamRealtimeService
 {
     private readonly IConfiguration _configuration;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly SemaphoreSlim _connectionStartGate = new(1, 1);
     private HubConnection? _connection;
+    private Task? _connectionStartTask;
 
     public TeamRealtimeService(IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
     {
@@ -32,16 +34,35 @@ public sealed class TeamRealtimeService : ITeamRealtimeService
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if(_connection is { State: HubConnectionState.Connected or HubConnectionState.Connecting or HubConnectionState.Reconnecting })
-            return;
+        Task startTask;
+        await _connectionStartGate.WaitAsync(cancellationToken);
+        try
+        {
+            if(_connection is { State: HubConnectionState.Connected or HubConnectionState.Reconnecting })
+                return;
 
-        _connection ??= BuildConnection();
-        await _connection.StartAsync(cancellationToken);
+            _connection ??= BuildConnection();
+            if(_connection.State != HubConnectionState.Connecting ||
+               _connectionStartTask is null ||
+               _connectionStartTask.IsCompleted)
+            {
+                _connectionStartTask = _connection.StartAsync();
+            }
+
+            startTask = _connectionStartTask;
+        }
+        finally
+        {
+            _connectionStartGate.Release();
+        }
+
+        await startTask.WaitAsync(cancellationToken);
     }
 
     public async Task JoinTeamsAsync(IEnumerable<Guid> teamIds, CancellationToken cancellationToken = default)
     {
-        if(_connection == null || _connection.State != HubConnectionState.Connected)
+        await StartAsync(cancellationToken);
+        if(_connection?.State != HubConnectionState.Connected)
             return;
 
         foreach(var teamId in teamIds.Distinct())

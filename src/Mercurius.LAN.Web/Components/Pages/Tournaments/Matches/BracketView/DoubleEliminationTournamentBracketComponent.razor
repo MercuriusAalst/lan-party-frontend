@@ -14,7 +14,7 @@ else
                     type="button"
                     class="double-elimination-tab @GetTabCssClass(option.View)"
                     role="tab"
-                    aria-selected="@(option.View == _activeView)"
+                    aria-selected="@(option.View == _activeView ? "true" : "false")"
                     @onclick="@(() => SelectView(option.View))">
                     <span class="double-elimination-tab-label">@option.Label</span>
                     <span class="double-elimination-tab-meta">@option.Meta</span>

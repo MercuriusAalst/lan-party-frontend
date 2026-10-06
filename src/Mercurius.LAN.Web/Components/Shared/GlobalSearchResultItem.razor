@@ -3,7 +3,7 @@
 <button type="button"
         class="@GetItemClass()"
         role="option"
-        aria-selected="@IsActive"
+        aria-selected="@(IsActive ? "true" : "false")"
         disabled="@Disabled"
         @onclick="SelectAsync"
         @onmouseover="HoverAsync">

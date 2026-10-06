@@ -1,0 +1,98 @@
+---
+name: Continuous Integration - E2E
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - src/**
+      - tests/**
+      - .github/workflows/ci-e2e.yml
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  workflow_dispatch:
+    inputs:
+      backend_ref:
+        description: Backend repository ref to run the E2E suite against
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  playwright-e2e:
+    runs-on: ubuntu-24.04
+    name: "Playwright E2E"
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_POSTGRES_CONNECTION: "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=postgres"
+      MERCURIUS_BACKEND_ROOT: ${{ github.workspace }}/backend-playwright-e2e
+      # Companion backend commit required by this suite until MercuriusAalst/lan-party-backend#139
+      # (team membership realtime fan-out) lands on main. Update to the final backend commit,
+      # then back to `main` once that change is merged.
+      E2E_BACKEND_REF: 3cfc07f76cd6cb66b0ac17595e01359d3d966606
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: MercuriusAalst/lan-party-backend
+          ref: ${{ inputs.backend_ref || env.E2E_BACKEND_REF }}
+          path: backend-playwright-e2e
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x"
+
+      - name: Trust ASP.NET Core development certificate
+        run: |
+          export SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:/usr/lib/ssl/certs"
+          echo "SSL_CERT_DIR=$SSL_CERT_DIR" >> "$GITHUB_ENV"
+          dotnet dev-certs https --trust
+          dotnet dev-certs https --check --trust
+
+      - name: Restore E2E test project
+        run: dotnet restore tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj
+
+      - name: Build E2E test project
+        run: >-
+          dotnet build tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj
+          --no-restore -m:1 -nr:false -p:UseSharedCompilation=false
+
+      - name: Install Playwright Chromium
+        run: pwsh tests/Mercurius.LAN.Web.E2ETests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Run Playwright E2E tests
+        run: >-
+          dotnet test tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj
+          --no-build --no-restore --logger "trx;LogFileName=e2e.trx"
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-test-results
+          path: tests/Mercurius.LAN.Web.E2ETests/TestResults
+          retention-days: 7
+          if-no-files-found: warn

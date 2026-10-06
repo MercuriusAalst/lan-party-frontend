@@ -124,6 +124,43 @@ public sealed class ComponentLifecycleBehaviorTests
     }
 
     [Fact]
+    public async Task ManageTeamsRendersRestSummaryWhileRealtimeStartupIsPending()
+    {
+        var teamId = Guid.NewGuid();
+        var summaryRequests = 0;
+        var summary = new CurrentUserTeamSummaryDTO
+        {
+            CaptainedTeams = [new TeamManagementSummaryDTO { Id = teamId, Name = "Current team" }]
+        };
+        var teamService = CreateProxy<ITeamService>((method, _) =>
+        {
+            if(method.Name != nameof(ITeamService.GetCurrentUserTeamSummaryAsync))
+                throw new NotSupportedException(method.Name);
+
+            Interlocked.Increment(ref summaryRequests);
+            return Task.FromResult(summary);
+        });
+        var realtimeService = new PendingRealtimeService();
+        var component = new TestManageTeams();
+
+        SetProperty(component, "TeamService", teamService);
+        SetProperty(component, "NotificationService", new NoopNotificationService());
+        SetProperty(component, "RealtimeService", realtimeService);
+
+        component.StartInitialization();
+        await realtimeService.StartAttempted.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.True(component.FirstRender.IsCompleted);
+        Assert.False(component.IsLoading);
+        Assert.Equal(teamId, Assert.Single(component.CurrentSummary.CaptainedTeams).Id);
+        Assert.Equal(1, Volatile.Read(ref summaryRequests));
+        Assert.Equal(1, realtimeService.StartCalls);
+        Assert.False(realtimeService.StartTask.IsCompleted);
+
+        await component.DisposeAsync();
+    }
+
+    [Fact]
     public async Task NavMenuDoesNotContinueAuthenticatedInitializationAfterDisposal()
     {
         var profileRequested = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -362,9 +399,25 @@ public sealed class ComponentLifecycleBehaviorTests
 
     private sealed class TestManageTeams : ManageTeams
     {
+        private readonly TaskCompletionSource _firstRender = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task FirstRender => _firstRender.Task;
+
+        public bool IsLoading => (bool)(typeof(ManageTeams)
+            .GetField("_isLoading", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(this) ?? throw new MissingFieldException(typeof(ManageTeams).FullName, "_isLoading"));
+
+        public CurrentUserTeamSummaryDTO CurrentSummary => (CurrentUserTeamSummaryDTO)(typeof(ManageTeams)
+            .GetField("_summary", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.GetValue(this) ?? throw new MissingFieldException(typeof(ManageTeams).FullName, "_summary"));
+
         public void StartInitialization() => base.OnInitialized();
 
-        protected override Task RequestRenderAsync() => Task.CompletedTask;
+        protected override Task RequestRenderAsync()
+        {
+            _firstRender.TrySetResult();
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class TestNavMenu : NavMenu
@@ -434,6 +487,28 @@ public sealed class ComponentLifecycleBehaviorTests
         {
             StartCalls++;
             return Task.CompletedTask;
+        }
+
+        public Task JoinTeamsAsync(IEnumerable<Guid> teamIds, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class PendingRealtimeService : ITeamRealtimeService
+    {
+        private readonly TaskCompletionSource _start = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _startAttempted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public event Func<Task>? TeamStateInvalidated;
+        public bool IsConnected => false;
+        public int StartCalls { get; private set; }
+        public Task StartTask => _start.Task;
+        public Task StartAttempted => _startAttempted.Task;
+
+        public Task StartAsync(CancellationToken cancellationToken = default)
+        {
+            StartCalls++;
+            _startAttempted.TrySetResult();
+            return _start.Task.WaitAsync(cancellationToken);
         }
 
         public Task JoinTeamsAsync(IEnumerable<Guid> teamIds, CancellationToken cancellationToken = default) => Task.CompletedTask;

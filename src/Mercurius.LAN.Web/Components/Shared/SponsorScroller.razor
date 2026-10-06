@@ -20,7 +20,7 @@
                 {
                     var isPrimaryLoop = loopIndex == 0;
 
-                    <div class="sponsor-scroller__loop" aria-hidden="@(!isPrimaryLoop)">
+                    <div class="sponsor-scroller__loop" aria-hidden="@(!isPrimaryLoop ? "true" : "false")">
                         @foreach(var sponsor in DisplaySponsors)
                         {
                             <a class="sponsor-scroller__logo"

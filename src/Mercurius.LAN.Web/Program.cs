@@ -64,6 +64,7 @@ if(!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStatusCodePagesWithReExecute("/status/{0}");
 
 app.UseAuthentication();
 app.UseAuthorization();

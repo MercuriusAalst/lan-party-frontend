@@ -582,7 +582,7 @@
 @media (min-width: 861px) {
     .brand-nav-search {
         flex: 0 1 24rem;
-        min-width: 2.75rem;
+        min-width: 10rem;
         max-width: 24rem;
     }
 }

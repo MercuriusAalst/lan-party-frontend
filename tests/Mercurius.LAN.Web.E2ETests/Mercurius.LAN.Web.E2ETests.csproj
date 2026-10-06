@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <BackendProjectRoot Condition="'$(BackendProjectRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\..\..\backend-playwright-e2e\src\MercuriusAPI\Mercurius.LAN.API.csproj')">$(MSBuildThisFileDirectory)..\..\..\backend-playwright-e2e</BackendProjectRoot>
+    <BackendProjectRoot Condition="'$(BackendProjectRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\..\..\mercurius-aalst-back-end\src\MercuriusAPI\Mercurius.LAN.API.csproj')">$(MSBuildThisFileDirectory)..\..\..\mercurius-aalst-back-end</BackendProjectRoot>
+    <BackendProjectRoot Condition="'$(BackendProjectRoot)' == ''">$(MERCURIUS_BACKEND_ROOT)</BackendProjectRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.60.0" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Mercurius.LAN.Web\Mercurius.LAN.Web.csproj" />
+    <ProjectReference Include="$(BackendProjectRoot)\src\MercuriusAPI\Mercurius.LAN.API.csproj" Condition="'$(BackendProjectRoot)' != ''" />
+  </ItemGroup>
+
+  <Target Name="CheckBackendProject" BeforeTargets="ResolveReferences" Condition="'$(BackendProjectRoot)' == '' or !Exists('$(BackendProjectRoot)\src\MercuriusAPI\Mercurius.LAN.API.csproj')">
+    <Error Text="Set MERCURIUS_BACKEND_ROOT to the backend checkout path (or pass -p:BackendProjectRoot=...). The E2E tests run the real API and seed its isolated Postgres database." />
+  </Target>
+</Project>

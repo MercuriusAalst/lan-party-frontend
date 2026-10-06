@@ -429,7 +429,7 @@
                                             <button type="button"
                                                     class="registration-team-option @(team.Id == _selectedTeamId ? "is-selected" : null) @(!teamSelectable ? "is-unavailable" : null)"
                                                     role="option"
-                                                    aria-selected="@(team.Id == _selectedTeamId)"
+                                                    aria-selected="@(team.Id == _selectedTeamId ? "true" : "false")"
                                                     aria-label='@GetTeamAriaLabel(team.Name, !teamSelectable, team.Id == _selectedTeamId)'
                                                     disabled="@(!teamSelectable || _isSubmitting || _isLoadingRegistration || _isLoadingTeams || _isLoadingRoster)"
                                                     @onclick="() => SelectTeamAsync(team.Id)">
