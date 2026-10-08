@@ -13,6 +13,32 @@ public partial class TournamentPlacementsTab
     [Parameter] public ParticipationMode ParticipationMode { get; set; }
     [Parameter] public BracketType BracketType { get; set; }
     [Parameter] public LeaderboardRankingMetric? RankingMetric { get; set; }
+    [Parameter] public string? FirstPlacePrize { get; set; }
+    [Parameter] public string? SecondPlacePrize { get; set; }
+    [Parameter] public string? ThirdPlacePrize { get; set; }
+
+    private bool HasPrizes =>
+        !string.IsNullOrWhiteSpace(FirstPlacePrize) ||
+        !string.IsNullOrWhiteSpace(SecondPlacePrize) ||
+        !string.IsNullOrWhiteSpace(ThirdPlacePrize);
+
+    private IEnumerable<(int Place, string Prize)> GetConfiguredPrizes()
+    {
+        if(!string.IsNullOrWhiteSpace(FirstPlacePrize))
+            yield return (1, FirstPlacePrize!);
+        if(!string.IsNullOrWhiteSpace(SecondPlacePrize))
+            yield return (2, SecondPlacePrize!);
+        if(!string.IsNullOrWhiteSpace(ThirdPlacePrize))
+            yield return (3, ThirdPlacePrize!);
+    }
+
+    private string? GetPrizeForPlace(int place) => place switch
+    {
+        1 => string.IsNullOrWhiteSpace(FirstPlacePrize) ? null : FirstPlacePrize,
+        2 => string.IsNullOrWhiteSpace(SecondPlacePrize) ? null : SecondPlacePrize,
+        3 => string.IsNullOrWhiteSpace(ThirdPlacePrize) ? null : ThirdPlacePrize,
+        _ => null
+    };
 
     private string FormatLeaderboardParticipantValue(LeaderboardRowDTO participant) =>
         LeaderboardFormattingExtensions.FormatLeaderboardValue(

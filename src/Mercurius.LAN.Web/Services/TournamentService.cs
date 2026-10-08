@@ -4,6 +4,7 @@ using Mercurius.LAN.Web.DTOs.Leaderboards;
 using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.DTOs.Registrations;
+using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Models.Tournaments;
 using Mercurius.LAN.Web.Models.Matches;
@@ -40,6 +41,12 @@ public sealed class TournamentService : ITournamentService
         Guid id,
         CancellationToken cancellationToken = default) =>
         GetTournamentByIdAsync(id, cancellationToken);
+
+    public Task<List<PublicUserDTO>> GetAdminUsersAsync(
+        string? query = null,
+        int? pageSize = null,
+        CancellationToken cancellationToken = default) =>
+        _lanClient.GetAdminUsersAsync(query, pageSize, cancellationToken);
 
     public async Task<TournamentExtended> CreateTournamentAsync(
         CreateTournamentDTO newTournament,
@@ -321,6 +328,12 @@ public sealed class TournamentService : ITournamentService
 
         AddTeamSize(formData, tournament.TeamSize);
         AddLeaderboardRankingMetric(formData, tournament.LeaderboardRankingMetric);
+        AddContactAdminAndPrizes(
+            formData,
+            tournament.AssignedAdminUserId,
+            tournament.FirstPlacePrize,
+            tournament.SecondPlacePrize,
+            tournament.ThirdPlacePrize);
         AddImage(formData, tempFilePath, contentType, fileName);
         return formData;
     }
@@ -345,8 +358,36 @@ public sealed class TournamentService : ITournamentService
 
         AddTeamSize(formData, tournament.TeamSize);
         AddLeaderboardRankingMetric(formData, tournament.LeaderboardRankingMetric);
+        AddContactAdminAndPrizes(
+            formData,
+            tournament.AssignedAdminUserId,
+            tournament.FirstPlacePrize,
+            tournament.SecondPlacePrize,
+            tournament.ThirdPlacePrize);
         AddImage(formData, tempFilePath, contentType, fileName);
         return formData;
+    }
+
+    private static void AddContactAdminAndPrizes(
+        MultipartFormDataContent formData,
+        Guid? assignedAdminUserId,
+        string? firstPlacePrize,
+        string? secondPlacePrize,
+        string? thirdPlacePrize)
+    {
+        // Empty values are sent deliberately: the update contract clears a previously set
+        // contact or prize only when the field is present and empty, not when it is omitted.
+        formData.Add(
+            new StringContent(assignedAdminUserId?.ToString() ?? string.Empty),
+            "AssignedAdminUserId");
+        AddPrize(formData, "FirstPlacePrize", firstPlacePrize);
+        AddPrize(formData, "SecondPlacePrize", secondPlacePrize);
+        AddPrize(formData, "ThirdPlacePrize", thirdPlacePrize);
+    }
+
+    private static void AddPrize(MultipartFormDataContent formData, string fieldName, string? prize)
+    {
+        formData.Add(new StringContent(prize?.Trim() ?? string.Empty), fieldName);
     }
 
     private static void AddLeaderboardRankingMetric(

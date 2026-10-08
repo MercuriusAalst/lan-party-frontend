@@ -163,6 +163,33 @@
                             <ValidationMessage For="@(() => _newTournament.Image)" />
                         </div>
 
+                        <div class="form-group">
+                            <label for="contactAdmin">@Localization["Feature.tournaments.contactAdmin"]</label>
+                            <AdminPicker Id="contactAdmin" @bind-Value="_newTournament.AssignedAdminUserId" />
+                            <small class="form-help">@Localization["Feature.tournaments.contactAdminHelp"]</small>
+                        </div>
+
+                        <div class="form-group-inline grid gap-4 lg:grid-cols-3">
+                            <div class="form-group">
+                                <label for="firstPlacePrize">@Localization["Feature.tournaments.firstPlacePrize"]</label>
+                                <InputText id="firstPlacePrize" class="form-control" @bind-Value="_newTournament.FirstPlacePrize" />
+                                <ValidationMessage For="@(() => _newTournament.FirstPlacePrize)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="secondPlacePrize">@Localization["Feature.tournaments.secondPlacePrize"]</label>
+                                <InputText id="secondPlacePrize" class="form-control" @bind-Value="_newTournament.SecondPlacePrize" />
+                                <ValidationMessage For="@(() => _newTournament.SecondPlacePrize)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="thirdPlacePrize">@Localization["Feature.tournaments.thirdPlacePrize"]</label>
+                                <InputText id="thirdPlacePrize" class="form-control" @bind-Value="_newTournament.ThirdPlacePrize" />
+                                <ValidationMessage For="@(() => _newTournament.ThirdPlacePrize)" />
+                            </div>
+                        </div>
+                        <small class="form-help">@Localization["Feature.tournaments.prizeHelp"]</small>
+
                         <div class="form-actions">
                             <button type="submit" class="button-primary" disabled="@_isSubmitting">@(_isSubmitting ? Localization["Feature.tournaments.creating"] : Localization["Feature.tournaments.createTournament"])</button>
                             <button type="button" class="button-secondary" @onclick="() => CloseDialog(null)">@Localization["common.cancel"]</button>

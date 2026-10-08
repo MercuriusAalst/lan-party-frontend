@@ -60,6 +60,13 @@
                             <dd>@GetFormatLabel(Tournament.Format)</dd>
                         </div>
                     }
+                    @if(Tournament.ContactAdmin is not null)
+                    {
+                        <div>
+                            <dt>@Localization["Feature.tournaments.contactAdmin"]</dt>
+                            <dd>@GetContactAdminLabel(Tournament.ContactAdmin)</dd>
+                        </div>
+                    }
                 </dl>
             </section>
 
@@ -213,6 +220,33 @@
                             <CustomInputFile @ref="_imageInputRef" id="tournamentImage" @bind-Value="_editTournament.Image" />
                             <ValidationMessage For="@(() => _editTournament.Image)" />
                         </div>
+
+                        <div class="form-group">
+                            <label for="contactAdmin">@Localization["Feature.tournaments.contactAdmin"]</label>
+                            <AdminPicker Id="contactAdmin" @bind-Value="_editTournament.AssignedAdminUserId" SelectedAdmin="Tournament.ContactAdmin" />
+                            <small class="form-help">@Localization["Feature.tournaments.contactAdminHelp"]</small>
+                        </div>
+
+                        <div class="form-group-inline grid gap-4 lg:grid-cols-3">
+                            <div class="form-group">
+                                <label for="firstPlacePrize">@Localization["Feature.tournaments.firstPlacePrize"]</label>
+                                <InputText id="firstPlacePrize" class="form-control" @bind-Value="_editTournament.FirstPlacePrize" />
+                                <ValidationMessage For="@(() => _editTournament.FirstPlacePrize)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="secondPlacePrize">@Localization["Feature.tournaments.secondPlacePrize"]</label>
+                                <InputText id="secondPlacePrize" class="form-control" @bind-Value="_editTournament.SecondPlacePrize" />
+                                <ValidationMessage For="@(() => _editTournament.SecondPlacePrize)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="thirdPlacePrize">@Localization["Feature.tournaments.thirdPlacePrize"]</label>
+                                <InputText id="thirdPlacePrize" class="form-control" @bind-Value="_editTournament.ThirdPlacePrize" />
+                                <ValidationMessage For="@(() => _editTournament.ThirdPlacePrize)" />
+                            </div>
+                        </div>
+                        <small class="form-help">@Localization["Feature.tournaments.prizeHelp"]</small>
 
                         @if(_saveError is not null)
                         {

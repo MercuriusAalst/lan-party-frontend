@@ -263,6 +263,58 @@ public sealed class MockBackendParityTests
             Assert.All(matches.Values, match => Assert.NotNull(teamMode ? match.TeamWinnerId : match.UserWinnerId));
         }
     }
+    [Fact]
+    public void TournamentPrizesAndContactAdmin_ProjectThroughMockStore()
+    {
+        var store = CreateStore();
+        var admin = Assert.Single(store.GetAdminUsers());
+
+        var created = store.CreateTournament(new CreateTournamentDTO
+        {
+            Name = "Prize Parity",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10,
+            AssignedAdminUserId = admin.Id,
+            FirstPlacePrize = "  Keyboard  ",
+            SecondPlacePrize = "Mouse",
+            ThirdPlacePrize = "   "
+        });
+
+        var detail = store.GetTournament(created.Id)!;
+        Assert.Equal("Keyboard", detail.FirstPlacePrize);
+        Assert.Equal("Mouse", detail.SecondPlacePrize);
+        Assert.Null(detail.ThirdPlacePrize);
+        Assert.Null(detail.AssignedAdminUserId);
+        Assert.Equal(admin.Id, detail.ContactAdmin!.Id);
+        // Only the public-safe contact projection reaches the public detail response.
+        Assert.Null(detail.ContactAdmin!.Firstname);
+        Assert.Null(detail.ContactAdmin!.DiscordId);
+        Assert.Null(detail.ContactAdmin!.SteamId);
+
+        var update = new UpdateTournamentDTO
+        {
+            Name = "Prize Parity",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10
+        };
+        store.UpdateTournament(created.Id, update);
+
+        var cleared = store.GetTournament(created.Id)!;
+        Assert.Null(cleared.ContactAdmin);
+        Assert.Null(cleared.FirstPlacePrize);
+        Assert.Null(cleared.SecondPlacePrize);
+    }
+
     private static MockBackendStore CreateStore()
     {
         var repositoryRoot = FindRepositoryRoot();

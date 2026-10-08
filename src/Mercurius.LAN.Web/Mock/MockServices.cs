@@ -51,6 +51,12 @@ internal sealed class MockTournamentService : ITournamentService
         CancellationToken cancellationToken = default) =>
         Task.FromResult(_store.GetTournament(id));
 
+    public Task<List<PublicUserDTO>> GetAdminUsersAsync(
+        string? query = null,
+        int? pageSize = null,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(_store.GetAdminUsers(query, pageSize));
+
     public Task<TournamentExtended> CreateTournamentAsync(
         CreateTournamentDTO newTournament,
         string? tempFilePath,

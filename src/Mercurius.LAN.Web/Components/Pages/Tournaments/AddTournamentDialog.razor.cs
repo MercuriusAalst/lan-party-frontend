@@ -52,7 +52,10 @@ public partial class AddTournamentDialog
         [nameof(CreateTournamentDTO.TeamSize)] = "tournament.teamSize",
         [nameof(CreateTournamentDTO.PlannedStartTime)] = "Feature.tournaments.plannedStartTime",
         [nameof(CreateTournamentDTO.AverageGameDurationMinutes)] = "Feature.tournaments.averageGameDuration",
-        [nameof(CreateTournamentDTO.RoundBreakDurationMinutes)] = "Feature.tournaments.roundBreakDuration"
+        [nameof(CreateTournamentDTO.RoundBreakDurationMinutes)] = "Feature.tournaments.roundBreakDuration",
+        [nameof(CreateTournamentDTO.FirstPlacePrize)] = "Feature.tournaments.firstPlacePrize",
+        [nameof(CreateTournamentDTO.SecondPlacePrize)] = "Feature.tournaments.secondPlacePrize",
+        [nameof(CreateTournamentDTO.ThirdPlacePrize)] = "Feature.tournaments.thirdPlacePrize"
     };
 
     private static readonly IReadOnlyDictionary<string, string> ValidationMessageKeys = new Dictionary<string, string>

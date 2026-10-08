@@ -282,6 +282,81 @@ public sealed class ApiContractTests
         Assert.Null(state.ActiveTeamRegistration);
     }
 
+    [Fact]
+    public async Task AdminUserList_UsesDedicatedAdminsEndpoint()
+    {
+        var adminId = Guid.Parse("41111111-1111-1111-1111-111111111121");
+        var handler = new RecordingHandler($"[{{\"id\":\"{adminId}\",\"username\":\"mockadmin\",\"displayName\":\"Mock Admin\"}}]");
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+
+        var admins = await client.GetAdminUsersAsync("mock", 25);
+
+        Assert.Equal(HttpMethod.Get, handler.Request!.Method);
+        Assert.Equal("/v1/lan/users/admins", handler.Request.RequestUri!.AbsolutePath);
+        Assert.Contains("query=mock", handler.Request.RequestUri!.Query);
+        Assert.Contains("pageSize=25", handler.Request.RequestUri!.Query);
+        Assert.Equal(adminId, Assert.Single(admins).Id);
+    }
+
+    [Fact]
+    public async Task TournamentWrites_SendContactAdminAndPrizesWithExplicitClearValues()
+    {
+        var adminId = Guid.Parse("41111111-1111-1111-1111-111111111121");
+        var handler = new RecordingHandler("{\"id\":\"11111111-1111-1111-1111-111111111112\",\"name\":\"Prize Cup\"}");
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        await service.CreateTournamentAsync(new CreateTournamentDTO
+        {
+            Name = "Prize Cup",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10,
+            AssignedAdminUserId = adminId,
+            FirstPlacePrize = "  Keyboard  ",
+            SecondPlacePrize = "Mouse",
+            ThirdPlacePrize = null
+        }, null, null, null);
+
+        Assert.Equal(HttpMethod.Post, handler.Request!.Method);
+        Assert.Equal("/v1/lan/tournaments", handler.Request.RequestUri!.AbsolutePath);
+        Assert.Contains("AssignedAdminUserId", handler.RequestBody!);
+        Assert.Contains(adminId.ToString(), handler.RequestBody!);
+        Assert.Contains("FirstPlacePrize", handler.RequestBody!);
+        Assert.Contains("Keyboard", handler.RequestBody!);
+        Assert.Contains("ThirdPlacePrize", handler.RequestBody!);
+
+        await service.UpdateTournamentAsync(Guid.Parse("11111111-1111-1111-1111-111111111112"), new UpdateTournamentDTO
+        {
+            Name = "Prize Cup",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10,
+            AssignedAdminUserId = null,
+            FirstPlacePrize = null,
+            SecondPlacePrize = null,
+            ThirdPlacePrize = null
+        }, null, null, null);
+
+        Assert.Equal(HttpMethod.Patch, handler.Request!.Method);
+        // The update contract clears a previously set value only through an explicit empty field.
+        Assert.Contains("AssignedAdminUserId", handler.RequestBody!);
+        Assert.Contains("FirstPlacePrize", handler.RequestBody!);
+        Assert.Contains("SecondPlacePrize", handler.RequestBody!);
+        Assert.Contains("ThirdPlacePrize", handler.RequestBody!);
+        Assert.DoesNotContain(adminId.ToString(), handler.RequestBody!);
+    }
+
     private static HttpClient CreateHttpClient(RecordingHandler handler)
     {
         return new HttpClient(handler)

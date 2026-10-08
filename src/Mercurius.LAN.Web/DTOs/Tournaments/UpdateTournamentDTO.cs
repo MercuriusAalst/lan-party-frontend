@@ -27,6 +27,17 @@ public class UpdateTournamentDTO : IValidatableObject
     [Range(1, int.MaxValue)]
     public int RoundBreakDurationMinutes { get; set; }
 
+    public Guid? AssignedAdminUserId { get; set; }
+
+    [StringLength(200)]
+    public string? FirstPlacePrize { get; set; }
+
+    [StringLength(200)]
+    public string? SecondPlacePrize { get; set; }
+
+    [StringLength(200)]
+    public string? ThirdPlacePrize { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if(PlannedStartTime == default)

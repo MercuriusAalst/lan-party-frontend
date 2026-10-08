@@ -48,6 +48,12 @@ public interface ILANClient
         [AliasAs("pageSize")] int? pageSize = null,
         CancellationToken cancellationToken = default);
 
+    [Get("/v1/lan/users/admins")]
+    Task<List<PublicUserDTO>> GetAdminUsersAsync(
+        [AliasAs("query")] string? query = null,
+        [AliasAs("pageSize")] int? pageSize = null,
+        CancellationToken cancellationToken = default);
+
     [Post("/v1/lan/tournaments")]
     Task<TournamentExtended> CreateTournamentAsync(
         [Body] MultipartFormDataContent content,
