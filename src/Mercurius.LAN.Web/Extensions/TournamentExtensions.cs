@@ -1,5 +1,6 @@
 using Mercurius.LAN.Web.Models;
 using Mercurius.LAN.Web.Models.Tournaments;
+using Mercurius.LAN.Web.Localization;
 
 namespace Mercurius.LAN.Web.Extensions;
 
@@ -47,6 +48,14 @@ public static class TournamentExtensions
             return tournament.BracketType.GetLabel();
 
         return $"{tournament.BracketType.GetLabel()} · {tournament.Format.GetLabel()}";
+    }
+
+    public static string? GetPresentedByLabel(this Tournament tournament, ILocalizationService localization)
+    {
+        var sponsorName = tournament.SponsorPlacement?.SponsorName;
+        return string.IsNullOrWhiteSpace(sponsorName)
+            ? null
+            : localization.Get("Feature.tournaments.partnerHeading", sponsorName);
     }
 
     public static string GetStatusClass(this TournamentStatus status)
