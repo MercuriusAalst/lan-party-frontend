@@ -29,7 +29,10 @@
     }
     else if(_loadError is not null)
     {
-        <div class="admin-picker-state" role="alert">@_loadError</div>
+        <div class="admin-picker-state" role="alert">
+            <span>@_loadError</span>
+            <button type="button" class="button-secondary" @onclick="LoadAdminsAsync">@Localization["status.tryAgain"]</button>
+        </div>
     }
     else if(_choices.Count == 0)
     {
@@ -46,20 +49,35 @@
     [Parameter] public string Id { get; set; } = "adminPicker";
 
     private readonly List<PublicUserDTO> _choices = [];
-    private bool _isLoading = true;
+    private bool _isLoading;
     private string? _loadError;
     private CancellationTokenSource? _loadCancellationTokenSource;
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync() => LoadAdminsAsync();
+
+    private async Task LoadAdminsAsync()
     {
-        _loadCancellationTokenSource = new CancellationTokenSource();
+        // One load at a time: a retry while loading is ignored, so a superseded load can never overwrite newer state.
+        if(_isLoading)
+            return;
+
+        _loadCancellationTokenSource?.Dispose();
+        var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        _loadCancellationTokenSource = cancellationTokenSource;
+
+        _isLoading = true;
+        _loadError = null;
         try
         {
-            // The whole administrator list is loaded once; paging stops on the last short page.
-            _choices.AddRange(await TournamentService.GetAllAdminUsersAsync(_loadCancellationTokenSource.Token));
+            // Fetch the whole administrator list in one pass; paging stops on the last short page. Retry repeats this.
+            var admins = await TournamentService.GetAllAdminUsersAsync(cancellationToken);
+            _choices.Clear();
+            _choices.AddRange(admins);
         }
-        catch(OperationCanceledException)
+        catch(OperationCanceledException) when(cancellationToken.IsCancellationRequested)
         {
+            // Only our own cancellation (component disposal) is benign.
             return;
         }
         catch(Exception)

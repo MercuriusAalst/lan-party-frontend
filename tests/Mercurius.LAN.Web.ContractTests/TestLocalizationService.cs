@@ -22,7 +22,8 @@ internal sealed class TestLocalizationService : ILocalizationService
             ["nav.teamInviteTitle"] = "Team invitation",
             ["nav.teamInviteMessage"] = "You have been invited to join {0}.",
             ["nav.rosterSelectionTitle"] = "Tournament roster invitation",
-            ["nav.rosterSelectionMessage"] = "{0} selected you for {1}."
+            ["nav.rosterSelectionMessage"] = "{0} selected you for {1}.",
+            ["status.tryAgain"] = "Try again"
         };
 
     public static TestLocalizationService Instance { get; } = new();

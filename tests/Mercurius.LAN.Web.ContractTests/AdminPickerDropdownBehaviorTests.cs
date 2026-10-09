@@ -151,6 +151,164 @@ public sealed class AdminPickerDropdownBehaviorTests
         }
     }
 
+    [Fact]
+    public async Task WhenTheLoadIsCanceledWithoutCancellingThePicker_TheErrorStateIsShown()
+    {
+        // An HttpClient timeout cancels its own token, not the picker's, so it is a load failure.
+        var service = CreateTournamentService(_ => Task.FromException<List<PublicUserDTO>>(
+            new TaskCanceledException("The request timed out.")));
+
+        var html = await RenderAsync(service, AssignedId, Selected(AssignedId, "assigned-admin"));
+
+        Assert.Contains("role=\"alert\"", html);
+        Assert.DoesNotContain("role=\"status\"", html);
+        Assert.Contains($"option value=\"{AssignedId}\"", html);
+        Assert.Contains("aria-busy=\"false\"", html);
+    }
+
+    [Fact]
+    public async Task WhenTheListFails_TheErrorStateOffersAnInPlaceRetry()
+    {
+        var service = CreateTournamentService(_ => Task.FromException<List<PublicUserDTO>>(new HttpRequestException("boom")));
+
+        var html = await RenderAsync(service, AssignedId, Selected(AssignedId, "assigned-admin"));
+
+        var alert = AlertBlock(html);
+        Assert.Contains("type=\"button\"", alert);
+        Assert.Contains("Try again", alert);
+        Assert.DoesNotContain("spinner-border", html);
+    }
+
+    [Fact]
+    public async Task WhenARetryIsPending_ThePickerReportsLoadingInsteadOfTheError()
+    {
+        var pending = new TaskCompletionSource<List<PublicUserDTO>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = CreateTournamentService(_ => Task.FromException<List<PublicUserDTO>>(new HttpRequestException("boom")));
+        var component = CreateComponent(service, AssignedId, Selected(AssignedId, "assigned-admin"));
+
+        await InvokeTaskAsync(component, "OnInitializedAsync");
+        Assert.NotNull(GetField<string?>(component, "_loadError"));
+
+        SetProperty(component, "TournamentService", CreateTournamentService(_ => pending.Task));
+        var retry = InvokeTaskAsync(component, "LoadAdminsAsync");
+
+        Assert.False(retry.IsCompleted);
+        Assert.True(GetField<bool>(component, "_isLoading"));
+        Assert.Null(GetField<string?>(component, "_loadError"));
+
+        pending.SetResult([Selected(OtherId, "other-admin")]);
+        await retry;
+
+        Assert.False(GetField<bool>(component, "_isLoading"));
+        Assert.Null(GetField<string?>(component, "_loadError"));
+        Assert.Single(GetField<List<PublicUserDTO>>(component, "_choices"));
+    }
+
+    [Fact]
+    public async Task WhileALoadIsInFlight_ASecondRetryIsIgnored()
+    {
+        var pending = new TaskCompletionSource<List<PublicUserDTO>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var service = CreateTournamentService(_ => ++calls switch
+        {
+            1 => Task.FromException<List<PublicUserDTO>>(new HttpRequestException("boom")),
+            2 => pending.Task,
+            _ => Task.FromResult(new List<PublicUserDTO>())
+        });
+        var component = CreateComponent(service, AssignedId, Selected(AssignedId, "assigned-admin"));
+
+        await InvokeTaskAsync(component, "OnInitializedAsync");
+        var retry = InvokeTaskAsync(component, "LoadAdminsAsync");
+        var overlappingRetry = InvokeTaskAsync(component, "LoadAdminsAsync");
+
+        Assert.False(retry.IsCompleted);
+        Assert.True(overlappingRetry.IsCompleted);
+        Assert.Equal(2, calls);
+
+        pending.SetResult([Selected(OtherId, "other-admin")]);
+        await retry;
+
+        Assert.Equal(2, calls);
+        Assert.False(GetField<bool>(component, "_isLoading"));
+        Assert.Null(GetField<string?>(component, "_loadError"));
+        Assert.Single(GetField<List<PublicUserDTO>>(component, "_choices"));
+    }
+
+    [Fact]
+    public async Task WhenARetrySucceeds_TheErrorIsClearedAndTheListIsNotDuplicated()
+    {
+        var admins = new List<PublicUserDTO> { Selected(OtherId, "other-admin"), Selected(AssignedId, "assigned-admin") };
+        var calls = 0;
+        var service = CreateTournamentService(_ => ++calls == 1
+            ? Task.FromException<List<PublicUserDTO>>(new HttpRequestException("boom"))
+            : Task.FromResult(admins));
+        var component = CreateComponent(service, AssignedId, Selected(AssignedId, "assigned-admin"));
+
+        await InvokeTaskAsync(component, "OnInitializedAsync");
+        Assert.NotNull(GetField<string?>(component, "_loadError"));
+        Assert.Empty(GetField<List<PublicUserDTO>>(component, "_choices"));
+
+        await InvokeTaskAsync(component, "LoadAdminsAsync");
+        Assert.Null(GetField<string?>(component, "_loadError"));
+        Assert.Equal(2, GetField<List<PublicUserDTO>>(component, "_choices").Count);
+        Assert.Equal(AssignedId, component.Value);
+
+        await InvokeTaskAsync(component, "LoadAdminsAsync");
+        Assert.Equal(2, GetField<List<PublicUserDTO>>(component, "_choices").Count);
+        Assert.Equal(3, calls);
+    }
+
+    [Fact]
+    public async Task WhenThePickerIsDisposedWhileLoading_TheCancellationIsBenign()
+    {
+        var pending = new TaskCompletionSource<List<PublicUserDTO>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var component = CreateComponent(CreateTournamentService(token =>
+        {
+            token.Register(() => pending.TrySetCanceled(token));
+            return pending.Task;
+        }), null, null);
+
+        var load = InvokeTaskAsync(component, "OnInitializedAsync");
+        component.Dispose();
+        await load;
+
+        Assert.Null(GetField<string?>(component, "_loadError"));
+        Assert.False(GetField<bool>(component, "_isLoading"));
+    }
+
+    private static AdminPicker CreateComponent(ITournamentService service, Guid? value, PublicUserDTO? selectedAdmin)
+    {
+        var component = new AdminPicker();
+        SetProperty(component, "TournamentService", service);
+        SetProperty(component, "Localization", TestLocalizationService.Instance);
+        SetProperty(component, "ValueChanged", EventCallback.Factory.Create<Guid?>(component, _ => { }));
+        SetProperty(component, "Value", value);
+        SetProperty(component, "SelectedAdmin", selectedAdmin);
+        return component;
+    }
+
+    private static string AlertBlock(string html)
+    {
+        var start = html.IndexOf("role=\"alert\"", StringComparison.Ordinal);
+        Assert.True(start >= 0, "Expected an alert state in the rendered picker.");
+        var end = html.IndexOf("</div>", start, StringComparison.Ordinal);
+        return html[start..end];
+    }
+
+    private static Task InvokeTaskAsync(AdminPicker component, string methodName)
+    {
+        var method = typeof(AdminPicker).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(typeof(AdminPicker).FullName, methodName);
+        return (Task)method.Invoke(component, null)!;
+    }
+
+    private static T GetField<T>(AdminPicker component, string fieldName)
+    {
+        var field = typeof(AdminPicker).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(AdminPicker).FullName, fieldName);
+        return (T)field.GetValue(component)!;
+    }
+
     private static string SelectTag(string html)
     {
         var start = html.IndexOf("<select", StringComparison.Ordinal);
