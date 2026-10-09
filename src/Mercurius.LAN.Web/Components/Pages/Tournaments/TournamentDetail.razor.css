@@ -73,6 +73,13 @@
     margin: 0;
 }
 
+.Tournament-detail-presented-by {
+    color: var(--color-muted-text);
+    font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
 .Tournament-detail-badges,
 .Tournament-detail-hero-actions,
 .Tournament-admin-actions {

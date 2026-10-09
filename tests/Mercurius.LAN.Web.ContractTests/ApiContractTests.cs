@@ -249,7 +249,7 @@ public sealed class ApiContractTests
     {
         var tournamentId = Guid.Parse("88888888-8888-8888-8888-888888888888");
         var matchId = Guid.Parse("99999999-9999-9999-9999-999999999999");
-        var handler = new RecordingHandler($"{{\"id\":\"{tournamentId}\",\"name\":\"LAN Cup\",\"teamSize\":5,\"matches\":[{{\"id\":\"{matchId}\",\"tournamentId\":\"{tournamentId}\"}}],\"registrations\":[{{\"id\":\"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\"tournamentId\":\"{tournamentId}\",\"kind\":\"Individual\",\"status\":\"Active\",\"rosterMembers\":[]}}]}}");
+        var handler = new RecordingHandler($"{{\"id\":\"{tournamentId}\",\"name\":\"LAN Cup\",\"teamSize\":5,\"sponsorPlacement\":{{\"sponsorName\":\"Mercurius Tech\",\"displayOrder\":2}},\"matches\":[{{\"id\":\"{matchId}\",\"tournamentId\":\"{tournamentId}\"}}],\"registrations\":[{{\"id\":\"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\"tournamentId\":\"{tournamentId}\",\"kind\":\"Individual\",\"status\":\"Active\",\"rosterMembers\":[]}}]}}");
         using var httpClient = CreateHttpClient(handler);
         var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
 
@@ -257,8 +257,26 @@ public sealed class ApiContractTests
 
         Assert.NotNull(tournament);
         Assert.Equal(5, tournament!.TeamSize);
+        Assert.Equal("LAN Cup", tournament.Name);
+        Assert.Equal("Mercurius Tech", tournament.SponsorPlacement!.SponsorName);
+        Assert.Equal(2, tournament.SponsorPlacement!.DisplayOrder);
         Assert.Equal(tournamentId, tournament.Matches.Single().TournamentId);
         Assert.Equal(TournamentRegistrationKind.Individual, tournament.Registrations.Single().Kind);
+    }
+
+    [Fact]
+    public async Task TournamentList_CarriesSponsorPlacementFromThePublicProjection()
+    {
+        var tournamentId = Guid.Parse("77777777-7777-7777-7777-777777777777");
+        var handler = new RecordingHandler($"[{{\"id\":\"{tournamentId}\",\"name\":\"LAN Cup\",\"sponsorPlacement\":{{\"sponsorName\":\"Mercurius Tech\"}}}},{{\"id\":\"{Guid.Empty}\",\"name\":\"Unsponsored\"}}]");
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+
+        var tournaments = await client.GetTournamentsAsync();
+
+        Assert.Equal("/v1/lan/tournaments", handler.Request!.RequestUri!.AbsolutePath);
+        Assert.Equal("Mercurius Tech", tournaments[0].SponsorPlacement!.SponsorName);
+        Assert.Null(tournaments[1].SponsorPlacement);
     }
 
     [Fact]

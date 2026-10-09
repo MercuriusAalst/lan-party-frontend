@@ -93,6 +93,14 @@
     margin: 0;
 }
 
+.tournaments-card-presented-by {
+    margin: 0;
+    color: var(--color-muted-text);
+    font-size: 0.875rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
 .tournaments-browse-copy p,
 .tournaments-filter-caption {
     color: var(--color-muted-text);

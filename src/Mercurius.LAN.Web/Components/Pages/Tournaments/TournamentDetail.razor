@@ -55,6 +55,11 @@ else
             <div class="brand-page-hero-copy Tournament-detail-hero-copy">
                 <h1>@_tournament.Name</h1>
 
+                @if(_tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+                {
+                    <p class="Tournament-detail-presented-by">@presentedBy</p>
+                }
+
                 <div class="Tournament-detail-badges">
                     <span class="badge">@GetParticipationLabel(_tournament.ParticipationMode)</span>
                     <span class="badge">@GetBracketLabel(_tournament.BracketType)</span>
