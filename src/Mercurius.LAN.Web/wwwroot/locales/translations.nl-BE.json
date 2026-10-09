@@ -1161,5 +1161,26 @@
   "form.teamSizeRange": "Voor teamTournaments zijn teams van 1 tot 50 spelers vereist.",
   "form.plannedStartTimeRequired": "Een geplande starttijd is verplicht.",
   "form.leaderboardMetricRequired": "Kies hoe de ranking voor dit leaderboardtournament wordt bepaald.",
-  "form.leaderboardIndividualOnly": "LeaderboardTournaments zijn voor individuele spelers."
+  "form.leaderboardIndividualOnly": "LeaderboardTournaments zijn voor individuele spelers.",
+
+  "admin.featuredTournaments": "Uitgelichte Tournaments",
+  "Feature.tournamentsOverview.featuredAdmin": "Uitgelichte Tournaments beheren",
+  "Admin.Featured.pageTitle": "Uitgelichte Tournaments",
+  "Admin.Featured.intro": "Kies de vier Tournaments die op de homepagina worden uitgelicht. De eerste wordt de grote kaart, de volgende drie worden de kleinere kaarten.",
+  "Admin.Featured.loading": "Uitgelichte Tournaments laden...",
+  "Admin.Featured.loadFailed": "De uitgelichte Tournaments konden niet worden geladen.",
+  "Admin.Featured.previewHeading": "Voorbeeld op de homepagina",
+  "Admin.Featured.selectionHeading": "Selectie",
+  "Admin.Featured.slotLabel": "Positie {0}",
+  "Admin.Featured.emptySlot": "Kies een Tournament",
+  "Admin.Featured.moveUp": "Naar boven verplaatsen",
+  "Admin.Featured.moveDown": "Naar beneden verplaatsen",
+  "Admin.Featured.save": "Wijzigingen opslaan",
+  "Admin.Featured.saved": "Uitgelichte Tournaments opgeslagen.",
+  "Admin.Featured.needFour": "Kies precies vier Tournaments voordat je opslaat.",
+  "Admin.Featured.notEnoughEligible": "Er zijn minstens vier geschikte Tournaments nodig. {0} beschikbaar.",
+  "Admin.Featured.rejected": "De selectie werd geweigerd. Sla vier verschillende, niet-geannuleerde Tournaments op.",
+  "Admin.Featured.forbidden": "Je hebt beheerdersrechten nodig om de uitgelichte Tournaments te wijzigen.",
+  "Admin.Featured.saveFailed": "De uitgelichte Tournaments konden niet worden opgeslagen.",
+  "Admin.Featured.noSelection": "Er zijn nog geen Tournaments gekozen."
 }

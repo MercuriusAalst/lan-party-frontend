@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-09
+change-id: issue-94-featured-homepage-tournaments
+summary: Let admins curate four featured homepage tournaments and render that saved order publicly.

@@ -1,0 +1,111 @@
+@page "/admin/featured-tournaments"
+@attribute [Authorize(Roles = "admin")]
+@rendermode InteractiveServer
+
+<PageTitle>@Localization["Admin.Featured.pageTitle"]</PageTitle>
+
+@if(_isLoading)
+{
+    <LoadingScreen Message='@Localization["Admin.Featured.loading"]' />
+}
+else
+{
+    <section class="brand-section featured-admin">
+        <div class="brand-card featured-admin-intro">
+            <h1>@Localization["Admin.Featured.pageTitle"]</h1>
+            <p>@Localization["Admin.Featured.intro"]</p>
+        </div>
+
+        @if(_loadError is not null)
+        {
+            <div class="brand-card featured-admin-alert" role="alert">
+                <p>@_loadError</p>
+                <button type="button" class="button-primary" @onclick="RetryLoadAsync">@Localization["status.tryAgain"]</button>
+            </div>
+        }
+        else
+        {
+            <section class="featured-admin-preview" aria-labelledby="featured-admin-preview-title">
+                <h2 id="featured-admin-preview-title">@Localization["Admin.Featured.previewHeading"]</h2>
+
+                @if(_selectedTournaments.Count == 0)
+                {
+                    <p class="featured-admin-empty">@Localization["Admin.Featured.noSelection"]</p>
+                }
+                else
+                {
+                    <FeaturedTournamentCards Tournaments="_selectedTournaments" />
+                }
+            </section>
+
+            <section class="featured-admin-slots brand-card" aria-labelledby="featured-admin-slots-title">
+                <h2 id="featured-admin-slots-title">@Localization["Admin.Featured.selectionHeading"]</h2>
+
+                <ol class="featured-admin-slot-list">
+                    @for(var index = 0; index < SlotCount; index++)
+                    {
+                        var slotIndex = index;
+                        var slot = _slots[slotIndex];
+                        var slotKey = slot?.Id.ToString() ?? $"empty-{slotIndex}";
+                        <li @key="slotKey"
+                            class="featured-admin-slot @(_dragIndex == slotIndex ? "is-dragging" : null)"
+                            draggable="@(!_isSaving)"
+                            @ondragstart="() => StartDrag(slotIndex)"
+                            @ondragover:preventDefault="true"
+                            @ondrop="() => DropOn(slotIndex)"
+                            @ondragend="ClearDrag">
+                            <span class="bi bi-grip-vertical featured-admin-slot-grip" aria-hidden="true"></span>
+
+                            <span class="featured-admin-slot-position">@Localization.Get("Admin.Featured.slotLabel", slotIndex + 1)</span>
+
+                            <select class="featured-admin-slot-select"
+                                    aria-label='@Localization.Get("Admin.Featured.slotLabel", slotIndex + 1)'
+                                    disabled="@_isSaving"
+                                    value="@(slot?.Id.ToString() ?? string.Empty)"
+                                    @onchange="args => SetSlot(slotIndex, args)">
+                                <option value="">@Localization["Admin.Featured.emptySlot"]</option>
+                                @foreach(var candidate in CandidatesFor(slotIndex))
+                                {
+                                    <option value="@candidate.Id">@candidate.Name</option>
+                                }
+                            </select>
+
+                            <span class="featured-admin-slot-actions">
+                                <button type="button"
+                                        class="button-secondary featured-admin-slot-move"
+                                        disabled="@(slotIndex == 0 || _isSaving)"
+                                        aria-label='@Localization["Admin.Featured.moveUp"]'
+                                        title='@Localization["Admin.Featured.moveUp"]'
+                                        @onclick="() => MoveSlot(slotIndex, slotIndex - 1)">
+                                    <span class="bi bi-arrow-up" aria-hidden="true"></span>
+                                </button>
+                                <button type="button"
+                                        class="button-secondary featured-admin-slot-move"
+                                        disabled="@(slotIndex == SlotCount - 1 || _isSaving)"
+                                        aria-label='@Localization["Admin.Featured.moveDown"]'
+                                        title='@Localization["Admin.Featured.moveDown"]'
+                                        @onclick="() => MoveSlot(slotIndex, slotIndex + 1)">
+                                    <span class="bi bi-arrow-down" aria-hidden="true"></span>
+                                </button>
+                            </span>
+                        </li>
+                    }
+                </ol>
+
+                @if(_eligibleTournaments.Count < SlotCount)
+                {
+                    <p class="featured-admin-hint" role="status">@Localization.Get("Admin.Featured.notEnoughEligible", _eligibleTournaments.Count)</p>
+                }
+
+                @if(_saveError is not null)
+                {
+                    <p class="featured-admin-error-copy" role="alert">@_saveError</p>
+                }
+
+                <button type="button" class="button-primary" disabled="@(!CanSave || _isSaving)" @onclick="SaveAsync">
+                    @Localization["Admin.Featured.save"]
+                </button>
+            </section>
+        }
+    </section>
+}

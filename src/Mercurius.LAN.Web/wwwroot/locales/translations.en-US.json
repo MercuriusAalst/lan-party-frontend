@@ -1161,5 +1161,26 @@
   "form.teamSizeRange": "Team tournaments require a team size between 1 and 50.",
   "form.plannedStartTimeRequired": "Planned start time is required.",
   "form.leaderboardMetricRequired": "Leaderboard tournaments require a ranking metric.",
-  "form.leaderboardIndividualOnly": "Leaderboard tournaments are individual competitions."
+  "form.leaderboardIndividualOnly": "Leaderboard tournaments are individual competitions.",
+
+  "admin.featuredTournaments": "Featured tournaments",
+  "Feature.tournamentsOverview.featuredAdmin": "Manage featured tournaments",
+  "Admin.Featured.pageTitle": "Featured tournaments",
+  "Admin.Featured.intro": "Choose the four tournaments the home page highlights. The first becomes the large card; the next three become the smaller cards.",
+  "Admin.Featured.loading": "Loading featured tournaments...",
+  "Admin.Featured.loadFailed": "The featured tournaments could not be loaded.",
+  "Admin.Featured.previewHeading": "Home page preview",
+  "Admin.Featured.selectionHeading": "Selection",
+  "Admin.Featured.slotLabel": "Position {0}",
+  "Admin.Featured.emptySlot": "Select a tournament",
+  "Admin.Featured.moveUp": "Move up",
+  "Admin.Featured.moveDown": "Move down",
+  "Admin.Featured.save": "Save changes",
+  "Admin.Featured.saved": "Featured tournaments saved.",
+  "Admin.Featured.needFour": "Select exactly four tournaments before saving.",
+  "Admin.Featured.notEnoughEligible": "At least four eligible tournaments are required. {0} available.",
+  "Admin.Featured.rejected": "The selection was rejected. Save four distinct, non-cancelled tournaments.",
+  "Admin.Featured.forbidden": "You need administrator access to change the featured tournaments.",
+  "Admin.Featured.saveFailed": "The featured tournaments could not be saved.",
+  "Admin.Featured.noSelection": "No tournaments are selected yet."
 }

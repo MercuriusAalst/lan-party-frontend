@@ -23,6 +23,13 @@ public interface ITournamentService
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<FeaturedTournamentsDTO> GetFeaturedTournamentsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<FeaturedTournamentIdsDTO> UpdateFeaturedTournamentsAsync(
+        IReadOnlyList<Guid> tournamentIds,
+        CancellationToken cancellationToken = default);
+
     Task<TournamentExtended> CreateTournamentAsync(
         CreateTournamentDTO newTournament,
         string? tempFilePath,

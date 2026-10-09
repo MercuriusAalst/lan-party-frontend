@@ -51,6 +51,18 @@ internal sealed class MockTournamentService : ITournamentService
         CancellationToken cancellationToken = default) =>
         Task.FromResult(_store.GetTournament(id));
 
+    public Task<FeaturedTournamentsDTO> GetFeaturedTournamentsAsync(
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(_store.GetFeaturedTournaments());
+
+    public async Task<FeaturedTournamentIdsDTO> UpdateFeaturedTournamentsAsync(
+        IReadOnlyList<Guid> tournamentIds,
+        CancellationToken cancellationToken = default)
+    {
+        var persona = await GetCurrentPersonaAsync();
+        return _store.UpdateFeaturedTournaments(tournamentIds, persona);
+    }
+
     public Task<TournamentExtended> CreateTournamentAsync(
         CreateTournamentDTO newTournament,
         string? tempFilePath,
