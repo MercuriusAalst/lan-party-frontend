@@ -454,3 +454,39 @@ run `37111821272` passed 229/229 on frontend `ddc9b43` with the then-current bac
 - Serial flags (`-m:1 -nr:false -p:UseSharedCompilation=false`) appear only on the historical runs
   that recorded them. The current gate used the tester-confirmed argv above with no such flags.
 - All restore and build commands exited 0.
+
+## Issue #97 shared error/failure surfaces (implementation handoff, verification pending)
+
+Commands run while implementing the shared `StatusPage` surface for issue #97. These rows are the
+implementer's own outcomes; the tester-owned reruns below/elsewhere supersede them.
+
+```powershell
+dotnet build src/Mercurius.LAN.Web/Mercurius.LAN.Web.csproj -p:UseAppHost=false --nologo -v q
+```
+
+- Exit 0, 0 errors, 3 warnings (2 NU1900 network-restricted package-vulnerability lookups plus the
+  pre-existing `CS0067` in `Services/TeamRealtimeService.cs`).
+
+```powershell
+dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj -p:UseAppHost=false --nologo
+```
+
+- The test project compiled with 0 errors, but the run aborted before executing tests:
+  `vstest.console process failed to connect to testhost process after 90 seconds`. This is an
+  environment timeout, not a passing or failing test result, and it is not claimed as either.
+
+Independent tester outcomes for the same change (reported, not re-run here):
+
+- Full solution build: 0 errors.
+- Contract tests: 370 passed, 0 failed, 0 skipped (includes the new
+  `StatusPageMarkupContractTests` rows).
+- E2E suite and the issue-#97 screenshot capture matrix were still running at handoff.
+
+OpenSpec:
+
+```powershell
+openspec validate issue-97-error-load-states --strict
+```
+
+- Valid before implementation and again after implementation with the task list synchronised. The
+  change is intentionally left unarchived until the independent tester and reviewer gates pass.

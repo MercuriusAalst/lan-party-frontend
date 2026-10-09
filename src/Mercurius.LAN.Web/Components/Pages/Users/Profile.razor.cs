@@ -50,6 +50,11 @@ public partial class Profile
         if(!firstRender)
             return;
 
+        await LoadProfileAsync();
+    }
+
+    private async Task LoadProfileAsync()
+    {
         _loadError = null;
         try
         {

@@ -13,14 +13,12 @@
 }
 else if(_loadError is not null)
 {
-    <section class="brand-section">
-        <div class="brand-card tournament-empty-state tournaments-load-error" role="alert">
-            <span class="section-eyebrow">@Localization["tournaments.pageTitle"]</span>
-            <h1>@Localization["Feature.tournamentsOverview.loadErrorTitle"]</h1>
-            <p>@_loadError</p>
-            <button type="button" class="button-primary" @onclick="RetryLoadAsync">@Localization["status.tryAgain"]</button>
-        </div>
-    </section>
+    <StatusPage Eyebrow='@Localization["tournaments.pageTitle"]'
+                Title='@Localization["Feature.tournamentsOverview.loadErrorTitle"]'
+                Message="@_loadError"
+                OnRetry="RetryLoadAsync"
+                SecondaryHref="/"
+                SecondaryLabel='@Localization["common.backHome"]' />
 }
 else
 {

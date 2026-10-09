@@ -8,17 +8,12 @@
 
 @if(!string.IsNullOrWhiteSpace(_loadError))
 {
-    <section class="status-page brand-section" role="alert" aria-live="assertive">
-        <div class="brand-card status-page-card">
-            <span class="section-eyebrow">@Localization["profile.profile"]</span>
-            <h1>@Localization["General.CompleteProfile.SetupUnavailable"]</h1>
-            <p>@_loadError</p>
-            <div class="status-page-actions">
-                <button type="button" class="button-primary" @onclick="LoadProfileAsync">@Localization["status.tryAgain"]</button>
-                <a href="@GetRecoveryHref()" class="button-secondary">@(IsRegistrationFlow ? Localization["General.CompleteProfile.CancelRegistration"] : Localization["common.backHome"])</a>
-            </div>
-        </div>
-    </section>
+    <StatusPage Eyebrow='@Localization["profile.profile"]'
+                Title='@Localization["General.CompleteProfile.SetupUnavailable"]'
+                Message="@_loadError"
+                OnRetry="LoadProfileAsync"
+                SecondaryHref="@GetRecoveryHref()"
+                SecondaryLabel='@(IsRegistrationFlow ? Localization["General.CompleteProfile.CancelRegistration"] : Localization["common.backHome"])' />
 }
 else if(_isCompleted)
 {

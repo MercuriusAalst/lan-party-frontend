@@ -120,6 +120,17 @@ public partial class ManageTeams : IAsyncDisposable
         }
     }
 
+    private Task RetryLoadAsync()
+    {
+        if(_disposed)
+            return Task.CompletedTask;
+
+        _loadError = null;
+        _isLoading = true;
+        _initializationTask = InitializeAsync();
+        return _initializationTask;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if(_disposed)

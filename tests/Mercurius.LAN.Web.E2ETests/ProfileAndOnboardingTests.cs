@@ -394,14 +394,13 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
 
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Profile unavailable" }))
                 .ToBeVisibleAsync(new() { Timeout = 15000 });
-            await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Try again" }))
-                .ToHaveAttributeAsync("href", "/profile");
+            await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Try again" })).ToBeVisibleAsync();
             await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Back Home" })).ToBeVisibleAsync();
         }
 
-        // The StatusPage retry is a link back to /profile, so the recovery is a real reload with the
-        // identity table available again.
-        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Link, new() { Name = "Try again" }));
+        // The StatusPage retry is an in-place callback, so the profile reloads in the current circuit
+        // once the identity table is available again.
+        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Try again" }));
 
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Your information" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
