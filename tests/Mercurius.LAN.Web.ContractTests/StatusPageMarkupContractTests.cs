@@ -44,11 +44,15 @@ public sealed class StatusPageMarkupContractTests
     {
         var profileMarkup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Users/Profile.razor");
         var manageTeamsMarkup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Teams/ManageTeams.razor");
+        var publicTeamMarkup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Teams/PublicTeamProfile.razor");
+        var publicUserMarkup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Users/PublicUserProfile.razor");
         var profileCode = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Users/Profile.razor.cs");
         var manageTeamsCode = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Teams/ManageTeams.razor.cs");
 
         Assert.Contains("OnRetry=\"LoadProfileAsync\"", profileMarkup);
         Assert.Contains("OnRetry=\"RetryLoadAsync\"", manageTeamsMarkup);
+        Assert.Contains("OnRetry=\"RetryLoadAsync\"", publicTeamMarkup);
+        Assert.Contains("OnRetry=\"RetryLoadAsync\"", publicUserMarkup);
         Assert.DoesNotContain("PrimaryForceLoad", profileMarkup);
         Assert.DoesNotContain("PrimaryForceLoad", manageTeamsMarkup);
         Assert.Contains("private async Task LoadProfileAsync()", profileCode);
@@ -68,6 +72,8 @@ public sealed class StatusPageMarkupContractTests
             "common.pageNotFound",
             "common.forbidden",
             "common.unexpectedError",
+            "General.Profile.LoadError",
+            "General.TeamManage.LoadError",
             "Feature.tournaments.loadDetailTitle"
         ];
 

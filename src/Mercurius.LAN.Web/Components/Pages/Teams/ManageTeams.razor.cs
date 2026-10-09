@@ -167,13 +167,14 @@ public partial class ManageTeams : IAsyncDisposable
         catch(OperationCanceledException) when(!IsActive(cancellationToken))
         {
         }
-        catch(Exception exception)
+        catch(Exception)
         {
             if(!IsActive(cancellationToken))
                 return;
 
             _summary = new();
-            _loadError = GetErrorMessage(exception);
+            // Load failures use localized copy; service exception messages are English-only.
+            _loadError = Localization["General.TeamManage.LoadError"];
         }
     }
 

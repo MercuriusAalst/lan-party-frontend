@@ -454,6 +454,7 @@
   "General.TeamManage.Loading": "Loading your teams...",
   "General.TeamManage.Teams": "Teams",
   "General.TeamManage.Unavailable": "Team management unavailable",
+  "General.TeamManage.LoadError": "Your teams could not be loaded right now.",
   "General.TeamManage.TeamInvites": "Team invites",
   "General.TeamManage.PendingCount": "{0} pending",
   "General.TeamManage.Expires": "Expires {0}",

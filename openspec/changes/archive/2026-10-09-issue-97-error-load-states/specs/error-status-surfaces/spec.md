@@ -54,6 +54,7 @@ When a retry is meaningful, the shared status surface MUST offer a retry action 
 - **WHEN** the user selects the retry action
 - **THEN** the surface MUST indicate a pending or loading state
 - **AND** it MUST NOT accept the same retry action a second time
+- **AND** the pending indication MAY be the owning page's loading presentation when the retry replaces the status surface with it
 
 ### Requirement: Inline section failures stay compact and non-destructive
 

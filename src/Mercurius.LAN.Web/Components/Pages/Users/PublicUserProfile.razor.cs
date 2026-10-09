@@ -94,6 +94,8 @@ public partial class PublicUserProfile
         }
     }
 
+    private Task RetryLoadAsync() => OnParametersSetAsync();
+
     private async Task LoadMatchSummariesAsync(
         string username,
         CancellationTokenSource cancellation)

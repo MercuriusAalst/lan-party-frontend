@@ -454,6 +454,7 @@
   "General.TeamManage.Loading": "Je teams laden...",
   "General.TeamManage.Teams": "Teams",
   "General.TeamManage.Unavailable": "Teambeheer is niet beschikbaar",
+  "General.TeamManage.LoadError": "Je teams konden momenteel niet worden geladen.",
   "General.TeamManage.TeamInvites": "Teamuitnodigingen",
   "General.TeamManage.PendingCount": "{0} in afwachting",
   "General.TeamManage.Expires": "Verloopt op {0}",

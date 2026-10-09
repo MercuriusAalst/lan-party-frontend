@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
+using Npgsql;
 using Xunit;
 using static Microsoft.Playwright.Assertions;
 
@@ -803,6 +804,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     {
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
+        var statusSurface = page.Locator(".status-page");
 
         await using (var fault = await DatabaseReadFault.InstallAsync(app, "tournaments"))
         {
@@ -810,20 +812,61 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "We couldn't load the tournaments" }))
                 .ToBeVisibleAsync(new() { Timeout = 15000 });
-            // The same copy is also shown as a Blazored toast, so scope to the inline alert card.
-            await Expect(page.Locator(".tournaments-load-error")
+            // The same copy is also shown as a Blazored toast, so scope to the inline status surface.
+            await Expect(statusSurface
                     .GetByText("We couldn't load the tournament list right now. Please try again in a moment."))
                 .ToBeVisibleAsync();
-            await Expect(page.Locator(".tournaments-load-error")).ToHaveAttributeAsync("role", "alert");
+            await Expect(statusSurface).ToHaveAttributeAsync("role", "alert");
             await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Try again" })).ToBeVisibleAsync();
         }
 
-        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Try again" }));
+        // Hold the retry's real load open so the pending presentation is observable: the status
+        // surface is replaced by the page's own loading indicator while the load is in flight.
+        var hold = await HoldTournamentsTableAsync();
+        try
+        {
+            await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Try again" }));
+
+            var pending = page.Locator(".loading-overlay");
+            await Expect(pending).ToBeVisibleAsync();
+            await Expect(pending).ToHaveAttributeAsync("aria-busy", "true");
+            await Expect(pending).ToContainTextAsync("Loading tournaments...");
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "We couldn't load the tournaments" }))
+                .ToHaveCountAsync(0);
+            await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Try again" })).ToHaveCountAsync(0);
+        }
+        finally
+        {
+            // Disposing the connection rolls the locking transaction back and releases the load.
+            await hold.DisposeAsync();
+        }
 
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "We couldn't load the tournaments" }))
             .ToHaveCountAsync(0);
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Tournaments", Level = 1 }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });
+    }
+
+    /// <summary>
+    /// Blocks other sessions from reading the tournament table so the page's retry request stays in
+    /// flight. Disposing the connection rolls the locking transaction back.
+    /// </summary>
+    private async Task<NpgsqlConnection> HoldTournamentsTableAsync()
+    {
+        var connection = new NpgsqlConnection(app.DatabaseConnectionString);
+        try
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = "BEGIN; SET LOCAL lock_timeout = '15s'; LOCK TABLE tournament.tournaments IN ACCESS EXCLUSIVE MODE";
+            await command.ExecuteNonQueryAsync();
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
     }
 
     [Fact]

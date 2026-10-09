@@ -455,32 +455,48 @@ run `37111821272` passed 229/229 on frontend `ddc9b43` with the then-current bac
   that recorded them. The current gate used the tester-confirmed argv above with no such flags.
 - All restore and build commands exited 0.
 
-## Issue #97 shared error/failure surfaces (implementation handoff, verification pending)
+## Issue #97 shared error/failure surfaces (final)
 
-Commands run while implementing the shared `StatusPage` surface for issue #97. These rows are the
-implementer's own outcomes; the tester-owned reruns below/elsewhere supersede them.
-
-```powershell
-dotnet build src/Mercurius.LAN.Web/Mercurius.LAN.Web.csproj -p:UseAppHost=false --nologo -v q
-```
-
-- Exit 0, 0 errors, 3 warnings (2 NU1900 network-restricted package-vulnerability lookups plus the
-  pre-existing `CS0067` in `Services/TeamRealtimeService.cs`).
+Final evidence for the shared full-page `StatusPage` surface and the pages that adopt it. Every row
+below comes from the independent tester run against this branch; the earlier implementer-only rows
+are superseded and removed.
 
 ```powershell
-dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj -p:UseAppHost=false --nologo
+dotnet build Mercurius.LAN.sln -p:UseAppHost=false -v m
 ```
 
-- The test project compiled with 0 errors, but the run aborted before executing tests:
-  `vstest.console process failed to connect to testhost process after 90 seconds`. This is an
-  environment timeout, not a passing or failing test result, and it is not claimed as either.
+- Exit 0, 0 errors. The only warnings are 4 `NU1900` package-vulnerability lookups that cannot run
+  with the offline NuGet feed; no warning originates from the changed sources.
 
-Independent tester outcomes for the same change (reported, not re-run here):
+- Contract suite (`tests/Mercurius.LAN.Web.ContractTests`, reported by the independent tester):
+  **370 passed, 0 failed, 0 skipped**, including the new `StatusPageMarkupContractTests` rows.
+- Focused E2E across the six classes this change touches (reported): **84 passed, 0 failed,
+  0 skipped**, duration 2 m 2 s.
+- Targeted rerun of `PublicSiteTests.TournamentsOverviewLoadFailureShowsTheErrorStateAndRecoversOnRetry`
+  after the helper fix (reported): **1 passed, 0 failed**.
 
-- Full solution build: 0 errors.
-- Contract tests: 370 passed, 0 failed, 0 skipped (includes the new
-  `StatusPageMarkupContractTests` rows).
-- E2E suite and the issue-#97 screenshot capture matrix were still running at handoff.
+Browser capture matrix (local artifacts, intentionally not committed):
+
+- **38 of 38 captures, 0 failures**, no horizontal overflow at 1440 desktop or 390 mobile for every
+  affected surface: 8 Dutch-copy captures, 10 mobile, 2 pending-state, 2 recovery. Keyboard check:
+  Tab reaches the retry control and its focus ring is visible.
+- `Enter`-during-pending fast-fault observation could not be reproduced deterministically in the
+  browser, so it is documented as a limitation rather than asserted. The pending state itself is
+  proven deterministically by the held-load test below.
+- Gallery index: `C:\Users\svenp\.codex\visualizations\2026\10\09\01a1215c-29dd-7d83-a4e2-f15ce6870140\issue-97-ui\index.html`
+  (and `index.md`).
+
+Pending-state proof (task 6.7):
+`PublicSiteTests.TournamentsOverviewLoadFailureShowsTheErrorStateAndRecoversOnRetry` now holds the
+`tournament.tournaments` table with an `ACCESS EXCLUSIVE` lock, clicks the in-place retry, and asserts
+the page's loading overlay renders with `aria-busy="true"`, no stale failure heading, and no second
+retry control before releasing the lock and confirming recovery. The helper disposes its connection
+on setup failure, so the lock cannot leak into a later test.
+
+Teardown: no leftover test databases; fixture containers stopped.
+
+Scope limits: unrelated E2E classes and the backend full suite were not run for this change, and it
+carries no backend API or policy change.
 
 OpenSpec:
 
@@ -488,5 +504,5 @@ OpenSpec:
 openspec validate issue-97-error-load-states --strict
 ```
 
-- Valid before implementation and again after implementation with the task list synchronised. The
-  change is intentionally left unarchived until the independent tester and reviewer gates pass.
+- Valid before implementation, after implementation with the task list synchronised, and again after
+  the archive. The change is promoted into `openspec/specs/` by this publication.

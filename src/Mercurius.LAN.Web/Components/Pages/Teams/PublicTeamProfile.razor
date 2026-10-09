@@ -14,10 +14,9 @@ else if(_hasError)
     <StatusPage Eyebrow='@Localization["team.members"]'
                 Title='@Localization["General.PublicTeam.Unavailable"]'
                 Message='@Localization["General.PublicTeam.LoadError"]'
-                PrimaryHref="/tournaments"
-                PrimaryLabel='@Localization["common.browseTournaments"]'
-                SecondaryHref="/"
-                SecondaryLabel='@Localization["common.backHome"]' />
+                OnRetry="RetryLoadAsync"
+                SecondaryHref="/tournaments"
+                SecondaryLabel='@Localization["common.browseTournaments"]' />
 }
 else if(_team is null)
 {

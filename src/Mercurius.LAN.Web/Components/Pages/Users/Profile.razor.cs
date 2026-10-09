@@ -79,9 +79,10 @@ public partial class Profile
         {
             NavigationManager.NavigateTo("/complete-profile?returnUrl=/profile");
         }
-        catch(ApiException exception)
+        catch(ApiException)
         {
-            _loadError = await GetApiErrorAsync(exception, Localization["General.Profile.LoadError"]);
+            // The load failure is shown on the status page, so it must not echo the raw API response.
+            _loadError = Localization["General.Profile.LoadError"];
         }
         catch(UnauthorizedAccessException)
         {
