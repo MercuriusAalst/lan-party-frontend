@@ -286,7 +286,10 @@ else
                     <TournamentPlacementsTab Placements="@_tournament.Placements"
                                              ParticipationMode="@_tournament.ParticipationMode"
                                              BracketType="@_tournament.BracketType"
-                                             RankingMetric="@_tournament.LeaderboardRankingMetric" />
+                                             RankingMetric="@_tournament.LeaderboardRankingMetric"
+                                             FirstPlacePrize="@_tournament.FirstPlacePrize"
+                                             SecondPlacePrize="@_tournament.SecondPlacePrize"
+                                             ThirdPlacePrize="@_tournament.ThirdPlacePrize" />
                 </section>
 
                 <AuthorizeView Roles="admin">

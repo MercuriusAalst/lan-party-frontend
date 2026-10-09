@@ -263,6 +263,96 @@ public sealed class MockBackendParityTests
             Assert.All(matches.Values, match => Assert.NotNull(teamMode ? match.TeamWinnerId : match.UserWinnerId));
         }
     }
+    [Fact]
+    public void AdminUserList_PagesWithStableOrderingLikeTheLiveContract()
+    {
+        var store = CreateStore();
+
+        var all = store.GetAdminUsers();
+        Assert.NotEmpty(all);
+        Assert.Equal(
+            all.Select(admin => admin.Id),
+            store.GetAdminUsers(pageSize: 50).Select(admin => admin.Id));
+
+        // The first page holds the same leading choice as the full list, and page two is empty
+        // rather than repeating earlier choices once the first page is short.
+        var firstPage = Assert.Single(store.GetAdminUsers(pageSize: 1));
+        Assert.Equal(all[0].Id, firstPage.Id);
+        Assert.Empty(store.GetAdminUsers(page: 2, pageSize: 1));
+        Assert.Empty(store.GetAdminUsers(page: 2, pageSize: 50));
+    }
+
+    [Fact]
+    public void TournamentPrizesAndContactAdmin_ProjectThroughMockStore()
+    {
+        var store = CreateStore();
+        var admin = Assert.Single(store.GetAdminUsers());
+
+        var created = store.CreateTournament(new CreateTournamentDTO
+        {
+            Name = "Prize Parity",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10,
+            AssignedAdminUserId = admin.Id,
+            FirstPlacePrize = "  Keyboard  ",
+            SecondPlacePrize = "Mouse",
+            ThirdPlacePrize = "   "
+        });
+
+        var detail = store.GetTournament(created.Id)!;
+        Assert.Equal("Keyboard", detail.FirstPlacePrize);
+        Assert.Equal("Mouse", detail.SecondPlacePrize);
+        Assert.Null(detail.ThirdPlacePrize);
+        Assert.Null(detail.AssignedAdminUserId);
+        Assert.Equal(admin.Id, detail.ContactAdmin!.Id);
+        // Only the public-safe contact projection reaches the public detail response.
+        Assert.Null(detail.ContactAdmin!.Firstname);
+        Assert.Null(detail.ContactAdmin!.DiscordId);
+        Assert.Null(detail.ContactAdmin!.SteamId);
+
+        var update = new UpdateTournamentDTO
+        {
+            Name = "Prize Parity",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10
+        };
+        store.UpdateTournament(created.Id, update);
+
+        var cleared = store.GetTournament(created.Id)!;
+        Assert.Null(cleared.ContactAdmin);
+        Assert.Null(cleared.FirstPlacePrize);
+        Assert.Null(cleared.SecondPlacePrize);
+    }
+
+    [Fact]
+    public void SeededFixturePrizes_ProjectThroughThePublicTournamentDetail()
+    {
+        var store = CreateStore();
+
+        var full = store.GetTournament(Guid.Parse("11111111-1111-1111-1111-111111111111"))!;
+        Assert.Equal("CS2 trophy + 5x mechanical keyboards + 250 EUR team prize", full.FirstPlacePrize);
+        Assert.Equal("5x premium gaming mice + 100 EUR team voucher", full.SecondPlacePrize);
+        Assert.Equal("5x branded mousepads + 50 EUR team voucher", full.ThirdPlacePrize);
+
+        var partial = store.GetTournament(Guid.Parse("11111111-1111-1111-1111-111111111114"))!;
+        Assert.Equal("Rocket League trophy + 3x gaming headsets", partial.FirstPlacePrize);
+        Assert.Equal("3x mechanical keyboards", partial.SecondPlacePrize);
+        Assert.Null(partial.ThirdPlacePrize);
+
+        var withoutPrizes = store.GetTournament(Guid.Parse("11111111-1111-1111-1111-111111111113"))!;
+        Assert.Null(withoutPrizes.FirstPlacePrize);
+    }
+
     private static MockBackendStore CreateStore()
     {
         var repositoryRoot = FindRepositoryRoot();

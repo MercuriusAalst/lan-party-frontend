@@ -282,7 +282,130 @@ public sealed class ApiContractTests
         Assert.Null(state.ActiveTeamRegistration);
     }
 
-    private static HttpClient CreateHttpClient(RecordingHandler handler)
+    [Fact]
+    public async Task AdminUserList_UsesDedicatedAdminsEndpoint()
+    {
+        var adminId = Guid.Parse("41111111-1111-1111-1111-111111111121");
+        var handler = new RecordingHandler($"[{{\"id\":\"{adminId}\",\"username\":\"mockadmin\",\"displayName\":\"Mock Admin\"}}]");
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+
+        var admins = await client.GetAdminUsersAsync("mock", 25);
+
+        Assert.Equal(HttpMethod.Get, handler.Request!.Method);
+        Assert.Equal("/v1/lan/users/admins", handler.Request.RequestUri!.AbsolutePath);
+        Assert.Contains("query=mock", handler.Request.RequestUri!.Query);
+        Assert.Contains("pageSize=25", handler.Request.RequestUri!.Query);
+        Assert.Contains("page=1", handler.Request.RequestUri!.Query);
+        Assert.Equal(adminId, Assert.Single(admins).Id);
+    }
+
+    [Fact]
+    public async Task AdminUserList_OmitsQueryFilterAndForwardsRequestedPage()
+    {
+        var handler = new RecordingHandler("[]");
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+
+        await client.GetAdminUsersAsync(null, 50, default, 2);
+
+        Assert.Equal("/v1/lan/users/admins", handler.Request!.RequestUri!.AbsolutePath);
+        Assert.DoesNotContain("query=", handler.Request.RequestUri!.Query);
+        Assert.Contains("pageSize=50", handler.Request.RequestUri!.Query);
+        Assert.Contains("page=2", handler.Request.RequestUri!.Query);
+    }
+
+    [Fact]
+    public async Task AllAdminUsers_PagesUntilTheLastShortPageWithoutQueryFilter()
+    {
+        var handler = new PagedAdminHandler(totalAdmins: 52);
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        var admins = await service.GetAllAdminUsersAsync();
+
+        Assert.Equal(52, admins.Count);
+        Assert.Equal(52, admins.Select(admin => admin.Id).Distinct().Count());
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.All(handler.Requests, request => Assert.DoesNotContain("query=", request.RequestUri!.Query));
+        Assert.Contains("page=1", handler.Requests[0].RequestUri!.Query);
+        Assert.Contains("pageSize=50", handler.Requests[0].RequestUri!.Query);
+        Assert.Contains("page=2", handler.Requests[1].RequestUri!.Query);
+    }
+
+    [Fact]
+    public async Task AllAdminUsers_PropagatesAFailedPageInsteadOfReturningPartialChoices()
+    {
+        var handler = new PagedAdminHandler(totalAdmins: 52, failFromPage: 2);
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        await Assert.ThrowsAsync<ApiException>(() => service.GetAllAdminUsersAsync());
+
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task TournamentWrites_SendContactAdminAndPrizesWithExplicitClearValues()
+    {
+        var adminId = Guid.Parse("41111111-1111-1111-1111-111111111121");
+        var handler = new RecordingHandler("{\"id\":\"11111111-1111-1111-1111-111111111112\",\"name\":\"Prize Cup\"}");
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        await service.CreateTournamentAsync(new CreateTournamentDTO
+        {
+            Name = "Prize Cup",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10,
+            AssignedAdminUserId = adminId,
+            FirstPlacePrize = "  Keyboard  ",
+            SecondPlacePrize = "Mouse",
+            ThirdPlacePrize = null
+        }, null, null, null);
+
+        Assert.Equal(HttpMethod.Post, handler.Request!.Method);
+        Assert.Equal("/v1/lan/tournaments", handler.Request.RequestUri!.AbsolutePath);
+        Assert.Contains("AssignedAdminUserId", handler.RequestBody!);
+        Assert.Contains(adminId.ToString(), handler.RequestBody!);
+        Assert.Contains("FirstPlacePrize", handler.RequestBody!);
+        Assert.Contains("Keyboard", handler.RequestBody!);
+        Assert.Contains("ThirdPlacePrize", handler.RequestBody!);
+
+        await service.UpdateTournamentAsync(Guid.Parse("11111111-1111-1111-1111-111111111112"), new UpdateTournamentDTO
+        {
+            Name = "Prize Cup",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10,
+            AssignedAdminUserId = null,
+            FirstPlacePrize = null,
+            SecondPlacePrize = null,
+            ThirdPlacePrize = null
+        }, null, null, null);
+
+        Assert.Equal(HttpMethod.Patch, handler.Request!.Method);
+        // The update contract clears a previously set value only through an explicit empty field.
+        Assert.Contains("AssignedAdminUserId", handler.RequestBody!);
+        Assert.Contains("FirstPlacePrize", handler.RequestBody!);
+        Assert.Contains("SecondPlacePrize", handler.RequestBody!);
+        Assert.Contains("ThirdPlacePrize", handler.RequestBody!);
+        Assert.DoesNotContain(adminId.ToString(), handler.RequestBody!);
+    }
+
+    private static HttpClient CreateHttpClient(HttpMessageHandler handler)
     {
         return new HttpClient(handler)
         {
@@ -317,6 +440,45 @@ public sealed class ApiContractTests
                 RequestMessage = request,
                 Content = new StringContent(ResponseBody, Encoding.UTF8, "application/json")
             };
+        }
+    }
+
+    private sealed class PagedAdminHandler(int totalAdmins, int? failFromPage = null) : HttpMessageHandler
+    {
+        public List<HttpRequestMessage> Requests { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add(request);
+
+            var parameters = request.RequestUri!.Query.TrimStart('?')
+                .Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Select(part => part.Split('=', 2))
+                .ToDictionary(part => part[0], part => part.Length > 1 ? part[1] : string.Empty);
+            var page = parameters.TryGetValue("page", out var pageValue) && int.TryParse(pageValue, out var parsedPage)
+                ? parsedPage
+                : 1;
+            var pageSize = parameters.TryGetValue("pageSize", out var sizeValue) && int.TryParse(sizeValue, out var parsedSize)
+                ? parsedSize
+                : 20;
+
+            if(failFromPage is { } failedPage && page >= failedPage)
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    RequestMessage = request,
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json")
+                });
+
+            var skip = (page - 1) * pageSize;
+            var take = Math.Clamp(totalAdmins - skip, 0, pageSize);
+            var payload = "[" + string.Join(",", Enumerable.Range(skip, take).Select(index =>
+                $"{{\"id\":\"41111111-1111-1111-1111-{index:D12}\",\"username\":\"admin{index:D3}\",\"displayName\":\"Admin {index:D3}\"}}")) + "]";
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                RequestMessage = request,
+                Content = new StringContent(payload, Encoding.UTF8, "application/json")
+            });
         }
     }
 }

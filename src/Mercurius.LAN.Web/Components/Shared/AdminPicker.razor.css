@@ -1,0 +1,11 @@
+.admin-picker {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.admin-picker-state {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    color: var(--color-muted-text);
+}
