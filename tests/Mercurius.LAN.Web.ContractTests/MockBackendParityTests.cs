@@ -264,6 +264,25 @@ public sealed class MockBackendParityTests
         }
     }
     [Fact]
+    public void AdminUserList_PagesWithStableOrderingLikeTheLiveContract()
+    {
+        var store = CreateStore();
+
+        var all = store.GetAdminUsers();
+        Assert.NotEmpty(all);
+        Assert.Equal(
+            all.Select(admin => admin.Id),
+            store.GetAdminUsers(pageSize: 50).Select(admin => admin.Id));
+
+        // The first page holds the same leading choice as the full list, and page two is empty
+        // rather than repeating earlier choices once the first page is short.
+        var firstPage = Assert.Single(store.GetAdminUsers(pageSize: 1));
+        Assert.Equal(all[0].Id, firstPage.Id);
+        Assert.Empty(store.GetAdminUsers(page: 2, pageSize: 1));
+        Assert.Empty(store.GetAdminUsers(page: 2, pageSize: 50));
+    }
+
+    [Fact]
     public void TournamentPrizesAndContactAdmin_ProjectThroughMockStore()
     {
         var store = CreateStore();
@@ -313,6 +332,25 @@ public sealed class MockBackendParityTests
         Assert.Null(cleared.ContactAdmin);
         Assert.Null(cleared.FirstPlacePrize);
         Assert.Null(cleared.SecondPlacePrize);
+    }
+
+    [Fact]
+    public void SeededFixturePrizes_ProjectThroughThePublicTournamentDetail()
+    {
+        var store = CreateStore();
+
+        var full = store.GetTournament(Guid.Parse("11111111-1111-1111-1111-111111111111"))!;
+        Assert.Equal("CS2 trophy + 5x mechanical keyboards + 250 EUR team prize", full.FirstPlacePrize);
+        Assert.Equal("5x premium gaming mice + 100 EUR team voucher", full.SecondPlacePrize);
+        Assert.Equal("5x branded mousepads + 50 EUR team voucher", full.ThirdPlacePrize);
+
+        var partial = store.GetTournament(Guid.Parse("11111111-1111-1111-1111-111111111114"))!;
+        Assert.Equal("Rocket League trophy + 3x gaming headsets", partial.FirstPlacePrize);
+        Assert.Equal("3x mechanical keyboards", partial.SecondPlacePrize);
+        Assert.Null(partial.ThirdPlacePrize);
+
+        var withoutPrizes = store.GetTournament(Guid.Parse("11111111-1111-1111-1111-111111111113"))!;
+        Assert.Null(withoutPrizes.FirstPlacePrize);
     }
 
     private static MockBackendStore CreateStore()

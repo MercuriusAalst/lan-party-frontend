@@ -527,7 +527,7 @@ internal sealed class MockBackendStore
         }
     }
 
-    public List<PublicUserDTO> GetAdminUsers(string? query = null, int? pageSize = null)
+    public List<PublicUserDTO> GetAdminUsers(string? query = null, int? pageSize = null, int page = 1)
     {
         lock(_syncRoot)
         {
@@ -549,7 +549,10 @@ internal sealed class MockBackendStore
                 .Select(ToContactAdminProjection);
 
             if(pageSize is > 0)
-                admins = admins.Take(pageSize.Value);
+            {
+                var pageNumber = Math.Max(page, 1);
+                admins = admins.Skip((pageNumber - 1) * pageSize.Value).Take(pageSize.Value);
+            }
 
             return admins.ToList();
         }

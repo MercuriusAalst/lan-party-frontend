@@ -52,7 +52,8 @@ public interface ILANClient
     Task<List<PublicUserDTO>> GetAdminUsersAsync(
         [AliasAs("query")] string? query = null,
         [AliasAs("pageSize")] int? pageSize = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        [AliasAs("page")] int page = 1);
 
     [Post("/v1/lan/tournaments")]
     Task<TournamentExtended> CreateTournamentAsync(

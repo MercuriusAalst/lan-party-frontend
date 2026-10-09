@@ -296,7 +296,55 @@ public sealed class ApiContractTests
         Assert.Equal("/v1/lan/users/admins", handler.Request.RequestUri!.AbsolutePath);
         Assert.Contains("query=mock", handler.Request.RequestUri!.Query);
         Assert.Contains("pageSize=25", handler.Request.RequestUri!.Query);
+        Assert.Contains("page=1", handler.Request.RequestUri!.Query);
         Assert.Equal(adminId, Assert.Single(admins).Id);
+    }
+
+    [Fact]
+    public async Task AdminUserList_OmitsQueryFilterAndForwardsRequestedPage()
+    {
+        var handler = new RecordingHandler("[]");
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+
+        await client.GetAdminUsersAsync(null, 50, default, 2);
+
+        Assert.Equal("/v1/lan/users/admins", handler.Request!.RequestUri!.AbsolutePath);
+        Assert.DoesNotContain("query=", handler.Request.RequestUri!.Query);
+        Assert.Contains("pageSize=50", handler.Request.RequestUri!.Query);
+        Assert.Contains("page=2", handler.Request.RequestUri!.Query);
+    }
+
+    [Fact]
+    public async Task AllAdminUsers_PagesUntilTheLastShortPageWithoutQueryFilter()
+    {
+        var handler = new PagedAdminHandler(totalAdmins: 52);
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        var admins = await service.GetAllAdminUsersAsync();
+
+        Assert.Equal(52, admins.Count);
+        Assert.Equal(52, admins.Select(admin => admin.Id).Distinct().Count());
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.All(handler.Requests, request => Assert.DoesNotContain("query=", request.RequestUri!.Query));
+        Assert.Contains("page=1", handler.Requests[0].RequestUri!.Query);
+        Assert.Contains("pageSize=50", handler.Requests[0].RequestUri!.Query);
+        Assert.Contains("page=2", handler.Requests[1].RequestUri!.Query);
+    }
+
+    [Fact]
+    public async Task AllAdminUsers_PropagatesAFailedPageInsteadOfReturningPartialChoices()
+    {
+        var handler = new PagedAdminHandler(totalAdmins: 52, failFromPage: 2);
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        await Assert.ThrowsAsync<ApiException>(() => service.GetAllAdminUsersAsync());
+
+        Assert.Equal(2, handler.Requests.Count);
     }
 
     [Fact]
@@ -357,7 +405,7 @@ public sealed class ApiContractTests
         Assert.DoesNotContain(adminId.ToString(), handler.RequestBody!);
     }
 
-    private static HttpClient CreateHttpClient(RecordingHandler handler)
+    private static HttpClient CreateHttpClient(HttpMessageHandler handler)
     {
         return new HttpClient(handler)
         {
@@ -392,6 +440,45 @@ public sealed class ApiContractTests
                 RequestMessage = request,
                 Content = new StringContent(ResponseBody, Encoding.UTF8, "application/json")
             };
+        }
+    }
+
+    private sealed class PagedAdminHandler(int totalAdmins, int? failFromPage = null) : HttpMessageHandler
+    {
+        public List<HttpRequestMessage> Requests { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add(request);
+
+            var parameters = request.RequestUri!.Query.TrimStart('?')
+                .Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Select(part => part.Split('=', 2))
+                .ToDictionary(part => part[0], part => part.Length > 1 ? part[1] : string.Empty);
+            var page = parameters.TryGetValue("page", out var pageValue) && int.TryParse(pageValue, out var parsedPage)
+                ? parsedPage
+                : 1;
+            var pageSize = parameters.TryGetValue("pageSize", out var sizeValue) && int.TryParse(sizeValue, out var parsedSize)
+                ? parsedSize
+                : 20;
+
+            if(failFromPage is { } failedPage && page >= failedPage)
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    RequestMessage = request,
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json")
+                });
+
+            var skip = (page - 1) * pageSize;
+            var take = Math.Clamp(totalAdmins - skip, 0, pageSize);
+            var payload = "[" + string.Join(",", Enumerable.Range(skip, take).Select(index =>
+                $"{{\"id\":\"41111111-1111-1111-1111-{index:D12}\",\"username\":\"admin{index:D3}\",\"displayName\":\"Admin {index:D3}\"}}")) + "]";
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                RequestMessage = request,
+                Content = new StringContent(payload, Encoding.UTF8, "application/json")
+            });
         }
     }
 }

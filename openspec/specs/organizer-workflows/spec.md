@@ -133,9 +133,14 @@ remain authoritative for administrator validity, prize limits, and validation fa
   contact-administrator picker
 - **THEN** the picker MUST offer only validated administrators returned by the administrator list
   resource
-- **AND** the picker MUST query that resource as the administrator types, reusing the existing
-  search timing and cancellation behaviour
-- **AND** it MUST keep the currently selected contact visible when the searched result list changes
+- **AND** the picker MUST load the complete administrator list when the form opens instead of
+  querying as the administrator types
+- **AND** the picker MUST page through the administrator list until the last page rather than
+  presenting a silently partial list
+- **AND** the picker MUST NOT require or accept free-text input
+- **AND** the picker MUST always offer an explicit choice that clears the contact administrator
+- **AND** it MUST keep the currently selected contact visible and selectable while the list loads,
+  when the list is unavailable, and when the loaded list does not contain it
 - **AND** selecting an administrator MUST mark that administrator as the tournament contact
 - **AND** the admin MUST be able to clear an already selected contact before saving
 
@@ -153,6 +158,12 @@ remain authoritative for administrator validity, prize limits, and validation fa
 - **THEN** the form MUST send only the prizes that were provided, with surrounding whitespace
   removed
 - **AND** leaving a prize empty MUST send an explicit empty field so the backend clears it
+
+#### Scenario: Administrator list is unavailable
+
+- **WHEN** the administrator list resource fails while the picker is loading
+- **THEN** the picker MUST present a recoverable, accessible error state
+- **AND** it MUST NOT present a silently partial administrator list
 
 #### Scenario: Administrator selection or save is rejected
 

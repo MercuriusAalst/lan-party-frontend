@@ -3,66 +3,41 @@
 @implements IDisposable
 
 <div class="admin-picker">
-    <div class="admin-picker-input-shell">
-        <span class="bi bi-search" aria-hidden="true"></span>
-        <input id="@Id"
-               class="form-control"
-               value="@_query"
-               @oninput="SetQueryAsync"
-               autocomplete="off"
-               spellcheck="false"
-               placeholder='@Localization["Feature.tournaments.contactAdminSearchPlaceholder"]'
-               aria-autocomplete="list"
-               aria-expanded="@(HasDropdown ? "true" : "false")"
-               aria-controls="@($"{Id}-results")" />
-    </div>
+    <select id="@Id"
+            class="form-select"
+            value="@(Value?.ToString() ?? string.Empty)"
+            @onchange="OnChangeAsync"
+            aria-busy="@(_isLoading ? "true" : "false")">
+        <option value="">@Localization["Feature.tournaments.contactAdminNone"]</option>
+        @if(SelectedAdmin is { } selectedAdmin && Value == selectedAdmin.Id && !_choices.Any(admin => admin.Id == selectedAdmin.Id))
+        {
+            // Keep the assigned contact selectable while the list loads, fails, or omits it.
+            <option value="@selectedAdmin.Id">@GetAdminLabel(selectedAdmin)</option>
+        }
+        @foreach(var admin in _choices)
+        {
+            <option value="@admin.Id">@GetAdminLabel(admin)</option>
+        }
+    </select>
 
-    @if(HasDropdown)
+    @if(_isLoading)
     {
-        <div id="@($"{Id}-results")" class="admin-picker-results" role="listbox" aria-label='@Localization["Feature.tournaments.contactAdmin"]'>
-            @if(_isSearching)
-            {
-                <div class="admin-picker-state" aria-live="polite">
-                    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-                    <span>@Localization["nav.searching"]</span>
-                </div>
-            }
-            else if(_results.Count == 0)
-            {
-                <div class="admin-picker-state" aria-live="polite">@Localization["Feature.tournaments.contactAdminNoResults"]</div>
-            }
-            else
-            {
-                @foreach(var admin in _results)
-                {
-                    <button type="button" class="admin-picker-result" role="option" aria-selected="false" @onclick="() => SelectAsync(admin)">
-                        @GetAdminLabel(admin)
-                    </button>
-                }
-            }
+        <div class="admin-picker-state" role="status">
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            <span>@Localization["Feature.tournaments.contactAdminLoading"]</span>
         </div>
     }
-
-    @if(_selected is not null)
+    else if(_loadError is not null)
     {
-        <div class="admin-picker-selected">
-            <span class="bi bi-person-fill" aria-hidden="true"></span>
-            <span class="admin-picker-selected-label">@GetAdminLabel(_selected)</span>
-            <button type="button" class="admin-picker-clear" aria-label='@Localization["Feature.tournaments.contactAdminClear"]' @onclick="ClearAsync">&times;</button>
-        </div>
+        <div class="admin-picker-state" role="alert">@_loadError</div>
     }
-
-    @if(_loadError is not null)
+    else if(_choices.Count == 0)
     {
-        <div class="validation-message" role="alert">@_loadError</div>
+        <div class="admin-picker-state" role="status">@Localization["Feature.tournaments.contactAdminNoResults"]</div>
     }
 </div>
 
 @code {
-    private const int SearchDebounceMilliseconds = 300;
-    private const int SearchPageSize = 50;
-    private const int MinimumQueryLength = 3;
-
     [Inject] private ITournamentService TournamentService { get; set; } = null!;
 
     [Parameter] public Guid? Value { get; set; }
@@ -70,59 +45,18 @@
     [Parameter] public PublicUserDTO? SelectedAdmin { get; set; }
     [Parameter] public string Id { get; set; } = "adminPicker";
 
-    private string _query = string.Empty;
-    private bool _isSearching;
+    private readonly List<PublicUserDTO> _choices = [];
+    private bool _isLoading = true;
     private string? _loadError;
-    private PublicUserDTO? _selected;
-    private List<PublicUserDTO> _results = [];
-    private CancellationTokenSource? _searchCancellationTokenSource;
-    private long _searchRequestVersion;
+    private CancellationTokenSource? _loadCancellationTokenSource;
 
-    private bool HasDropdown => _query.Trim().Length >= MinimumQueryLength;
-
-    protected override void OnParametersSet()
+    protected override async Task OnInitializedAsync()
     {
-        if(Value == _selected?.Id)
-            return;
-
-        _selected = Value.HasValue && SelectedAdmin?.Id == Value ? SelectedAdmin : null;
-    }
-
-    private async Task SetQueryAsync(ChangeEventArgs args)
-    {
-        _query = args.Value?.ToString() ?? string.Empty;
-        var trimmedQuery = _query.Trim();
-
-        if(trimmedQuery.Length < MinimumQueryLength)
-        {
-            CancelPendingSearch();
-            _isSearching = false;
-            _loadError = null;
-            _results.Clear();
-            return;
-        }
-
-        await LoadAdminsAsync(trimmedQuery);
-    }
-
-    private async Task LoadAdminsAsync(string query)
-    {
-        CancelPendingSearch();
-        _isSearching = true;
-        _loadError = null;
-
-        var requestVersion = ++_searchRequestVersion;
-        _searchCancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = _searchCancellationTokenSource.Token;
+        _loadCancellationTokenSource = new CancellationTokenSource();
         try
         {
-            await Task.Delay(SearchDebounceMilliseconds, cancellationToken);
-
-            var admins = await TournamentService.GetAdminUsersAsync(query, SearchPageSize, cancellationToken);
-            if(cancellationToken.IsCancellationRequested || requestVersion != _searchRequestVersion)
-                return;
-
-            _results = admins;
+            // The whole administrator list is loaded once; paging stops on the last short page.
+            _choices.AddRange(await TournamentService.GetAllAdminUsersAsync(_loadCancellationTokenSource.Token));
         }
         catch(OperationCanceledException)
         {
@@ -130,44 +64,18 @@
         }
         catch(Exception)
         {
-            if(cancellationToken.IsCancellationRequested || requestVersion != _searchRequestVersion)
-                return;
-
-            _results = [];
             _loadError = Localization["Feature.tournaments.contactAdminLoadFailed"];
         }
         finally
         {
-            if(requestVersion == _searchRequestVersion)
-                _isSearching = false;
+            _isLoading = false;
         }
     }
 
-    private void CancelPendingSearch()
+    private async Task OnChangeAsync(ChangeEventArgs args)
     {
-        _searchRequestVersion++;
-        if(_searchCancellationTokenSource is null)
-            return;
-
-        _searchCancellationTokenSource.Cancel();
-        _searchCancellationTokenSource.Dispose();
-        _searchCancellationTokenSource = null;
-    }
-
-    private async Task SelectAsync(PublicUserDTO admin)
-    {
-        _selected = admin;
-        _query = string.Empty;
-        _results.Clear();
-        await ValueChanged.InvokeAsync(admin.Id);
-    }
-
-    private async Task ClearAsync()
-    {
-        _selected = null;
-        _query = string.Empty;
-        _results.Clear();
-        await ValueChanged.InvokeAsync(null);
+        var selectedId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : (Guid?)null;
+        await ValueChanged.InvokeAsync(selectedId);
     }
 
     private static string GetAdminLabel(PublicUserDTO admin) =>
@@ -177,6 +85,8 @@
 
     public void Dispose()
     {
-        CancelPendingSearch();
+        _loadCancellationTokenSource?.Cancel();
+        _loadCancellationTokenSource?.Dispose();
+        _loadCancellationTokenSource = null;
     }
 }

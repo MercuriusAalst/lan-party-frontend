@@ -45,8 +45,28 @@ public sealed class TournamentService : ITournamentService
     public Task<List<PublicUserDTO>> GetAdminUsersAsync(
         string? query = null,
         int? pageSize = null,
-        CancellationToken cancellationToken = default) =>
-        _lanClient.GetAdminUsersAsync(query, pageSize, cancellationToken);
+        CancellationToken cancellationToken = default,
+        int page = 1) =>
+        _lanClient.GetAdminUsersAsync(query, pageSize, cancellationToken, page);
+
+    public async Task<List<PublicUserDTO>> GetAllAdminUsersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        const int pageSize = 50;
+        var page = 1;
+        var admins = new List<PublicUserDTO>();
+
+        while(true)
+        {
+            var batch = await _lanClient.GetAdminUsersAsync(null, pageSize, cancellationToken, page);
+            admins.AddRange(batch);
+
+            if(batch.Count < pageSize)
+                return admins;
+
+            page++;
+        }
+    }
 
     public async Task<TournamentExtended> CreateTournamentAsync(
         CreateTournamentDTO newTournament,

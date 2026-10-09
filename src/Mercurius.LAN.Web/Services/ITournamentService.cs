@@ -27,6 +27,10 @@ public interface ITournamentService
     Task<List<PublicUserDTO>> GetAdminUsersAsync(
         string? query = null,
         int? pageSize = null,
+        CancellationToken cancellationToken = default,
+        int page = 1);
+
+    Task<List<PublicUserDTO>> GetAllAdminUsersAsync(
         CancellationToken cancellationToken = default);
 
     Task<TournamentExtended> CreateTournamentAsync(

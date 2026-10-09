@@ -54,8 +54,23 @@ internal sealed class MockTournamentService : ITournamentService
     public Task<List<PublicUserDTO>> GetAdminUsersAsync(
         string? query = null,
         int? pageSize = null,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(_store.GetAdminUsers(query, pageSize));
+        CancellationToken cancellationToken = default,
+        int page = 1) =>
+        Task.FromResult(_store.GetAdminUsers(query, pageSize, page));
+
+    public Task<List<PublicUserDTO>> GetAllAdminUsersAsync(CancellationToken cancellationToken = default)
+    {
+        const int pageSize = 50;
+        var admins = new List<PublicUserDTO>();
+        for(var page = 1; ; page++)
+        {
+            var batch = _store.GetAdminUsers(null, pageSize, page);
+            admins.AddRange(batch);
+
+            if(batch.Count < pageSize)
+                return Task.FromResult(admins);
+        }
+    }
 
     public Task<TournamentExtended> CreateTournamentAsync(
         CreateTournamentDTO newTournament,
