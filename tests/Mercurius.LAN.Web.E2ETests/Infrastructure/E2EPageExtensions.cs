@@ -19,6 +19,28 @@ public static class E2EPageExtensions
         "Unhandled exception in circuit"
     ];
 
+    /// <summary>
+    /// Blazor opens the circuit websocket before it applies the interactive render, and a click or
+    /// keystroke dispatched in that window is dropped by the browser because no DOM event handler is
+    /// bound yet. The prerendered interactive root is delivered as a <c>&lt;!--bl-root--&gt;</c>
+    /// placeholder comment and is only replaced once the client applies the first render batch, so
+    /// this is the observable "the shipped shell really is interactive now" signal.
+    /// </summary>
+    private const string InteractiveRootAppliedExpression =
+        """
+        () => {
+            const walker = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_COMMENT);
+            for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+                if (node.textContent === "bl-root") {
+                    return false;
+                }
+            }
+            return true;
+        }
+        """;
+
+    private const int InteractiveRootTimeoutMilliseconds = 15000;
+
     internal static void Observe(IPage page)
     {
         var state = new InteractivePageState();
@@ -103,9 +125,58 @@ public static class E2EPageExtensions
             }
 
             if (ReferenceEquals(connection, state.Current))
-                return;
+            {
+                if (await WaitForInteractiveRootAsync(page, connection, state, cancellationToken))
+                    return;
+
+                // A document navigation replaced the circuit while its first render batch was
+                // pending, so wait for the replacement document's circuit instead of returning.
+                continue;
+            }
         }
     }
+
+    private static async Task<bool> WaitForInteractiveRootAsync(
+        IPage page,
+        TaskCompletionSource connection,
+        InteractivePageState state,
+        CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+            return false;
+
+        try
+        {
+            await page.WaitForFunctionAsync(
+                InteractiveRootAppliedExpression,
+                null,
+                new PageWaitForFunctionOptions { Timeout = InteractiveRootTimeoutMilliseconds });
+            return true;
+        }
+        catch (PlaywrightException) when (state.IsClosed && !cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("The page closed before the Blazor circuit became interactive.");
+        }
+        catch (PlaywrightException) when (!ReferenceEquals(connection, state.Current))
+        {
+            // A document navigation replaced the circuit while its first render batch was pending.
+            return false;
+        }
+        catch (PlaywrightException exception)
+        {
+            throw new TimeoutException(
+                "The Blazor circuit connected but never applied its interactive render, so page interactions would be dropped.",
+                exception);
+        }
+    }
+
+    /// <summary>
+    /// Reports whether Blazor has replaced the prerendered interactive-root placeholder, i.e. whether
+    /// the DOM event handlers bound by the circuit are in place. Exposed so the readiness gate itself
+    /// is covered by a regression test.
+    /// </summary>
+    internal static Task<bool> IsInteractiveRootAppliedAsync(this IPage page) =>
+        page.EvaluateAsync<bool>(InteractiveRootAppliedExpression);
 
     public static async Task ClickWhenInteractiveAsync(
         this IPage page,

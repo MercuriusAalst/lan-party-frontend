@@ -4621,7 +4621,8 @@ internal sealed class MockBackendStore
             Format = tournament.Format,
             FinalsFormat = tournament.FinalsFormat,
             ParticipationMode = tournament.ParticipationMode,
-            TeamSize = tournament.TeamSize
+            TeamSize = tournament.TeamSize,
+            SponsorPlacement = tournament.SponsorPlacement
         };
     }
 

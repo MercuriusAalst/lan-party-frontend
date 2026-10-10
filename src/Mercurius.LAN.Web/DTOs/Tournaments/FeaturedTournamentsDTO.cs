@@ -14,8 +14,9 @@ public class FeaturedTournamentIdsDTO
 /// <summary>
 /// The public featured read. <see cref="FeaturedTournamentIdsDTO.TournamentIds"/> is the resolved
 /// display order, and <see cref="Tournaments"/> carries the home page cards in that same order.
-/// The cards are a minimal summary: only name, image, status, bracket type, and format are
-/// populated, so every other <see cref="Tournament"/> member must not be displayed.
+/// The cards are a minimal summary: only name, image, status, bracket type, format, and the
+/// public-safe sponsor placement are populated, so every other <see cref="Tournament"/> member
+/// must not be displayed.
 /// </summary>
 public sealed class FeaturedTournamentsDTO : FeaturedTournamentIdsDTO
 {

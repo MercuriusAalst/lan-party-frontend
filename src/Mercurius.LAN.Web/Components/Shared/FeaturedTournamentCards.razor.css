@@ -93,6 +93,13 @@ button.home-tournament-lead:focus-visible {
     line-height: 1.45;
 }
 
+.home-tournament-presented-by {
+    color: var(--color-muted-text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
 .home-tournament-list {
     display: grid;
     align-content: start;

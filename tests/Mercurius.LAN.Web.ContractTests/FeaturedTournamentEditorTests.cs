@@ -120,6 +120,43 @@ public sealed class FeaturedTournamentEditorTests
     }
 
     [Fact]
+    public async Task MissingOrCanceledFeaturedSummariesAreNotSaveableAndNeverSentToTheBackend()
+    {
+        var service = CreateService(out var proxy);
+        var a = Tournament(1);
+        var b = Tournament(2);
+        var c = Tournament(3);
+        var extra = Tournament(7);
+        var canceled = Tournament(4, TournamentStatus.Canceled);
+        var absent = Tournament(9); // never returned by the public tournament listing
+        proxy.GetFeatured = () => Featured([a, b, c, absent, canceled]);
+        proxy.GetTournamentPage = (_, _) => Task.FromResult(new List<Tournament> { a, b, c, Tournament(5), extra });
+
+        var editor = CreateEditor(service);
+        await LoadAsync(editor);
+
+        // The unresolvable featured summaries are dropped instead of being shown as selectable.
+        Assert.DoesNotContain(Slots(editor), slot => slot is not null && (slot.Id == absent.Id || slot.Id == canceled.Id));
+        Assert.False(CanSave(editor));
+        await SaveAsync(editor);
+        Assert.Empty(proxy.UpdateRequests);
+        Assert.Equal("Admin.Featured.needFour", SaveError(editor));
+
+        // Even a stale summary that slipped into a slot is refused before the PUT is issued.
+        SetField(editor, "_slots", new List<Tournament?> { a, b, c, canceled });
+        Assert.False(CanSave(editor));
+        await SaveAsync(editor);
+        Assert.Empty(proxy.UpdateRequests);
+        Assert.Equal("Admin.Featured.needFour", SaveError(editor));
+
+        SetField(editor, "_slots", new List<Tournament?> { a, b, c, absent });
+        Assert.False(CanSave(editor));
+        await SaveAsync(editor);
+        Assert.Empty(proxy.UpdateRequests);
+        Assert.Equal("Admin.Featured.needFour", SaveError(editor));
+    }
+
+    [Fact]
     public async Task ReorderingPreviewsLocallyAndSaveSendsTheCuratedOrder()
     {
         var service = CreateService(out var proxy);

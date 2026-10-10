@@ -28,7 +28,14 @@ public partial class FeaturedTournaments : IAsyncDisposable
         _slots.Where(slot => slot is not null).Select(slot => slot!).ToList();
 
     private bool CanSave =>
-        _eligibleTournaments.Count >= SlotCount && _slots.All(slot => slot is not null);
+        _eligibleTournaments.Count >= SlotCount && SelectionIsEligible;
+
+    // Every slot must reference a still-eligible tournament, so a stale or canceled summary can
+    // neither enable the save button nor reach the backend.
+    private bool SelectionIsEligible =>
+        _slots.All(slot => slot is not null
+            && _eligibleTournaments.Exists(candidate => candidate.Id == slot.Id))
+        && _slots.Select(slot => slot!.Id).Distinct().Count() == SlotCount;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -82,13 +89,13 @@ public partial class FeaturedTournaments : IAsyncDisposable
 
     private Task RetryLoadAsync() => LoadAsync();
 
-    // The editor starts from the arrangement visitors currently see, so recovery done by the
-    // backend is visible instead of silently reset. Unknown summaries stay displayable.
+    // The editor starts from the current arrangement, but a featured id the backend can no longer
+    // resolve to an eligible tournament is dropped so it cannot be re-saved as if it were valid.
     private List<Tournament?> BuildSlots(IReadOnlyList<Tournament> featured)
     {
         var slots = featured
             .Take(SlotCount)
-            .Select(tournament => _eligibleTournaments.FirstOrDefault(candidate => candidate.Id == tournament.Id) ?? tournament)
+            .Select(tournament => _eligibleTournaments.FirstOrDefault(candidate => candidate.Id == tournament.Id))
             .Cast<Tournament?>()
             .ToList();
 
@@ -163,7 +170,7 @@ public partial class FeaturedTournaments : IAsyncDisposable
         }
 
         var selectedIds = _slots.Where(slot => slot is not null).Select(slot => slot!.Id).ToList();
-        if(selectedIds.Count != SlotCount || selectedIds.Distinct().Count() != SlotCount)
+        if(!SelectionIsEligible)
         {
             _saveError = Localization["Admin.Featured.needFour"];
             return;

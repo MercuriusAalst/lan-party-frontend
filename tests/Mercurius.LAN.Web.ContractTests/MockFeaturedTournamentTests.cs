@@ -73,6 +73,21 @@ public sealed class MockFeaturedTournamentTests
         Assert.Equal(featured.TournamentIds.Count, featured.TournamentIds.Distinct().Count());
     }
 
+    [Fact]
+    public void FeaturedReadCarriesTheSameSponsorPlacementAsTheDetailRead()
+    {
+        var store = CreateStore();
+
+        var featured = store.GetFeaturedTournaments();
+
+        Assert.NotEmpty(featured.Tournaments);
+        Assert.All(featured.Tournaments, tournament =>
+            Assert.Equal(
+                store.GetTournament(tournament.Id)!.SponsorPlacement?.SponsorName,
+                tournament.SponsorPlacement?.SponsorName));
+        Assert.Contains(featured.Tournaments, tournament => tournament.SponsorPlacement is not null);
+    }
+
     private static List<Guid> EligibleDefaultOrder(MockBackendStore store) =>
         store.GetTournaments()
             .Where(tournament => tournament.Status != TournamentStatus.Canceled)

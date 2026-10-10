@@ -46,21 +46,29 @@
 
     private Task SelectAsync(Guid tournamentId) => OnSelected.InvokeAsync(tournamentId);
 
-    private static RenderFragment LeadCard(Tournament tournament, string? imageUrl) => @<text>
+    private RenderFragment LeadCard(Tournament tournament, string? imageUrl) => @<text>
         <img src="@imageUrl" alt="@tournament.Name" class="home-tournament-image home-tournament-image--lead" />
         <span class="home-tournament-body">
             <span class="home-tournament-meta">
                 <strong>@tournament.Name</strong>
                 <span class="tournament-status @tournament.Status.GetStatusClass()">@tournament.Status.GetStatusLabel()</span>
             </span>
+            @if(tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+            {
+                <span class="home-tournament-presented-by">@presentedBy</span>
+            }
             <span class="home-tournament-detail">@tournament.GetFormatDetailLabel()</span>
         </span>
     </text>;
 
-    private static RenderFragment RowCard(Tournament tournament, string? imageUrl) => @<text>
+    private RenderFragment RowCard(Tournament tournament, string? imageUrl) => @<text>
         <img src="@imageUrl" alt="" class="home-tournament-image home-tournament-image--row" />
         <span class="home-tournament-row-copy">
             <strong>@tournament.Name</strong>
+            @if(tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+            {
+                <span class="home-tournament-presented-by">@presentedBy</span>
+            }
             <span class="home-tournament-detail">@tournament.GetFormatDetailLabel()</span>
         </span>
         <span class="tournament-status @tournament.Status.GetStatusClass()">@tournament.Status.GetStatusLabel()</span>

@@ -45,10 +45,10 @@ jobs:
     env:
       TEST_POSTGRES_CONNECTION: "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=postgres"
       MERCURIUS_BACKEND_ROOT: ${{ github.workspace }}/backend-playwright-e2e
-      # Companion backend commit required by this suite until MercuriusAalst/lan-party-backend#139
-      # (team membership realtime fan-out) lands on main. Update to the final backend commit,
-      # then back to `main` once that change is merged.
-      E2E_BACKEND_REF: 3cfc07f76cd6cb66b0ac17595e01359d3d966606
+      # Companion backend commit required by this suite: featured homepage tournaments
+      # (lan-party-backend#141) plus the earlier team-membership realtime fan-out (#139).
+      # Update to the final backend commit, then back to `main` once those changes are merged.
+      E2E_BACKEND_REF: 30eddcce5bc06d52584ef896f479b0749f92c43d
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4

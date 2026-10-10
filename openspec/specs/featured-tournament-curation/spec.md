@@ -62,6 +62,16 @@ backend remains authoritative.
 - **THEN** the editor MUST prevent the duplicate or ineligible selection
 - **AND** a rejected save MUST leave the previously saved arrangement intact
 
+#### Scenario: A previously saved tournament is no longer eligible
+
+- **WHEN** a saved featured tournament was deleted or canceled since it was
+  saved
+- **THEN** the editor MUST NOT present that tournament as a filled position
+- **AND** the save action MUST stay unavailable until four distinct eligible
+  tournaments are selected
+- **AND** a save attempt that still carries an ineligible position MUST NOT
+  reach the backend
+
 ### Requirement: The homepage renders the saved curated order
 
 The homepage MUST render the server-ordered featured tournaments as one large
@@ -86,6 +96,17 @@ listing without loading full tournament graphs.
   featured summary projection
 - **AND** it MUST NOT load that tournament's registrations, rosters, matches,
   placements, or leaderboard entries just to render the card
+
+#### Scenario: Featured cards show the public sponsor attribution
+
+- **WHEN** a featured tournament has a public sponsor placement with a sponsor
+  name
+- **THEN** its lead or row card MUST show the localized "Presented by
+  <sponsor>" attribution
+- **AND** the card MUST omit the attribution when the placement or sponsor name
+  is absent or blank
+- **AND** a long sponsor name MUST stay in full and wrap instead of being
+  truncated
 
 #### Scenario: Featured read fails
 
