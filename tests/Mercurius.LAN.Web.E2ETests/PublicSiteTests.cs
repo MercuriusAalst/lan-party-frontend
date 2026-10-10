@@ -491,8 +491,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var page = await context.NewPageAsync();
 
         await page.GotoAsync($"{app.BaseUrl}");
-        await page.WaitForInteractiveAsync();
-        await page.FillAsync("#global-nav-search", "zzzzzznotpresent");
+        await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
 
         await Expect(page.GetByText("No matches found.")).ToBeVisibleAsync();
         await Expect(page.Locator("#global-nav-search")).ToHaveAttributeAsync("aria-expanded", "true");
@@ -506,8 +505,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var page = await context.NewPageAsync();
 
         await page.GotoAsync($"{app.BaseUrl}");
-        await page.WaitForInteractiveAsync();
-        await page.FillAsync("#global-nav-search", "zzzzzznotpresent");
+        await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
         await Expect(page.Locator("#global-nav-search-results")).ToBeVisibleAsync();
 
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Clear search" }));
@@ -524,8 +522,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var page = await context.NewPageAsync();
 
         await page.GotoAsync($"{app.BaseUrl}");
-        await page.WaitForInteractiveAsync();
-        await page.FillAsync("#global-nav-search", "zzzzzznotpresent");
+        await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
         await Expect(page.Locator("#global-nav-search-results")).ToBeVisibleAsync();
 
         await page.PressAsync("#global-nav-search", "Escape");
@@ -613,9 +610,8 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var page = await context.NewPageAsync();
 
         await page.GotoAsync($"{app.BaseUrl}");
-        await page.WaitForInteractiveAsync();
 
-        await page.FillAsync("#global-nav-search", "zzzzzznotpresent");
+        await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
         await Expect(page.Locator("#global-nav-search")).ToHaveAttributeAsync("aria-expanded", "true");
 
         await page.FillAsync("#global-nav-search", "ab");
@@ -743,8 +739,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
         await page.GotoAsync($"{app.BaseUrl}");
-        await page.WaitForInteractiveAsync();
-        await page.FillAsync("#global-nav-search", token);
+        await page.SearchWhenInteractiveAsync(token);
 
         var options = page.Locator("#global-nav-search-results button[role='option']");
         var alpha = options.Filter(new() { HasText = alphaName });
@@ -785,8 +780,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
         await page.GotoAsync($"{app.BaseUrl}");
-        await page.WaitForInteractiveAsync();
-        await page.FillAsync("#global-nav-search", teamName);
+        await page.SearchWhenInteractiveAsync(teamName);
 
         var option = page.Locator("#global-nav-search-results button[role='option']").Filter(new() { HasText = teamName });
         await Expect(option).ToBeVisibleAsync();
@@ -910,8 +904,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using (var fault = await DatabaseReadFault.InstallAsync(app, "search_documents"))
         {
             await page.GotoAsync($"{app.BaseUrl}");
-            await page.WaitForInteractiveAsync();
-            await page.FillAsync("#global-nav-search", "zzzzzznotpresent");
+            await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
 
             await Expect(page.GetByText("Search is unavailable right now.")).ToBeVisibleAsync(new() { Timeout = 15000 });
             await Expect(page.GetByText("No matches found.")).ToHaveCountAsync(0);

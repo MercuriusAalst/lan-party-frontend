@@ -263,7 +263,7 @@ public class PublicUserProfileTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         Assert.True(
             await page.Locator(".brand-header-inner").EvaluateAsync<bool>("header => header.scrollWidth <= header.clientWidth"),
             "The desktop header should not overflow horizontally.");
-        await searchInput.FillAsync(username);
+        await page.SearchWhenInteractiveAsync(username);
 
         var option = page.Locator("#global-nav-search-results button[role='option']").Filter(new() { HasText = username });
         await Expect(option).ToBeVisibleAsync();
@@ -344,7 +344,7 @@ public class PublicUserProfileTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             $"The authenticated desktop search field should keep usable text room at {viewportWidth}px but was {searchFieldWidth}px.");
 
         // The field has to actually work, not just accept keystrokes: a real query returns a real result.
-        await searchInput.FillAsync(tournamentName);
+        await page.SearchWhenInteractiveAsync(tournamentName);
         var option = page.Locator("#global-nav-search-results button[role='option']").Filter(new() { HasText = tournamentName });
         await Expect(option).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
