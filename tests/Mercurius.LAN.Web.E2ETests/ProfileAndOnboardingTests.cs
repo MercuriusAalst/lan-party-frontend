@@ -390,18 +390,30 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
 
         await using (var fault = await DatabaseReadFault.InstallAsync(app, "users"))
         {
+            // The API answers the failing profile request with a diagnostic body; the status page
+            // must show its localized copy instead of echoing that response.
+            using var api = app.CreateApiClient(member);
+            using var diagnosticResponse = await api.GetAsync("v1/lan/users/me");
+            var diagnosticBody = await diagnosticResponse.Content.ReadAsStringAsync();
+
             await page.GotoAsync($"{app.BaseUrl}profile");
 
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Profile unavailable" }))
                 .ToBeVisibleAsync(new() { Timeout = 15000 });
-            await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Try again" }))
-                .ToHaveAttributeAsync("href", "/profile");
+            await Expect(page.Locator(".status-page-message"))
+                .ToHaveTextAsync("Your profile could not be loaded right now.");
+            await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Try again" })).ToBeVisibleAsync();
             await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Back Home" })).ToBeVisibleAsync();
+
+            if (!string.IsNullOrWhiteSpace(diagnosticBody))
+            {
+                await Expect(page.GetByText(diagnosticBody)).ToHaveCountAsync(0);
+            }
         }
 
-        // The StatusPage retry is a link back to /profile, so the recovery is a real reload with the
-        // identity table available again.
-        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Link, new() { Name = "Try again" }));
+        // The StatusPage retry is an in-place callback, so the profile reloads in the current circuit
+        // once the identity table is available again.
+        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Try again" }));
 
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Your information" }))
             .ToBeVisibleAsync(new() { Timeout = 15000 });

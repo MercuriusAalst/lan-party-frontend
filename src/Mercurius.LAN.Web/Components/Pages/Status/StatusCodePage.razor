@@ -2,7 +2,8 @@
 @rendermode InteractiveServer
 
 <PageTitle>@Title</PageTitle>
-<StatusPage Eyebrow='@Localization["common.system"]'
+<StatusPage Tone="@Tone"
+            Eyebrow='@Localization["common.system"]'
             Title="@Title"
             Message="@Message"
             PrimaryHref="/"
@@ -12,6 +13,13 @@
 
 @code {
     [Parameter] public int StatusCode { get; set; }
+
+    private StatusPageTone Tone => StatusCode switch
+    {
+        403 => StatusPageTone.Warning,
+        404 => StatusPageTone.Info,
+        _ => StatusPageTone.Danger
+    };
 
     private string Title => StatusCode switch
     {

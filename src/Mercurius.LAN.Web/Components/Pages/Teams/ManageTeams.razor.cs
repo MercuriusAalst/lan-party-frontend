@@ -120,6 +120,17 @@ public partial class ManageTeams : IAsyncDisposable
         }
     }
 
+    private Task RetryLoadAsync()
+    {
+        if(_disposed)
+            return Task.CompletedTask;
+
+        _loadError = null;
+        _isLoading = true;
+        _initializationTask = InitializeAsync();
+        return _initializationTask;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if(_disposed)
@@ -156,13 +167,14 @@ public partial class ManageTeams : IAsyncDisposable
         catch(OperationCanceledException) when(!IsActive(cancellationToken))
         {
         }
-        catch(Exception exception)
+        catch(Exception)
         {
             if(!IsActive(cancellationToken))
                 return;
 
             _summary = new();
-            _loadError = GetErrorMessage(exception);
+            // Load failures use localized copy; service exception messages are English-only.
+            _loadError = Localization["General.TeamManage.LoadError"];
         }
     }
 

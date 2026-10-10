@@ -94,6 +94,36 @@ public class PublicUserProfileTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
+    public async Task PublicUserProfileLoadFailureShowsUnavailableStateAndRecoversInPlace()
+    {
+        var admin = await app.CreatePersonaAsync("user-profile-fault-admin", isAdmin: true);
+        var target = await app.CreatePersonaAsync("user-profile-fault-target");
+
+        await using var context = await app.NewAuthenticatedContextAsync(admin);
+        var page = await context.NewPageAsync();
+
+        await using (var fault = await DatabaseReadFault.InstallAsync(app, "users"))
+        {
+            await page.GotoAsync($"{app.BaseUrl}users/{target.Username}");
+
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Profile unavailable" }))
+                .ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Try again" })).ToBeVisibleAsync();
+
+            // The unavailable state retries through the page's own load, so recovery happens in the
+            // current circuit once the identity table is visible again.
+            await fault.DisposeAsync();
+
+            await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Try again" }));
+
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Matches" }))
+                .ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Profile unavailable" }))
+                .ToHaveCountAsync(0);
+        }
+    }
+
+    [Fact]
     public async Task AdminSeesCompletedAndUpcomingMatchSummariesForAParticipant()
     {
         var admin = await app.CreatePersonaAsync("user-profile-matches-admin", isAdmin: true);
@@ -233,7 +263,7 @@ public class PublicUserProfileTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         Assert.True(
             await page.Locator(".brand-header-inner").EvaluateAsync<bool>("header => header.scrollWidth <= header.clientWidth"),
             "The desktop header should not overflow horizontally.");
-        await searchInput.FillAsync(username);
+        await page.SearchWhenInteractiveAsync(username);
 
         var option = page.Locator("#global-nav-search-results button[role='option']").Filter(new() { HasText = username });
         await Expect(option).ToBeVisibleAsync();
@@ -314,7 +344,7 @@ public class PublicUserProfileTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             $"The authenticated desktop search field should keep usable text room at {viewportWidth}px but was {searchFieldWidth}px.");
 
         // The field has to actually work, not just accept keystrokes: a real query returns a real result.
-        await searchInput.FillAsync(tournamentName);
+        await page.SearchWhenInteractiveAsync(tournamentName);
         var option = page.Locator("#global-nav-search-results button[role='option']").Filter(new() { HasText = tournamentName });
         await Expect(option).ToBeVisibleAsync(new() { Timeout = 15000 });
     }
