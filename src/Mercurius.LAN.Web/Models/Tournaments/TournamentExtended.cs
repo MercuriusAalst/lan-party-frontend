@@ -17,5 +17,4 @@ public class TournamentExtended : Tournament
     // bracket and identity components. They are not populated from separate API calls.
     public IEnumerable<PublicUserDTO> Users { get; set; } = [];
     public IEnumerable<Team> Teams { get; set; } = [];
-    public TournamentSponsorPlacement? SponsorPlacement { get; set; }
 }

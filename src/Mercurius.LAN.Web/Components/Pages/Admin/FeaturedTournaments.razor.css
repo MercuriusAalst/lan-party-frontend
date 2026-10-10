@@ -1,0 +1,126 @@
+.featured-admin {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.featured-admin-intro {
+    display: grid;
+    gap: 0.75rem;
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.featured-admin-intro h1 {
+    margin: 0;
+}
+
+.featured-admin-intro p {
+    margin: 0;
+    color: var(--color-muted-text);
+}
+
+.featured-admin-alert,
+.featured-admin-slots {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.featured-admin-preview {
+    display: grid;
+    gap: 1rem;
+}
+
+.featured-admin-preview h2,
+.featured-admin-slots h2 {
+    margin: 0;
+}
+
+.featured-admin-empty,
+.featured-admin-hint {
+    margin: 0;
+    color: var(--color-muted-text);
+}
+
+.featured-admin-error-copy {
+    margin: 0;
+    color: var(--color-danger, #b42318);
+}
+
+.featured-admin-slot-list {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.featured-admin-slot {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-raised);
+}
+
+.featured-admin-slot.is-dragging {
+    opacity: 0.6;
+}
+
+.featured-admin-slot-grip {
+    color: var(--color-muted-text);
+    cursor: grab;
+}
+
+.featured-admin-slot-position {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: var(--color-muted-text);
+}
+
+.featured-admin-slot-select {
+    width: 100%;
+    min-width: 0;
+}
+
+.featured-admin-slot-actions {
+    display: inline-flex;
+    gap: 0.35rem;
+}
+
+.featured-admin-slot-move {
+    min-width: 2.5rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.featured-admin-slots > .button-primary {
+    justify-self: start;
+}
+
+@media (max-width: 640px) {
+    .featured-admin-slot {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "position position position"
+            "grip select actions";
+        row-gap: 0.5rem;
+    }
+
+    .featured-admin-slot-grip {
+        grid-area: grip;
+    }
+
+    .featured-admin-slot-position {
+        grid-area: position;
+    }
+
+    .featured-admin-slot-select {
+        grid-area: select;
+    }
+
+    .featured-admin-slot-actions {
+        grid-area: actions;
+    }
+}

@@ -9,6 +9,7 @@ internal static class LocalReturnUrlHelper
         "/users",
         "/teams/manage",
         "/admin/sponsors",
+        "/admin/featured-tournaments",
         "/account/logout"
     ];
 

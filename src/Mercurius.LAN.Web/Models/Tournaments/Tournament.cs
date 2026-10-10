@@ -18,4 +18,5 @@ public class Tournament
     public TournamentFormat FinalsFormat { get; set; }
     public ParticipationMode ParticipationMode { get; set; }
     public int? TeamSize { get; set; }
+    public TournamentSponsorPlacement? SponsorPlacement { get; set; }
 }

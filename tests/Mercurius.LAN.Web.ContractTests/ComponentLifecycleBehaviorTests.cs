@@ -10,6 +10,7 @@ using Mercurius.LAN.Web.Components.Pages;
 using Mercurius.LAN.Web.Components.Pages.Teams;
 using Mercurius.LAN.Web.Components.Pages.Tournaments;
 using Mercurius.LAN.Web.DTOs.Participants.Teams;
+using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Models.Sponsors;
@@ -34,10 +35,10 @@ public sealed class ComponentLifecycleBehaviorTests
     [Fact]
     public async Task HomeRendersSponsorsBeforePendingTournamentRequestCompletes()
     {
-        var tournaments = new TaskCompletionSource<List<Tournament>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var featuredTournaments = new TaskCompletionSource<FeaturedTournamentsDTO>(TaskCreationOptions.RunContinuationsAsynchronously);
         var tournamentService = CreateProxy<ITournamentService>((method, _) =>
-            method.Name == nameof(ITournamentService.GetTournamentsAsync)
-                ? tournaments.Task
+            method.Name == nameof(ITournamentService.GetFeaturedTournamentsAsync)
+                ? featuredTournaments.Task
                 : throw new NotSupportedException(method.Name));
         var sponsorService = CreateProxy<ISponsorService>((method, _) =>
             method.Name == nameof(ISponsorService.GetSponsorsAsync)
@@ -52,10 +53,10 @@ public sealed class ComponentLifecycleBehaviorTests
         await component.StartInitialRenderAsync();
         await WaitForAsync(() => component.RenderCount >= 2);
 
-        Assert.False(tournaments.Task.IsCompleted);
+        Assert.False(featuredTournaments.Task.IsCompleted);
 
         await component.DisposeAsync();
-        tournaments.SetResult([]);
+        featuredTournaments.SetResult(new FeaturedTournamentsDTO());
         await Task.Delay(25);
 
         Assert.Equal(2, component.RenderCount);

@@ -572,11 +572,11 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var seededName = TournamentE2E.Unique("E2E Home Featured");
         var seededId = await TournamentE2E.CreateTournamentAsync(adminApi, seededName, "SingleElimination", "Individual");
 
-        // The home page asks for the first page of tournaments; mirror that exact request and
+        // The home page renders the curated featured selection; mirror that exact request and
         // compare the rendered order against it instead of assuming which tournaments exist.
-        using var response = await app.Api.GetAsync("v1/lan/tournaments?pageSize=12");
-        var published = await TournamentE2E.ReadJsonAsync(response);
-        var expected = published.EnumerateArray()
+        using var response = await app.Api.GetAsync("v1/lan/featured-tournaments");
+        var featured = await TournamentE2E.ReadJsonAsync(response);
+        var expected = featured.GetProperty("tournaments").EnumerateArray()
             .Select(item => (Id: item.GetProperty("id").GetGuid(), Name: item.GetProperty("name").GetString()!))
             .Take(4)
             .ToList();

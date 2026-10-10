@@ -1,0 +1,186 @@
+.home-tournament-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(18rem, 1.08fr);
+    gap: clamp(1.25rem, 2vw, 2rem);
+    align-items: start;
+}
+
+.home-tournament-lead,
+.home-tournament-row {
+    appearance: none;
+    margin: 0;
+    border: 0;
+    font: inherit;
+    text-align: left;
+    color: inherit;
+}
+
+button.home-tournament-lead,
+button.home-tournament-row {
+    cursor: pointer;
+}
+
+.home-tournament-lead {
+    display: grid;
+    overflow: hidden;
+    padding: 0;
+    border-radius: var(--radius-card);
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-brand);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.home-tournament-lead {
+    max-width: 42rem;
+    justify-self: start;
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+button.home-tournament-lead:hover,
+button.home-tournament-lead:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-brand-hover);
+}
+
+.home-tournament-lead:focus-visible,
+.home-tournament-row:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 4px;
+}
+
+.home-tournament-image {
+    display: block;
+    width: 100%;
+    object-fit: cover;
+}
+
+.home-tournament-image--lead {
+    width: 100%;
+    object-fit: cover;
+    aspect-ratio: 16 / 9;
+    height: clamp(12rem, 24vw, 18rem);
+    max-height: none;
+}
+
+.home-tournament-body {
+    display: grid;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 0.75rem;
+    padding: clamp(1rem, 2vw, 2rem);
+}
+
+.home-tournament-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.9rem;
+}
+
+.home-tournament-meta strong,
+.home-tournament-row-copy strong {
+    font-family: "Saira", system-ui, sans-serif;
+    font-size: clamp(1.15rem, 2.2vw, 1.65rem);
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    line-height: 1.08;
+    text-transform: uppercase;
+}
+
+.home-tournament-detail {
+    color: var(--color-muted-text);
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.home-tournament-presented-by {
+    color: var(--color-muted-text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.home-tournament-list {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+}
+
+.home-tournament-row {
+    display: grid;
+    grid-template-columns: clamp(5rem, 16vw, 8rem) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-brand);
+    transition: transform 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+button.home-tournament-row:hover,
+button.home-tournament-row:focus-visible {
+    color: var(--color-link);
+    transform: translateX(0.25rem);
+    box-shadow: var(--shadow-brand-hover);
+}
+
+.home-tournament-image--row {
+    width: clamp(5rem, 16vw, 8rem);
+    height: clamp(4.5rem, 13vw, 6.5rem);
+    border-radius: 0.7rem;
+}
+
+.home-tournament-row-copy {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.home-tournament-row-copy strong {
+    overflow: hidden;
+    font-size: clamp(1rem, 1.6vw, 1.2rem);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-tournament-row .tournament-status {
+    flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+    .home-tournament-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .home-tournament-image--lead {
+        max-height: none;
+    }
+
+    .home-tournament-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 1.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .home-tournament-list {
+        grid-template-columns: 1fr;
+    }
+
+    .home-tournament-meta {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-tournament-lead,
+    .home-tournament-row {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+    }
+}

@@ -1,0 +1,76 @@
+@inject IConfiguration Configuration
+@using Mercurius.LAN.Web.Extensions
+@using Mercurius.LAN.Web.Models.Tournaments
+
+@* One lead card plus up to three secondary cards, shared by the public home page and the
+   administrator preview so both show the exact same arrangement. *@
+@if(Tournaments.Count > 0)
+{
+    var lead = Tournaments[0];
+    var leadImageUrl = AssetUrlResolver.Resolve(Configuration, lead.ImageUrl);
+    <div class="home-tournament-layout">
+        @if(OnSelected.HasDelegate)
+        {
+            <button type="button" class="home-tournament-lead" @onclick="() => SelectAsync(lead.Id)">@LeadCard(lead, leadImageUrl)</button>
+        }
+        else
+        {
+            <div class="home-tournament-lead">@LeadCard(lead, leadImageUrl)</div>
+        }
+
+        <div class="home-tournament-list">
+            @foreach(var tournament in Tournaments.Skip(1))
+            {
+                var imageUrl = AssetUrlResolver.Resolve(Configuration, tournament.ImageUrl);
+                @if(OnSelected.HasDelegate)
+                {
+                    <button type="button" class="home-tournament-row" @onclick="() => SelectAsync(tournament.Id)">@RowCard(tournament, imageUrl)</button>
+                }
+                else
+                {
+                    <div class="home-tournament-row">@RowCard(tournament, imageUrl)</div>
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<Tournament> Tournaments { get; set; } = [];
+
+    /// <summary>
+    /// When set, the cards are interactive and report the selected tournament. When unset, the
+    /// same cards render as a static preview for the administrator editor.
+    /// </summary>
+    [Parameter] public EventCallback<Guid> OnSelected { get; set; }
+
+    private Task SelectAsync(Guid tournamentId) => OnSelected.InvokeAsync(tournamentId);
+
+    private RenderFragment LeadCard(Tournament tournament, string? imageUrl) => @<text>
+        <img src="@imageUrl" alt="@tournament.Name" class="home-tournament-image home-tournament-image--lead" />
+        <span class="home-tournament-body">
+            <span class="home-tournament-meta">
+                <strong>@tournament.Name</strong>
+                <span class="tournament-status @tournament.Status.GetStatusClass()">@tournament.Status.GetStatusLabel()</span>
+            </span>
+            @if(tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+            {
+                <span class="home-tournament-presented-by">@presentedBy</span>
+            }
+            <span class="home-tournament-detail">@tournament.GetFormatDetailLabel()</span>
+        </span>
+    </text>;
+
+    private RenderFragment RowCard(Tournament tournament, string? imageUrl) => @<text>
+        <img src="@imageUrl" alt="" class="home-tournament-image home-tournament-image--row" />
+        <span class="home-tournament-row-copy">
+            <strong>@tournament.Name</strong>
+            @if(tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+            {
+                <span class="home-tournament-presented-by">@presentedBy</span>
+            }
+            <span class="home-tournament-detail">@tournament.GetFormatDetailLabel()</span>
+        </span>
+        <span class="tournament-status @tournament.Status.GetStatusClass()">@tournament.Status.GetStatusLabel()</span>
+    </text>;
+}
