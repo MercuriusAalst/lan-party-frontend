@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text;
 using Blazored.Toast.Services;
-using Mercurius.LAN.Web.Components.Pages.Admin;
+using Mercurius.LAN.Web.Components.Shared;
 using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.Localization;
 using Mercurius.LAN.Web.Models.Tournaments;
@@ -93,7 +93,7 @@ public sealed class FeaturedTournamentEditorTests
     }
 
     [Fact]
-    public async Task SavingRequiresFourDistinctFilledSlots()
+    public async Task SavingRequiresFourDistinctFilledPositions()
     {
         var service = CreateService(out var proxy);
         var a = Tournament(1);
@@ -142,7 +142,7 @@ public sealed class FeaturedTournamentEditorTests
         Assert.Empty(proxy.UpdateRequests);
         Assert.Equal("Admin.Featured.needFour", SaveError(editor));
 
-        // Even a stale summary that slipped into a slot is refused before the PUT is issued.
+        // Even a stale summary that slipped into a position is refused before the PUT is issued.
         SetField(editor, "_slots", new List<Tournament?> { a, b, c, canceled });
         Assert.False(CanSave(editor));
         await SaveAsync(editor);
@@ -157,7 +157,7 @@ public sealed class FeaturedTournamentEditorTests
     }
 
     [Fact]
-    public async Task ReorderingPreviewsLocallyAndSaveSendsTheCuratedOrder()
+    public async Task ReorderingPreviewsLocallyAndSaveReportsTheCuratedOrder()
     {
         var service = CreateService(out var proxy);
         var a = Tournament(1);
@@ -166,8 +166,9 @@ public sealed class FeaturedTournamentEditorTests
         var d = Tournament(4);
         proxy.GetFeatured = () => Featured([a, b, c, d]);
         proxy.GetTournamentPage = (_, _) => Task.FromResult(new List<Tournament> { a, b, c, d });
+        IReadOnlyList<Tournament>? reported = null;
 
-        var editor = CreateEditor(service);
+        var editor = CreateEditor(service, onSaved: order => reported = order);
         await LoadAsync(editor);
         Assert.Equal(new[] { IdOf(1), IdOf(2), IdOf(3), IdOf(4) }, SlotIds(editor));
 
@@ -179,34 +180,84 @@ public sealed class FeaturedTournamentEditorTests
         await SaveAsync(editor);
 
         Assert.Equal(new[] { IdOf(2), IdOf(1), IdOf(3), IdOf(4) }, Assert.Single(proxy.UpdateRequests));
-        Assert.Equal(new[] { IdOf(2), IdOf(1), IdOf(3), IdOf(4) }, SlotIds(editor));
+        Assert.Equal(new[] { IdOf(2), IdOf(1), IdOf(3), IdOf(4) }, reported!.Select(tournament => tournament.Id));
     }
 
     [Fact]
-    public void RenderedSlotRowsCarryDistinctIdentityKeysThatSurviveAKeyboardMove()
+    public async Task AddingFillsTheFirstEmptyPositionAndRemovingClearsOne()
     {
         var service = CreateService(out var proxy);
         var a = Tournament(1);
         var b = Tournament(2);
-        proxy.GetFeatured = () => Featured([a, b]);
-        proxy.GetTournamentPage = (_, _) => Task.FromResult(new List<Tournament> { a, b });
+        var c = Tournament(3);
+        var d = Tournament(4);
+        proxy.GetFeatured = () => Featured([a, b, c]);
+        proxy.GetTournamentPage = (_, _) => Task.FromResult(new List<Tournament> { a, b, c, d });
 
         var editor = CreateEditor(service);
-        SetField(editor, "_isLoading", false);
-        SetField(editor, "_slots", new List<Tournament?> { a, null, b, null });
+        await LoadAsync(editor);
 
-        var before = RenderedSlotRowKeys(editor);
+        Assert.Equal(new Tournament?[] { a, b, c, null }, Slots(editor));
+        Assert.False(CanSave(editor));
 
-        // Every row needs its own non-null key, and the two empty slots must not share one.
+        Add(editor, d);
+
+        Assert.Equal(new Tournament?[] { a, b, c, d }, Slots(editor));
+        Assert.True(CanSave(editor));
+
+        RemoveAt(editor, 0);
+
+        Assert.Equal(new Tournament?[] { null, b, c, d }, Slots(editor));
+        Assert.False(CanSave(editor));
+
+        Add(editor, a);
+
+        Assert.Equal(new Tournament?[] { a, b, c, d }, Slots(editor));
+    }
+
+    [Fact]
+    public async Task CancelClosesTheDraftWithoutSaving()
+    {
+        var service = CreateService(out var proxy);
+        var a = Tournament(1);
+        var b = Tournament(2);
+        var c = Tournament(3);
+        var d = Tournament(4);
+        proxy.GetFeatured = () => Featured([a, b, c, d]);
+        proxy.GetTournamentPage = (_, _) => Task.FromResult(new List<Tournament> { a, b, c, d });
+        var cancelled = false;
+
+        var editor = CreateEditor(service, onCancel: () => cancelled = true);
+        await LoadAsync(editor);
+
+        MoveSlot(editor, 0, 3);
+        await CancelAsync(editor);
+
+        Assert.True(cancelled);
+        Assert.Empty(proxy.UpdateRequests);
+        // The move is local-only: Cancel leaves the edited draft array untouched and simply closes it.
+        Assert.Equal(new[] { IdOf(2), IdOf(3), IdOf(4), IdOf(1) }, SlotIds(editor));
+    }
+
+    [Fact]
+    public void EditingCardsRenderOneKeyedPositionPerTournamentThatFollowsAMove()
+    {
+        var a = Tournament(1);
+        var b = Tournament(2);
+        var cards = CreateCards(new List<Tournament?> { a, null, b, null });
+
+        var before = RenderedPositionKeys(cards);
+
+        // Every position needs its own non-null key, and the two empty positions must not share one.
         Assert.Equal(4, before.Count);
         Assert.DoesNotContain(before, key => key is null);
         Assert.Equal(4, before.Distinct().Count());
-        Assert.Equal(new[] { a.Id, b.Id }, new[] { before[0], before[2] }.Select(key => Guid.Parse(key!.ToString()!)));
+        Assert.Equal(new[] { a.Id.ToString(), b.Id.ToString() }, new[] { before[0], before[2] }.Select(key => (string)key!));
 
-        // The key follows the tournament, not the row position, so Blazor moves the row (and the focused
-        // move buttons inside it) with the tournament instead of reusing the button at the old position.
-        MoveSlot(editor, 0, 1);
-        var after = RenderedSlotRowKeys(editor);
+        // The key follows the tournament, not the row position, so Blazor moves the dragged card (and the
+        // focused controls inside it) with the tournament instead of reusing the control at the old position.
+        SetInjectedProperty(cards, "Slots", new List<Tournament?> { null, a, b, null });
+        var after = RenderedPositionKeys(cards);
 
         Assert.Equal(before[0], after[1]);
         Assert.Equal(before[2], after[2]);
@@ -233,10 +284,9 @@ public sealed class FeaturedTournamentEditorTests
         Assert.True(IsSaving(editor));
 
         // Late events fired while the PUT is in flight must not disturb the submitted arrangement.
-        SetSlot(editor, 0, e.Id);
+        Add(editor, e);
+        RemoveAt(editor, 0);
         MoveSlot(editor, 0, 1);
-        StartDrag(editor, 2);
-        DropOn(editor, 0);
 
         Assert.Equal(new[] { IdOf(1), IdOf(2), IdOf(3), IdOf(4) }, SlotIds(editor));
 
@@ -328,16 +378,35 @@ public sealed class FeaturedTournamentEditorTests
     }
 
     [Fact]
-    public void EditorIsAdminOnlyAndDisablesItselfWhileSaving()
+    public void HomepageExposesTheAdminOnlyInlineEditorAndDropsTheRemovedPage()
     {
-        var markup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Admin/FeaturedTournaments.razor");
+        var home = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Home.razor");
+        var editor = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Shared/FeaturedTournamentEditor.razor");
+        var cards = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Shared/FeaturedTournamentCards.razor");
 
-        Assert.Contains("@attribute [Authorize(Roles = \"admin\")]", markup);
-        Assert.Contains("draggable=\"@(!_isSaving)\"", markup);
-        Assert.Contains("disabled=\"@_isSaving\"", markup);
-        Assert.Contains("slotIndex == 0 || _isSaving", markup);
-        Assert.Contains("slotIndex == SlotCount - 1 || _isSaving", markup);
-        Assert.Contains("disabled=\"@(!CanSave || _isSaving)\"", markup);
+        Assert.Contains("AuthorizeView Roles=\"admin\"", home);
+        Assert.Contains("@onclick=\"StartEditingFeatured\"", home);
+        Assert.Contains("<FeaturedTournamentEditor OnSaved=\"ApplyFeaturedOrder\" OnCancel=\"CancelEditingFeatured\" />", home);
+        Assert.Contains("if(_isEditingFeatured)", home);
+
+        Assert.Contains("disabled=\"@(!CanSave || _isSaving)\"", editor);
+        Assert.Contains("disabled=\"@_isSaving\"", editor);
+        Assert.Contains("OnMoveTournament=\"Move\"", editor);
+        Assert.Contains("OnRemoveTournament=\"RemoveAt\"", editor);
+
+        // Native HTML5 drag needs the literal draggable keywords and a real drop target; the compact
+        // position control is the keyboard and single-pointer alternative.
+        Assert.Contains("draggable=\"@draggable\"", cards);
+        Assert.Contains("\"true\" : \"false\"", cards);
+        Assert.Contains("@ondragstart=", cards);
+        Assert.Contains("@ondragover:preventDefault=\"true\"", cards);
+        Assert.Contains("@ondrop=", cards);
+        Assert.Contains("home-tournament-slot-select", cards);
+
+        Assert.False(RepositoryFileExists("src/Mercurius.LAN.Web/Components/Pages/Admin/FeaturedTournaments.razor"));
+        Assert.DoesNotContain("/admin/featured-tournaments", ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Layout/NavMenu.razor"));
+        Assert.DoesNotContain("/admin/featured-tournaments", ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/TournamentsOverview.razor"));
+        Assert.DoesNotContain("/admin/featured-tournaments", ReadRepositoryFile("src/Mercurius.LAN.Web/Extensions/LocalReturnUrlHelper.cs"));
     }
 
     private static FeaturedTournamentIdsDTO Confirmed(params Guid[] ids) =>
@@ -372,89 +441,113 @@ public sealed class FeaturedTournamentEditorTests
         return service;
     }
 
-    private static TestableFeaturedTournaments CreateEditor(ITournamentService service)
+    private static TestableFeaturedTournamentEditor CreateEditor(
+        ITournamentService service,
+        Action<IReadOnlyList<Tournament>>? onSaved = null,
+        Action? onCancel = null)
     {
-        var editor = new TestableFeaturedTournaments();
+        var editor = new TestableFeaturedTournamentEditor();
         SetInjectedProperty(editor, "TournamentService", service);
         SetInjectedProperty(editor, "ToastService", DispatchProxy.Create<IToastService, RecordingToastServiceProxy>());
         SetInjectedProperty(editor, "Localization", TestLocalizationService.Instance);
+        if(onSaved is not null)
+            SetInjectedProperty(editor, "OnSaved", EventCallback.Factory.Create<IReadOnlyList<Tournament>>(editor, onSaved));
+        if(onCancel is not null)
+            SetInjectedProperty(editor, "OnCancel", EventCallback.Factory.Create(editor, onCancel));
         return editor;
     }
 
-    private static Task LoadAsync(FeaturedTournaments editor) => InvokeTask(editor, "LoadAsync");
+    private static FeaturedTournamentCards CreateCards(IReadOnlyList<Tournament?> slots)
+    {
+        var cards = new FeaturedTournamentCards();
+        SetInjectedProperty(cards, "Configuration", new ConfigurationBuilder().Build());
+        SetInjectedProperty(cards, "Localization", TestLocalizationService.Instance);
+        SetInjectedProperty(cards, "Slots", slots);
+        return cards;
+    }
 
-    private static Task SaveAsync(FeaturedTournaments editor) => InvokeTask(editor, "SaveAsync");
+    private static Task LoadAsync(FeaturedTournamentEditor editor) => InvokeTask(editor, "LoadAsync");
 
-    private static void MoveSlot(FeaturedTournaments editor, int from, int to) =>
+    // Save and Cancel invoke the component's own event callbacks, which dispatch back through the
+    // component; run them on the renderer's dispatcher exactly like a real UI event would.
+    private static Task SaveAsync(FeaturedTournamentEditor editor) =>
+        TestableEditor(editor).Dispatcher.InvokeAsync(() => InvokeTask(editor, "SaveAsync"));
+
+    private static Task CancelAsync(FeaturedTournamentEditor editor) =>
+        TestableEditor(editor).Dispatcher.InvokeAsync(() => InvokeTask(editor, "CancelAsync"));
+
+    private static TestableFeaturedTournamentEditor TestableEditor(FeaturedTournamentEditor editor) =>
+        (TestableFeaturedTournamentEditor)editor;
+
+    private static void MoveSlot(FeaturedTournamentEditor editor, int from, int to) =>
         Invoke(editor, "MoveSlot", from, to);
 
-    private static void StartDrag(FeaturedTournaments editor, int slotIndex) =>
-        Invoke(editor, "StartDrag", slotIndex);
+    private static void Add(FeaturedTournamentEditor editor, Tournament tournament) =>
+        Invoke(editor, "Add", tournament);
 
-    private static void DropOn(FeaturedTournaments editor, int slotIndex) =>
-        Invoke(editor, "DropOn", slotIndex);
+    private static void RemoveAt(FeaturedTournamentEditor editor, int index) =>
+        Invoke(editor, "RemoveAt", index);
 
-    private static void SetSlot(FeaturedTournaments editor, int slotIndex, Guid id) =>
-        Invoke(editor, "SetSlot", slotIndex, new ChangeEventArgs { Value = id.ToString() });
-
-    private static Task InvokeTask(FeaturedTournaments editor, string name) =>
+    private static Task InvokeTask(FeaturedTournamentEditor editor, string name) =>
         (Task)InstanceMethod(name).Invoke(editor, null)!;
 
-    private static void Invoke(FeaturedTournaments editor, string name, params object?[] arguments) =>
+    private static void Invoke(FeaturedTournamentEditor editor, string name, params object?[] arguments) =>
         InstanceMethod(name).Invoke(editor, arguments);
 
     private static MethodInfo InstanceMethod(string name) =>
-        typeof(FeaturedTournaments).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)
+        typeof(FeaturedTournamentEditor).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)
         ?? throw new InvalidOperationException($"Method '{name}' was not found.");
 
-    private static List<Tournament> Eligible(FeaturedTournaments editor) =>
+    private static List<Tournament> Eligible(FeaturedTournamentEditor editor) =>
         (List<Tournament>)ReadField(editor, "_eligibleTournaments")!;
 
-    private static List<Tournament?> Slots(FeaturedTournaments editor) =>
+    private static List<Tournament?> Slots(FeaturedTournamentEditor editor) =>
         (List<Tournament?>)ReadField(editor, "_slots")!;
 
-    private static List<Guid> SlotIds(FeaturedTournaments editor) =>
+    private static List<Guid> SlotIds(FeaturedTournamentEditor editor) =>
         Slots(editor).Select(slot => slot!.Id).ToList();
 
     // Runs the Razor-generated BuildRenderTree directly so the diffing keys Blazor would emit for the
-    // slot rows can be asserted without spinning up a browser.
-    private static List<object?> RenderedSlotRowKeys(FeaturedTournaments editor)
+    // editable positions can be asserted without spinning up a browser.
+    private static List<object?> RenderedPositionKeys(FeaturedTournamentCards cards)
     {
         using var builder = new RenderTreeBuilder();
-        InstanceMethod("BuildRenderTree").Invoke(editor, [builder]);
+        var method = cards.GetType().GetMethod("BuildRenderTree", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("BuildRenderTree was not found.");
+        method.Invoke(cards, [builder]);
 
         var frames = builder.GetFrames();
         var keys = new List<object?>();
         for(var i = 0; i < frames.Count; i++)
         {
             var frame = frames.Array[i];
-            if(frame.FrameType == RenderTreeFrameType.Element && frame.ElementName == "li")
+            if(frame.FrameType == RenderTreeFrameType.Element && frame.ElementKey is not null)
                 keys.Add(frame.ElementKey);
         }
 
         return keys;
     }
 
-    private static bool IsSaving(FeaturedTournaments editor) => (bool)ReadField(editor, "_isSaving")!;
+    private static bool IsSaving(FeaturedTournamentEditor editor) => (bool)ReadField(editor, "_isSaving")!;
 
-    private static string? SaveError(FeaturedTournaments editor) => (string?)ReadField(editor, "_saveError");
+    private static string? SaveError(FeaturedTournamentEditor editor) => (string?)ReadField(editor, "_saveError");
 
-    private static bool CanSave(FeaturedTournaments editor) =>
-        (bool)(typeof(FeaturedTournaments)
+    private static bool CanSave(FeaturedTournamentEditor editor) =>
+        (bool)(typeof(FeaturedTournamentEditor)
             .GetProperty("CanSave", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?.GetValue(editor) ?? throw new MissingMemberException(typeof(FeaturedTournaments).FullName, "CanSave"));
+            ?.GetValue(editor) ?? throw new MissingMemberException(typeof(FeaturedTournamentEditor).FullName, "CanSave"));
 
-    private static object? ReadField(FeaturedTournaments editor, string name) =>
-        (typeof(FeaturedTournaments).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new MissingFieldException(typeof(FeaturedTournaments).FullName, name)).GetValue(editor);
+    private static object? ReadField(FeaturedTournamentEditor editor, string name) =>
+        (typeof(FeaturedTournamentEditor).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(FeaturedTournamentEditor).FullName, name)).GetValue(editor);
 
-    private static void SetField(FeaturedTournaments editor, string name, object? value) =>
-        (typeof(FeaturedTournaments).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new MissingFieldException(typeof(FeaturedTournaments).FullName, name)).SetValue(editor, value);
+    private static void SetField(FeaturedTournamentEditor editor, string name, object? value) =>
+        (typeof(FeaturedTournamentEditor).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(FeaturedTournamentEditor).FullName, name)).SetValue(editor, value);
 
-    private static void SetInjectedProperty(FeaturedTournaments editor, string name, object value)
+    private static void SetInjectedProperty(object component, string name, object value)
     {
-        for(var type = typeof(FeaturedTournaments); type is not null; type = type.BaseType)
+        for(var type = component.GetType(); type is not null; type = type.BaseType)
         {
             var property = type.GetProperty(
                 name,
@@ -462,11 +555,11 @@ public sealed class FeaturedTournamentEditorTests
             if(property is null)
                 continue;
 
-            property.SetValue(editor, value);
+            property.SetValue(component, value);
             return;
         }
 
-        throw new MissingMemberException(typeof(FeaturedTournaments).FullName, name);
+        throw new MissingMemberException(component.GetType().FullName, name);
     }
 
     private static ApiException CreateApiException(HttpStatusCode statusCode)
@@ -482,26 +575,38 @@ public sealed class FeaturedTournamentEditorTests
             .GetResult();
     }
 
-    private static string ReadRepositoryFile(string relativePath)
+    private static string ReadRepositoryFile(string relativePath) =>
+        File.ReadAllText(FindRepositoryFile(relativePath));
+
+    private static bool RepositoryFileExists(string relativePath) =>
+        TryFindRepositoryFile(relativePath) is not null;
+
+    private static string FindRepositoryFile(string relativePath) =>
+        TryFindRepositoryFile(relativePath)
+        ?? throw new InvalidOperationException($"Could not locate repository file '{relativePath}'.");
+
+    private static string? TryFindRepositoryFile(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while(directory is not null)
         {
             var repositoryPath = Path.Combine(directory.FullName, relativePath);
             if(File.Exists(repositoryPath))
-                return File.ReadAllText(repositoryPath);
+                return repositoryPath;
 
             directory = directory.Parent;
         }
 
-        throw new InvalidOperationException($"Could not locate repository file '{relativePath}'.");
+        return null;
     }
 
-    private sealed class TestableFeaturedTournaments : FeaturedTournaments
+    private sealed class TestableFeaturedTournamentEditor : FeaturedTournamentEditor
     {
         private readonly TestRenderer _renderer = new();
 
-        public TestableFeaturedTournaments() => _renderer.Attach(this);
+        public TestableFeaturedTournamentEditor() => _renderer.Attach(this);
+
+        public Dispatcher Dispatcher => _renderer.Dispatcher;
     }
 
     private sealed class TestRenderer : Renderer

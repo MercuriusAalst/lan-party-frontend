@@ -1,0 +1,70 @@
+@using Mercurius.LAN.Web.Models.Tournaments
+
+@* Administrator draft for the four featured homepage tournaments. The arrangement itself is the
+   shared FeaturedTournamentCards editing mode, so the editor cannot drift from the public cards. *@
+
+<div class="featured-editor">
+    @if(_isLoading)
+    {
+        <p class="featured-editor-hint" role="status">@Localization["Admin.Featured.loading"]</p>
+    }
+    else if(_loadError is not null)
+    {
+        <div class="featured-editor-alert" role="alert">
+            <p>@_loadError</p>
+            <button type="button" class="button-primary" @onclick="RetryLoadAsync">@Localization["status.tryAgain"]</button>
+        </div>
+    }
+    else
+    {
+        <p class="featured-editor-hint">@Localization["Admin.Featured.dragHint"]</p>
+
+        <FeaturedTournamentCards Slots="_slots"
+                                 Disabled="_isSaving"
+                                 OnMoveTournament="Move"
+                                 OnRemoveTournament="RemoveAt" />
+
+        @if(_eligibleTournaments.Count < SlotCount)
+        {
+            <p class="featured-editor-hint" role="status">@Localization.Get("Admin.Featured.notEnoughEligible", _eligibleTournaments.Count)</p>
+        }
+
+        <section class="featured-editor-available" aria-labelledby="featured-editor-available-title">
+            <h3 id="featured-editor-available-title">@Localization["Admin.Featured.availableHeading"]</h3>
+
+            @if(_availableTournaments.Count > 0)
+            {
+                <div class="featured-editor-chips">
+                    @foreach(var candidate in _availableTournaments)
+                    {
+                        <button type="button"
+                                class="featured-editor-chip"
+                                disabled="@(_isSaving || IsFull)"
+                                @onclick="() => Add(candidate)">
+                            <span class="bi bi-plus-lg" aria-hidden="true"></span>
+                            @candidate.Name
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="featured-editor-hint">@Localization["Admin.Featured.noAvailable"]</p>
+            }
+        </section>
+
+        @if(_saveError is not null)
+        {
+            <p class="featured-editor-error" role="alert">@_saveError</p>
+        }
+    }
+
+    @* Cancel stays reachable in every state; Save keeps its loaded-success guard. *@
+    <div class="featured-editor-actions">
+        @if(!_isLoading && _loadError is null)
+        {
+            <button type="button" class="button-primary" disabled="@(!CanSave || _isSaving)" @onclick="SaveAsync">@Localization["Admin.Featured.save"]</button>
+        }
+        <button type="button" class="button-secondary" disabled="@_isSaving" @onclick="CancelAsync">@Localization["Admin.Featured.cancel"]</button>
+    </div>
+</div>

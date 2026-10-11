@@ -184,3 +184,131 @@ button.home-tournament-row:focus-visible {
         transform: none !important;
     }
 }
+
+/* Administrator draft mode: the same cards with drag, drop, remove, and position controls. */
+.home-tournament-slot {
+    position: relative;
+}
+
+.home-tournament-slot.is-dragging {
+    opacity: 0.55;
+}
+
+.home-tournament-slot.is-drop-target {
+    outline: 3px dashed var(--color-focus);
+    outline-offset: 3px;
+}
+
+.home-tournament-slot--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 4.5rem;
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-muted);
+    color: var(--color-muted-text);
+}
+
+.home-tournament-lead.home-tournament-slot {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.home-tournament-row.home-tournament-slot {
+    grid-template-columns: auto clamp(5rem, 16vw, 8rem) minmax(0, 1fr) auto auto;
+}
+
+.home-tournament-slot-grip {
+    color: var(--color-muted-text);
+    cursor: grab;
+}
+
+.home-tournament-lead > .home-tournament-slot-grip {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 2;
+    display: inline-flex;
+    padding: 0.2rem;
+    border-radius: 0.5rem;
+    background: var(--color-surface-raised);
+}
+
+.home-tournament-slot-controls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+
+.home-tournament-lead > .home-tournament-slot-controls {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+    padding: 0.2rem;
+    border-radius: 0.5rem;
+    background: var(--color-surface-raised);
+}
+
+.home-tournament-slot-select {
+    max-width: 9rem;
+}
+
+.home-tournament-slot-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: var(--color-surface-raised);
+    color: var(--color-ink);
+    cursor: pointer;
+}
+
+.home-tournament-slot-select:disabled,
+.home-tournament-slot-remove:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+@media (max-width: 640px) {
+    .home-tournament-row.home-tournament-slot {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "grip copy status"
+            "controls controls controls";
+        row-gap: 0.5rem;
+    }
+
+    .home-tournament-row.home-tournament-slot .home-tournament-image--row {
+        display: none;
+    }
+
+    .home-tournament-row.home-tournament-slot .home-tournament-slot-grip {
+        grid-area: grip;
+    }
+
+    .home-tournament-row.home-tournament-slot .home-tournament-row-copy {
+        grid-area: copy;
+    }
+
+    .home-tournament-row.home-tournament-slot .tournament-status {
+        grid-area: status;
+    }
+
+    .home-tournament-row.home-tournament-slot .home-tournament-slot-controls {
+        grid-area: controls;
+        justify-content: flex-start;
+    }
+}
+
+/* A draft row carries the position controls on top of the public row tracks, so half a tablet width
+   cannot hold it. Below the two-column breakpoint the draft list drops to one card per row. */
+@media (max-width: 900px) {
+    .home-tournament-list--editing {
+        grid-template-columns: 1fr;
+    }
+}

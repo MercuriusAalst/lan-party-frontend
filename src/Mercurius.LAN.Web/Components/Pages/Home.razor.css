@@ -375,6 +375,13 @@
     text-wrap: balance;
 }
 
+.home-section-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
 .home-sponsors-heading h2 {
     color: var(--color-white);
 }

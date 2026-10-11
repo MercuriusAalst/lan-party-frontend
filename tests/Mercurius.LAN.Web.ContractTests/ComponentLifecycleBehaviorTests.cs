@@ -63,6 +63,48 @@ public sealed class ComponentLifecycleBehaviorTests
     }
 
     [Fact]
+    public async Task HomeKeepsTheConfirmedFeaturedOrderWhenTheInitialReadCompletesAfterASave()
+    {
+        IReadOnlyList<Tournament> staleOrder = [Tournament(1), Tournament(2), Tournament(3), Tournament(4)];
+        IReadOnlyList<Tournament> confirmedOrder = [Tournament(4), Tournament(3), Tournament(2), Tournament(1)];
+        var featuredRead = new TaskCompletionSource<FeaturedTournamentsDTO>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tournamentService = CreateProxy<ITournamentService>((method, _) =>
+            method.Name == nameof(ITournamentService.GetFeaturedTournamentsAsync)
+                ? featuredRead.Task
+                : throw new NotSupportedException(method.Name));
+        var sponsorService = CreateProxy<ISponsorService>((method, _) =>
+            method.Name == nameof(ISponsorService.GetSponsorsAsync)
+                ? Task.FromResult<IEnumerable<Sponsor>>(Array.Empty<Sponsor>())
+                : throw new NotSupportedException(method.Name));
+        var component = new TestHome();
+
+        SetProperty(component, "TournamentService", tournamentService);
+        SetProperty(component, "SponsorService", sponsorService);
+        SetProperty(component, "EventOptions", Microsoft.Extensions.Options.Options.Create(new LanEventOptions()));
+
+        await component.StartInitialRenderAsync();
+        await WaitForAsync(() => component.RenderCount >= 2);
+
+        // An administrator confirms a save while the homepage featured read is still in flight.
+        Assert.True(ReadHomeField<bool>(component, "_isTournamentsLoading"));
+        Assert.Empty(ReadHomeField<List<Tournament>>(component, "_featuredTournaments"));
+        ApplyFeaturedOrder(component, confirmedOrder);
+        Assert.False(ReadHomeField<bool>(component, "_isTournamentsLoading"));
+
+        featuredRead.SetResult(Featured(staleOrder));
+        await Task.Delay(25);
+
+        // The late response must not put the pre-save order back on the featured cards or the hero.
+        Assert.Equal(
+            confirmedOrder.Select(tournament => tournament.Id),
+            ReadHomeField<List<Tournament>>(component, "_featuredTournaments").Select(tournament => tournament.Id));
+        Assert.False(ReadHomeField<bool>(component, "_isTournamentsLoading"));
+        Assert.Null(ReadHomeField<string?>(component, "_tournamentsError"));
+
+        await component.DisposeAsync();
+    }
+
+    [Fact]
     public async Task TournamentOverviewRendersSponsorsBeforePendingTournamentRequestCompletes()
     {
         var tournaments = new TaskCompletionSource<List<Tournament>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -359,6 +401,31 @@ public sealed class ComponentLifecycleBehaviorTests
             await Task.Delay(10);
         }
     }
+
+    private static Tournament Tournament(int index) => new()
+    {
+        Id = new Guid(index, 0, 0, new byte[8]),
+        Name = $"Tournament {index}"
+    };
+
+    private static FeaturedTournamentsDTO Featured(IEnumerable<Tournament> tournaments)
+    {
+        var list = tournaments.ToList();
+        return new FeaturedTournamentsDTO
+        {
+            TournamentIds = list.Select(tournament => tournament.Id).ToList(),
+            Tournaments = list
+        };
+    }
+
+    private static T ReadHomeField<T>(Home home, string name) =>
+        (T)(typeof(Home).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(typeof(Home).FullName, name)).GetValue(home)!;
+
+    private static void ApplyFeaturedOrder(Home home, IReadOnlyList<Tournament> order) =>
+        (typeof(Home).GetMethod("ApplyFeaturedOrder", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(typeof(Home).FullName, "ApplyFeaturedOrder"))
+        .Invoke(home, [order]);
 
     private class ServiceProxy : DispatchProxy
     {

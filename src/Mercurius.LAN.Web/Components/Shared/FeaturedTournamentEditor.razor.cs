@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Components;
 using Refit;
 using System.Net;
 
-namespace Mercurius.LAN.Web.Components.Pages.Admin;
+namespace Mercurius.LAN.Web.Components.Shared;
 
-public partial class FeaturedTournaments : IAsyncDisposable
+public partial class FeaturedTournamentEditor : IAsyncDisposable
 {
     private const int SlotCount = 4;
     private const int EligiblePageSize = 50;
@@ -15,20 +15,25 @@ public partial class FeaturedTournaments : IAsyncDisposable
     [Inject] private ITournamentService TournamentService { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
 
+    /// <summary>Reports the confirmed server order so the homepage can adopt it after a save.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<Tournament>> OnSaved { get; set; }
+
+    [Parameter] public EventCallback OnCancel { get; set; }
+
     private List<Tournament> _eligibleTournaments = [];
     private List<Tournament?> _slots = [null, null, null, null];
-    private int? _dragIndex;
     private bool _isLoading = true;
     private bool _isSaving;
     private string? _loadError;
     private string? _saveError;
     private bool _disposed;
 
-    private IReadOnlyList<Tournament> _selectedTournaments =>
-        _slots.Where(slot => slot is not null).Select(slot => slot!).ToList();
+    private bool IsFull => _slots.All(slot => slot is not null);
 
-    private bool CanSave =>
-        _eligibleTournaments.Count >= SlotCount && SelectionIsEligible;
+    private IReadOnlyList<Tournament> _availableTournaments =>
+        _eligibleTournaments.Where(candidate => _slots.All(slot => slot?.Id != candidate.Id)).ToList();
+
+    private bool CanSave => _eligibleTournaments.Count >= SlotCount && SelectionIsEligible;
 
     // Every slot must reference a still-eligible tournament, so a stale or canceled summary can
     // neither enable the save button nor reach the backend.
@@ -89,7 +94,7 @@ public partial class FeaturedTournaments : IAsyncDisposable
 
     private Task RetryLoadAsync() => LoadAsync();
 
-    // The editor starts from the current arrangement, but a featured id the backend can no longer
+    // The draft starts from the current arrangement, but a featured id the backend can no longer
     // resolve to an eligible tournament is dropped so it cannot be re-saved as if it were valid.
     private List<Tournament?> BuildSlots(IReadOnlyList<Tournament> featured)
     {
@@ -105,45 +110,29 @@ public partial class FeaturedTournaments : IAsyncDisposable
         return slots;
     }
 
-    private IEnumerable<Tournament> CandidatesFor(int slotIndex)
-    {
-        var taken = _slots
-            .Where((slot, index) => index != slotIndex && slot is not null)
-            .Select(slot => slot!.Id)
-            .ToHashSet();
-
-        return _eligibleTournaments.Where(tournament => !taken.Contains(tournament.Id));
-    }
-
-    private void SetSlot(int slotIndex, ChangeEventArgs args)
+    private void Add(Tournament tournament)
     {
         if(_isSaving)
             return;
 
-        var value = args.Value?.ToString();
-        _slots[slotIndex] = Guid.TryParse(value, out var tournamentId)
-            ? _eligibleTournaments.FirstOrDefault(tournament => tournament.Id == tournamentId)
-            : null;
+        var index = _slots.FindIndex(slot => slot is null);
+        if(index < 0)
+            return;
+
+        _slots[index] = tournament;
         _saveError = null;
     }
 
-    private void StartDrag(int slotIndex)
+    private void RemoveAt(int index)
     {
-        if(_isSaving)
+        if(_isSaving || index < 0 || index >= _slots.Count)
             return;
 
-        _dragIndex = slotIndex;
+        _slots[index] = null;
+        _saveError = null;
     }
 
-    private void ClearDrag() => _dragIndex = null;
-
-    private void DropOn(int slotIndex)
-    {
-        if(!_isSaving && _dragIndex is int from)
-            MoveSlot(from, slotIndex);
-
-        _dragIndex = null;
-    }
+    private void Move((int From, int To) move) => MoveSlot(move.From, move.To);
 
     private void MoveSlot(int from, int to)
     {
@@ -181,6 +170,8 @@ public partial class FeaturedTournaments : IAsyncDisposable
         var submittedById = _slots
             .Where(slot => slot is not null)
             .ToDictionary(slot => slot!.Id, slot => slot);
+        IReadOnlyList<Tournament> confirmedOrder = [];
+        var saved = false;
         try
         {
             var confirmed = await TournamentService.UpdateFeaturedTournamentsAsync(selectedIds);
@@ -188,7 +179,9 @@ public partial class FeaturedTournaments : IAsyncDisposable
             while(_slots.Count < SlotCount)
                 _slots.Add(null);
 
+            confirmedOrder = _slots.Where(slot => slot is not null).Select(slot => slot!).ToList();
             ToastService.ShowSuccess(Localization["Admin.Featured.saved"]);
+            saved = true;
         }
         catch(ApiException ex) when(ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
@@ -212,6 +205,17 @@ public partial class FeaturedTournaments : IAsyncDisposable
             if(!_disposed)
                 await InvokeAsync(StateHasChanged);
         }
+
+        if(saved && !_disposed)
+            await OnSaved.InvokeAsync(confirmedOrder);
+    }
+
+    private async Task CancelAsync()
+    {
+        if(_isSaving)
+            return;
+
+        await OnCancel.InvokeAsync();
     }
 
     public ValueTask DisposeAsync()
