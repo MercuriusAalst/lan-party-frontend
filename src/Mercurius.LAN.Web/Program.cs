@@ -10,6 +10,7 @@ using Mercurius.LAN.Web.Options;
 using Mercurius.LAN.Web.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using MudBlazor.Services;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Text.Json;
@@ -51,6 +52,11 @@ var jsonOptions = new JsonSerializerOptions
 
 builder.Services.AddCustomOptions(builder.Configuration, mockModeEnabled);
 builder.Services.AddAuthenticationServices(builder.Configuration, mockModeEnabled);
+// The auth cookie is encrypted with these keys; keeping them on a volume means a
+// restart doesn't sign everyone out. Unset locally, where the default key store already persists.
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if(!string.IsNullOrEmpty(dataProtectionKeysPath))
+    builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
 builder.Services.AddHttpClients(jsonOptions, builder.Configuration, mockModeEnabled);
 builder.Services.AddCustomServices(builder.Configuration, mockModeEnabled);
 
