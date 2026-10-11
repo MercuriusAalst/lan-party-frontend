@@ -3,6 +3,7 @@ using Blazored.Toast.Services;
 using Mercurius.LAN.Web.Components.Shared;
 using Mercurius.LAN.Web.DTOs.Registrations;
 using Mercurius.LAN.Web.DTOs.Tournaments;
+using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Models.Tournaments;
 using Mercurius.LAN.Web.Services;
@@ -46,7 +47,10 @@ public partial class TournamentOverviewTab
         [nameof(UpdateTournamentDTO.TeamSize)] = "tournament.teamSize",
         [nameof(UpdateTournamentDTO.PlannedStartTime)] = "Feature.tournaments.plannedStartTime",
         [nameof(UpdateTournamentDTO.AverageGameDurationMinutes)] = "Feature.tournaments.averageGameDuration",
-        [nameof(UpdateTournamentDTO.RoundBreakDurationMinutes)] = "Feature.tournaments.roundBreakDuration"
+        [nameof(UpdateTournamentDTO.RoundBreakDurationMinutes)] = "Feature.tournaments.roundBreakDuration",
+        [nameof(UpdateTournamentDTO.FirstPlacePrize)] = "Feature.tournaments.firstPlacePrize",
+        [nameof(UpdateTournamentDTO.SecondPlacePrize)] = "Feature.tournaments.secondPlacePrize",
+        [nameof(UpdateTournamentDTO.ThirdPlacePrize)] = "Feature.tournaments.thirdPlacePrize"
     };
 
     private static readonly IReadOnlyDictionary<string, string> ValidationMessageKeys = new Dictionary<string, string>
@@ -60,6 +64,11 @@ public partial class TournamentOverviewTab
     private bool IsLeaderboard => Tournament.BracketType == BracketType.Leaderboard;
 
     private bool IsLeaderboardEdit => _editTournament.BracketType == BracketType.Leaderboard;
+
+    internal static string GetContactAdminLabel(PublicUserDTO contactAdmin) =>
+        !string.IsNullOrWhiteSpace(contactAdmin.DisplayName) ? contactAdmin.DisplayName
+        : !string.IsNullOrWhiteSpace(contactAdmin.Username) ? contactAdmin.Username!
+        : contactAdmin.Id.ToString();
 
     private void EnableEditMode()
     {
@@ -75,7 +84,11 @@ public partial class TournamentOverviewTab
             TeamSize = Tournament.TeamSize,
             PlannedStartTime = Tournament.PlannedStartTime.ToLocalDisplayTime(),
             AverageGameDurationMinutes = Tournament.AverageGameDurationMinutes > 0 ? Tournament.AverageGameDurationMinutes : 30,
-            RoundBreakDurationMinutes = Tournament.RoundBreakDurationMinutes > 0 ? Tournament.RoundBreakDurationMinutes : 10
+            RoundBreakDurationMinutes = Tournament.RoundBreakDurationMinutes > 0 ? Tournament.RoundBreakDurationMinutes : 10,
+            AssignedAdminUserId = Tournament.ContactAdmin?.Id,
+            FirstPlacePrize = Tournament.FirstPlacePrize,
+            SecondPlacePrize = Tournament.SecondPlacePrize,
+            ThirdPlacePrize = Tournament.ThirdPlacePrize
         };
         _editContext = new(_editTournament);
         _editContext.SetFieldCssClassProvider(new BootstrapValidationFieldClassProvider());
@@ -162,6 +175,11 @@ public partial class TournamentOverviewTab
             Tournament.RoundBreakDurationMinutes = updatedTournament.RoundBreakDurationMinutes;
             Tournament.EstimatedEndTime = updatedTournament.EstimatedEndTime;
             Tournament.ImageUrl = updatedTournament.ImageUrl;
+            Tournament.AssignedAdminUserId = updatedTournament.AssignedAdminUserId;
+            Tournament.ContactAdmin = updatedTournament.ContactAdmin;
+            Tournament.FirstPlacePrize = updatedTournament.FirstPlacePrize;
+            Tournament.SecondPlacePrize = updatedTournament.SecondPlacePrize;
+            Tournament.ThirdPlacePrize = updatedTournament.ThirdPlacePrize;
             _isEditMode = false;
             ToastService.ShowSuccess(Localization["Feature.tournaments.editSuccess"]);
             await OnTournamentUpdated.InvokeAsync(Tournament);
