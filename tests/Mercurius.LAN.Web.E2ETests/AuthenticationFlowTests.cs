@@ -209,7 +209,7 @@ public class AuthenticationFlowTests(PlaywrightE2EFixture app) : E2ETestBase(app
         await page.GotoAsync($"{app.BaseUrl}");
 
         await WaitForUserInSearchIndexAsync(otherUsername);
-        await page.FillAsync("#global-nav-search", otherUsername);
+        await page.SearchWhenInteractiveAsync(otherUsername);
 
         var options = page.Locator("#global-nav-search-results button[role='option']");
         await Expect(options.First).ToBeVisibleAsync();

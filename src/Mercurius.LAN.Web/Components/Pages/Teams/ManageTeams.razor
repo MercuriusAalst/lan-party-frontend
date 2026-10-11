@@ -15,9 +15,7 @@ else if(!string.IsNullOrWhiteSpace(_loadError))
     <StatusPage Eyebrow='@Localization["General.TeamManage.Teams"]'
                 Title='@Localization["General.TeamManage.Unavailable"]'
                 Message="@_loadError"
-                PrimaryHref="/teams/manage"
-                PrimaryForceLoad="true"
-                PrimaryLabel='@Localization["status.tryAgain"]'
+                OnRetry="RetryLoadAsync"
                 SecondaryHref="/tournaments"
                 SecondaryLabel='@Localization["common.browseTournaments"]' />
 }

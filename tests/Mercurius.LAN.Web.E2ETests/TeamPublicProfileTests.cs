@@ -151,14 +151,16 @@ public sealed class TeamPublicProfileTests : E2ETestBase
                 .ToBeVisibleAsync(new() { Timeout = 15000 });
             await Expect(page.GetByText("This team profile could not be loaded right now.")).ToBeVisibleAsync();
             await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Browse Tournaments" })).ToBeVisibleAsync();
+
+            // The unavailable state retries through the page's own load, so recovery happens in the
+            // current circuit once the team table is available again.
+            await fault.DisposeAsync();
+
+            await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Try again" }));
+
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = team.Name }))
+                .ToBeVisibleAsync(new() { Timeout = 15000 });
+            await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Members" })).ToBeVisibleAsync();
         }
-
-        // This error state intentionally offers no inline retry, so the visitor recovers by reloading
-        // the public profile once the team table is available again.
-        var recovered = await TeamE2E.OpenAnonymousAsync(_app, context, teamPath);
-
-        await Expect(recovered.GetByRole(AriaRole.Heading, new() { Name = team.Name }))
-            .ToBeVisibleAsync(new() { Timeout = 15000 });
-        await Expect(recovered.GetByRole(AriaRole.Heading, new() { Name = "Members" })).ToBeVisibleAsync();
     }
 }
