@@ -18,23 +18,23 @@
 }
 else if(_notFound)
 {
-    <section class="brand-section">
-        <div class="brand-card tournament-empty-state" role="alert">
-            <h1>@Localization["Feature.tournaments.notFoundTitle"]</h1>
-            <p>@Localization["Feature.tournaments.notFoundText"]</p>
-            <a class="button-secondary" href="/tournaments">@Localization["Feature.tournaments.backToTournaments"]</a>
-        </div>
-    </section>
+    <StatusPage Eyebrow='@Localization["tournaments.pageTitle"]'
+                Tone="StatusPageTone.Info"
+                Title='@Localization["Feature.tournaments.notFoundTitle"]'
+                Message='@Localization["Feature.tournaments.notFoundText"]'
+                PrimaryHref="/tournaments"
+                PrimaryLabel='@Localization["Feature.tournaments.backToTournaments"]'
+                SecondaryHref="/"
+                SecondaryLabel='@Localization["common.backHome"]' />
 }
 else if(_loadError is not null && _tournament is null)
 {
-    <section class="brand-section">
-        <div class="brand-card tournament-empty-state" role="alert">
-            <h1>@Localization["Feature.tournaments.loadDetailTitle"]</h1>
-            <p>@_loadError</p>
-            <button type="button" class="button-primary" @onclick="RetryLoadAsync">@Localization["status.tryAgain"]</button>
-        </div>
-    </section>
+    <StatusPage Eyebrow='@Localization["tournaments.pageTitle"]'
+                Title='@Localization["Feature.tournaments.loadDetailTitle"]'
+                Message="@_loadError"
+                OnRetry="RetryLoadAsync"
+                SecondaryHref="/tournaments"
+                SecondaryLabel='@Localization["Feature.tournaments.backToTournaments"]' />
 }
 else if(_tournament is null)
 {

@@ -85,6 +85,8 @@ public partial class PublicTeamProfile
         }
     }
 
+    private Task RetryLoadAsync() => OnParametersSetAsync();
+
     private async Task LoadMatchSummariesAsync(
         string teamName,
         CancellationTokenSource cancellation)

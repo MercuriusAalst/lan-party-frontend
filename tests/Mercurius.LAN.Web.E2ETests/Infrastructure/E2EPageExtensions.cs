@@ -125,6 +125,47 @@ public static class E2EPageExtensions
     }
 
     /// <summary>
+    /// Types a global-search query and waits for the shell to acknowledge it. Waiting for the
+    /// circuit's first frame (<see cref="WaitForInteractiveAsync"/>) is not enough to type safely:
+    /// the client applies that frame a moment later and replaces the prerendered nav markup, which
+    /// discards a value typed in that window and drops its input event, so the search never runs.
+    /// Re-typing is idempotent once the island owns the element, so retry the whole interaction
+    /// until the search box reports the expanded state NavMenu sets for a usable query. Each
+    /// attempt, including the fill itself, stays inside the helper's budget.
+    /// </summary>
+    public static async Task SearchWhenInteractiveAsync(
+        this IPage page,
+        string query,
+        CancellationToken cancellationToken = default)
+    {
+        await page.WaitForInteractiveAsync(cancellationToken);
+
+        var searchBox = page.Locator("#global-nav-search");
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (true)
+        {
+            var isWithinBudget = DateTime.UtcNow < deadline;
+
+            try
+            {
+                // Keep the fill inside the budget: Playwright's default 30 second action timeout
+                // would outlive the helper if the box is missing or never becomes fillable.
+                var fillTimeout = (float)Math.Max(1, (deadline - DateTime.UtcNow).TotalMilliseconds);
+                await searchBox.FillAsync(query, new LocatorFillOptions { Timeout = fillTimeout });
+
+                await Assertions.Expect(searchBox)
+                    .ToHaveAttributeAsync("aria-expanded", "true", new() { Timeout = 1000 });
+                return;
+            }
+            catch (PlaywrightException) when (isWithinBudget)
+            {
+                // The interactive render replaced the prerendered markup and dropped this attempt,
+                // or the box was briefly unfillable; type again into the element the circuit owns.
+            }
+        }
+    }
+
+    /// <summary>
     /// A recovery page that only passes server-rendered assertions can still be a broken
     /// interactive page: a duplicate layout provider fails the Blazor circuit and disconnects the
     /// shell while the SSR DOM still looks correct. Prove the circuit is alive by driving shared
