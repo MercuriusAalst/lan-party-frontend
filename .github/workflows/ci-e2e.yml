@@ -48,7 +48,7 @@ jobs:
       # Companion backend commit required by this suite: featured homepage tournaments
       # (lan-party-backend#141) plus the earlier team-membership realtime fan-out (#139).
       # Update to the final backend commit, then back to `main` once those changes are merged.
-      E2E_BACKEND_REF: b2f21fcee35d91770ed67924910f12d792c09410
+      E2E_BACKEND_REF: b3195edb9e74952ee62741913fdc7c3aa65ef84e
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
