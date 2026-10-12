@@ -2,6 +2,7 @@ using Blazored.Toast.Services;
 using System.Net;
 using Mercurius.LAN.Web.Components.Shared;
 using Mercurius.LAN.Web.DTOs.Leaderboards;
+using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.DTOs.Registrations;
 using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.Extensions;
@@ -20,6 +21,9 @@ namespace Mercurius.LAN.Web.Components.Pages.Tournaments;
 
 public partial class TournamentDetail : IDisposable
 {
+    private static readonly TimeSpan DeadlineBracketRefreshInterval = TimeSpan.FromSeconds(2);
+    private const int DeadlineBracketRefreshMaxAttempts = 40;
+
     private enum ScheduleBracketFilter
     {
         All,
@@ -53,12 +57,16 @@ public partial class TournamentDetail : IDisposable
     private int? _selectedScheduleRound;
     private TournamentParticipantLookup _participantLookup = TournamentParticipantLookup.Empty;
     private CancellationTokenSource? _loadCancellation;
+    private CancellationTokenSource? _deadlineBracketRefreshCancellation;
+    private Task? _deadlineBracketRefreshTask;
+    private readonly Dictionary<Guid, int> _pendingDeadlineMatchVersions = [];
     private Guid? _loadedTournamentId;
     private long _loadGeneration;
     private long _tournamentActionGeneration;
     private long _sponsorActionGeneration;
     private bool _isDisposed;
     private bool _isRegistrationDialogOpen;
+    private bool _deadlineBracketRefreshFailed;
 
     private IReadOnlyList<Match> ScheduledMatches =>
         _tournament?.Matches
@@ -131,6 +139,7 @@ public partial class TournamentDetail : IDisposable
 
     private void ResetForTournamentChange()
     {
+        StopDeadlineBracketRefresh(clearPending: true);
         _tournament = null;
         _selectedMatch = null;
         _selectedSponsorId = null;
@@ -150,6 +159,7 @@ public partial class TournamentDetail : IDisposable
 
     private async Task LoadTournamentDataAsync(Guid tournamentId)
     {
+        StopDeadlineBracketRefresh(clearPending: false);
         _loadCancellation?.Cancel();
         var loadCancellation = new CancellationTokenSource();
         _loadCancellation = loadCancellation;
@@ -164,12 +174,16 @@ public partial class TournamentDetail : IDisposable
             if(!IsCurrentLoad(tournamentId, loadGeneration))
                 return;
 
-            _tournament = tournament;
-            if(_tournament is null)
+            if(tournament is null)
             {
+                _tournament = null;
                 _notFound = true;
+                _pendingDeadlineMatchVersions.Clear();
                 return;
             }
+
+            ReconcilePendingDeadlineMatches(tournament);
+            _tournament = PreserveFresherMatchProjections(_tournament, tournament);
 
             ReconcileSelectedMatchProjection();
             _participantLookup = TournamentParticipantLookup.FromTournament(_tournament);
@@ -240,6 +254,7 @@ public partial class TournamentDetail : IDisposable
 
             _notFound = true;
             _tournament = null;
+            _pendingDeadlineMatchVersions.Clear();
         }
         catch(UnauthorizedAccessException)
         {
@@ -271,6 +286,7 @@ public partial class TournamentDetail : IDisposable
                 _loadCancellation = null;
                 _isLoading = false;
                 await InvokeAsync(StateHasChanged);
+                StartDeadlineBracketRefresh();
             }
 
             loadCancellation.Dispose();
@@ -301,7 +317,8 @@ public partial class TournamentDetail : IDisposable
         if(updatedTournament.Id != TournamentId)
             return Task.CompletedTask;
 
-        _tournament = updatedTournament;
+        ReconcilePendingDeadlineMatches(updatedTournament);
+        _tournament = PreserveFresherMatchProjections(_tournament, updatedTournament);
         ReconcileSelectedMatchProjection();
         _participantLookup = TournamentParticipantLookup.FromTournament(_tournament);
         SyncSelectedSponsor();
@@ -770,10 +787,26 @@ public partial class TournamentDetail : IDisposable
 
     private bool TryApplyRefreshedMatchProjection(Match refreshedMatch)
     {
-        if(_tournament is null || !_tournament.Matches.Any(match => match.Id == refreshedMatch.Id))
+        var tournament = _tournament;
+        if(tournament is null)
+            return false;
+        var currentMatch = tournament.Matches.FirstOrDefault(match => match.Id == refreshedMatch.Id);
+        if(currentMatch is null)
             return false;
 
-        _selectedMatch = ApplyRefreshedMatchProjection(_tournament, _selectedMatch, refreshedMatch);
+        var confirmsExpiredDeadlineTransition =
+            ConfirmsExpiredDeadlineTransition(currentMatch, refreshedMatch, DateTime.UtcNow);
+        _selectedMatch = ApplyRefreshedMatchProjection(tournament, _selectedMatch, refreshedMatch);
+
+        if(confirmsExpiredDeadlineTransition)
+        {
+            _pendingDeadlineMatchVersions[refreshedMatch.Id] = Math.Max(
+                _pendingDeadlineMatchVersions.GetValueOrDefault(refreshedMatch.Id),
+                refreshedMatch.ResultVersion);
+            _deadlineBracketRefreshFailed = false;
+            StartDeadlineBracketRefresh();
+        }
+
         return true;
     }
 
@@ -795,20 +828,226 @@ public partial class TournamentDetail : IDisposable
             ? null
             : tournament.Matches.FirstOrDefault(match => match.Id == selectedMatch.Id);
 
-    internal static Match? PreserveSelectedMatchProjection(Match? selectedMatch, Match refreshedMatch) =>
-        selectedMatch?.Id == refreshedMatch.Id
-            ? refreshedMatch
-            : selectedMatch;
+    internal static Match? PreserveSelectedMatchProjection(Match? selectedMatch, Match refreshedMatch)
+    {
+        if(selectedMatch is null || selectedMatch.Id != refreshedMatch.Id)
+            return selectedMatch;
+
+        return selectedMatch.ResultVersion > refreshedMatch.ResultVersion
+            ? selectedMatch
+            : refreshedMatch;
+    }
 
     internal static Match? ApplyRefreshedMatchProjection(
         TournamentExtended tournament,
         Match? selectedMatch,
         Match refreshedMatch)
     {
+        var currentMatch = tournament.Matches.FirstOrDefault(match => match.Id == refreshedMatch.Id);
+        var preferredMatch = currentMatch is not null && currentMatch.ResultVersion > refreshedMatch.ResultVersion
+            ? currentMatch
+            : refreshedMatch;
         tournament.Matches = tournament.Matches
-            .Select(match => match.Id == refreshedMatch.Id ? refreshedMatch : match)
+            .Select(match => match.Id == preferredMatch.Id ? preferredMatch : match)
             .ToList();
-        return PreserveSelectedMatchProjection(selectedMatch, refreshedMatch);
+        return PreserveSelectedMatchProjection(selectedMatch, preferredMatch);
+    }
+
+    internal static bool ConfirmsExpiredDeadlineTransition(Match previousMatch, Match refreshedMatch, DateTime nowUtc)
+    {
+        if(previousMatch.Id != refreshedMatch.Id || refreshedMatch.ResultVersion <= previousMatch.ResultVersion)
+            return false;
+
+        if(previousMatch.LifecycleState == MatchLifecycleState.ScoreConfirmation &&
+           previousMatch.ScoreConfirmationDeadlineUtc is { } scoreDeadline &&
+           scoreDeadline.ToUniversalTime() <= nowUtc &&
+           refreshedMatch.LifecycleState is MatchLifecycleState.Completed or MatchLifecycleState.Disputed)
+            return true;
+
+        return previousMatch.LifecycleState == MatchLifecycleState.Disputed &&
+               previousMatch.CorrectionDeadlineUtc is { } correctionDeadline &&
+               correctionDeadline.ToUniversalTime() <= nowUtc &&
+               refreshedMatch.LifecycleState == MatchLifecycleState.AdminResolutionRequired;
+    }
+
+    internal static TournamentExtended PreserveFresherMatchProjections(
+        TournamentExtended? previousTournament,
+        TournamentExtended refreshedTournament)
+    {
+        if(previousTournament is null || previousTournament.Id != refreshedTournament.Id)
+            return refreshedTournament;
+
+        var previousMatches = previousTournament.Matches.ToDictionary(match => match.Id);
+        refreshedTournament.Matches = refreshedTournament.Matches
+            .Select(match => previousMatches.TryGetValue(match.Id, out var previousMatch) &&
+                             previousMatch.ResultVersion > match.ResultVersion
+                ? previousMatch
+                : match)
+            .ToList();
+        return refreshedTournament;
+    }
+
+    private void ReconcilePendingDeadlineMatches(TournamentExtended tournament)
+    {
+        var matches = tournament.Matches.ToDictionary(match => match.Id);
+        foreach(var (matchId, expectedVersion) in _pendingDeadlineMatchVersions.ToArray())
+        {
+            if(!matches.TryGetValue(matchId, out var match) || match.ResultVersion >= expectedVersion)
+                _pendingDeadlineMatchVersions.Remove(matchId);
+        }
+
+        if(_pendingDeadlineMatchVersions.Count == 0)
+        {
+            _deadlineBracketRefreshFailed = false;
+            if(_deadlineBracketRefreshCancellation is not null)
+                StopDeadlineBracketRefresh(clearPending: false);
+        }
+    }
+
+    private void StartDeadlineBracketRefresh()
+    {
+        if(_pendingDeadlineMatchVersions.Count == 0 ||
+           _isDisposed ||
+           _deadlineBracketRefreshCancellation is not null ||
+           _isLoading)
+            return;
+
+        var cancellation = new CancellationTokenSource();
+        _deadlineBracketRefreshCancellation = cancellation;
+        var refreshTask = RefreshDeadlineBracketAsync(TournamentId, cancellation);
+        if(ReferenceEquals(_deadlineBracketRefreshCancellation, cancellation))
+            _deadlineBracketRefreshTask = refreshTask;
+    }
+
+    private async Task RefreshDeadlineBracketAsync(Guid tournamentId, CancellationTokenSource cancellation)
+    {
+        var token = cancellation.Token;
+        try
+        {
+            var attempts = 0;
+            while(attempts < DeadlineBracketRefreshMaxAttempts && IsCurrentDeadlineBracketRefresh(tournamentId, cancellation))
+            {
+                await WaitForDeadlineBracketRefreshAsync(token);
+                token.ThrowIfCancellationRequested();
+                if(!IsCurrentDeadlineBracketRefresh(tournamentId, cancellation))
+                    return;
+                attempts++;
+                if(_isLoading)
+                    continue;
+
+                var loadGeneration = _loadGeneration;
+                var tournamentBeforeRefresh = _tournament;
+                try
+                {
+                    var tournament = await TournamentService.GetTournamentByIdAsync(tournamentId, token);
+                    if(!IsCurrentLoad(tournamentId, loadGeneration) ||
+                       !ReferenceEquals(_deadlineBracketRefreshCancellation, cancellation))
+                        return;
+                    if(!ReferenceEquals(_tournament, tournamentBeforeRefresh))
+                        continue;
+
+                    if(tournament is null)
+                    {
+                        _notFound = true;
+                        _tournament = null;
+                        _pendingDeadlineMatchVersions.Clear();
+                        _deadlineBracketRefreshFailed = false;
+                        return;
+                    }
+
+                    if(tournament.Id != tournamentId)
+                        continue;
+
+                    ReconcilePendingDeadlineMatches(tournament);
+                    _tournament = PreserveFresherMatchProjections(_tournament, tournament);
+                    ReconcileSelectedMatchProjection();
+                    await RequestDeadlineBracketRefreshRenderAsync();
+                    if(_pendingDeadlineMatchVersions.Count == 0)
+                        return;
+                }
+                catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.NotFound)
+                {
+                    if(IsCurrentDeadlineBracketRefresh(tournamentId, cancellation))
+                    {
+                        _notFound = true;
+                        _tournament = null;
+                        _pendingDeadlineMatchVersions.Clear();
+                        _deadlineBracketRefreshFailed = false;
+                    }
+                    return;
+                }
+                catch(OperationCanceledException) when(token.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch(Exception)
+                {
+                    // Retry briefly; the page exposes a manual retry if the aggregate stays stale.
+                }
+            }
+
+            if(IsCurrentDeadlineBracketRefresh(tournamentId, cancellation) &&
+               _pendingDeadlineMatchVersions.Count > 0)
+                _deadlineBracketRefreshFailed = true;
+        }
+        catch(OperationCanceledException) when(token.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            if(ReferenceEquals(_deadlineBracketRefreshCancellation, cancellation))
+            {
+                _deadlineBracketRefreshCancellation = null;
+                _deadlineBracketRefreshTask = null;
+                cancellation.Dispose();
+                try
+                {
+                    await RequestDeadlineBracketRefreshRenderAsync();
+                }
+                catch(Exception)
+                {
+                    // The renderer can reject a render during teardown; the refresh state is already applied.
+                }
+            }
+            else
+            {
+                cancellation.Dispose();
+            }
+        }
+    }
+
+    private bool IsCurrentDeadlineBracketRefresh(Guid tournamentId, CancellationTokenSource cancellation) =>
+        !_isDisposed &&
+        tournamentId == TournamentId &&
+        ReferenceEquals(_deadlineBracketRefreshCancellation, cancellation) &&
+        !cancellation.IsCancellationRequested;
+
+    protected virtual Task WaitForDeadlineBracketRefreshAsync(CancellationToken cancellationToken) =>
+        Task.Delay(DeadlineBracketRefreshInterval, cancellationToken);
+
+    protected virtual Task RequestDeadlineBracketRefreshRenderAsync() =>
+        InvokeAsync(StateHasChanged);
+
+    private Task RetryDeadlineBracketRefreshAsync()
+    {
+        _deadlineBracketRefreshFailed = false;
+        StartDeadlineBracketRefresh();
+        return Task.CompletedTask;
+    }
+
+    private void StopDeadlineBracketRefresh(bool clearPending)
+    {
+        var cancellation = _deadlineBracketRefreshCancellation;
+        _deadlineBracketRefreshCancellation = null;
+        _deadlineBracketRefreshTask = null;
+        cancellation?.Cancel();
+        cancellation?.Dispose();
+
+        if(clearPending)
+        {
+            _pendingDeadlineMatchVersions.Clear();
+            _deadlineBracketRefreshFailed = false;
+        }
     }
 
     private void HandleScheduleItemKeyDown(KeyboardEventArgs args, Match match)
@@ -856,7 +1095,9 @@ public partial class TournamentDetail : IDisposable
             if(!IsCurrentSponsorAction(tournamentId, actionGeneration))
                 return;
 
-            _tournament = updatedTournament;
+            ReconcilePendingDeadlineMatches(updatedTournament);
+            _tournament = PreserveFresherMatchProjections(_tournament, updatedTournament);
+            ReconcileSelectedMatchProjection();
             _participantLookup = TournamentParticipantLookup.FromTournament(_tournament);
             SyncSelectedSponsor();
             ToastService.ShowSuccess(Localization["Feature.tournaments.sponsorUpdated"]);
@@ -948,6 +1189,7 @@ public partial class TournamentDetail : IDisposable
     public void Dispose()
     {
         _isDisposed = true;
+        StopDeadlineBracketRefresh(clearPending: true);
         ++_loadGeneration;
         ++_tournamentActionGeneration;
         ++_sponsorActionGeneration;

@@ -1,6 +1,7 @@
 using Blazored.Toast.Services;
 using Mercurius.LAN.Web.Components.Shared;
 using Mercurius.LAN.Web.DTOs.Sponsors;
+using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Models.Sponsors;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
@@ -163,7 +164,7 @@ public partial class SponsorManagement
         }
         catch(ApiException ex)
         {
-            ToastService.ShowError(ex.Content!);
+            ToastService.ShowError(GetApiError(ex));
         }
     }
 
@@ -181,8 +182,14 @@ public partial class SponsorManagement
         }
         catch(ApiException ex)
         {
-            ToastService.ShowError(ex.Content!);
+            ToastService.ShowError(GetApiError(ex));
         }
+    }
+
+    private string GetApiError(ApiException exception)
+    {
+        var message = exception.GetApiError()?.Message;
+        return string.IsNullOrWhiteSpace(message) ? Localization["common.unexpectedError"] : message;
     }
 
     private void SyncDisplaySponsors()

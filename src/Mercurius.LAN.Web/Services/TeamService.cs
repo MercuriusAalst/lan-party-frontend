@@ -261,8 +261,9 @@ public class TeamService : ITeamService
     private static TeamServiceException CreateServiceException(string operation, ApiException exception)
     {
         var message = GetUserFacingMessage(exception);
+        var code = exception.GetApiError()?.Code;
 
-        return new TeamServiceException(message, operation, exception.StatusCode, exception.Content, exception);
+        return new TeamServiceException(message, operation, exception.StatusCode, exception.Content, exception, code);
     }
 
     private static string GetUserFacingMessage(ApiException exception)
@@ -279,14 +280,16 @@ public class TeamService : ITeamService
 
 public sealed class TeamServiceException : Exception
 {
-    public TeamServiceException(string message, string operation, HttpStatusCode statusCode, string? apiContent, Exception innerException) : base(message, innerException)
+    public TeamServiceException(string message, string operation, HttpStatusCode statusCode, string? apiContent, Exception innerException, string? code = null) : base(message, innerException)
     {
         Operation = operation;
         StatusCode = statusCode;
         ApiContent = apiContent;
+        Code = code;
     }
 
     public string Operation { get; }
     public HttpStatusCode StatusCode { get; }
     public string? ApiContent { get; }
+    public string? Code { get; }
 }

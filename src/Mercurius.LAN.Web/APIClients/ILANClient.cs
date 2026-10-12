@@ -242,12 +242,6 @@ public interface ILANClient
         Guid matchId,
         CancellationToken cancellationToken = default);
 
-    [Put("/v1/lan/matches/{matchId}")]
-    Task<Match> UpdateMatchAsync(
-        Guid matchId,
-        [Body] UpdateMatchDTO match,
-        CancellationToken cancellationToken = default);
-
     [Get("/v1/lan/teams")]
     Task<List<Team>> GetTeamsAsync(
         [AliasAs("page")] int? page = null,
