@@ -11,7 +11,8 @@ namespace Mercurius.LAN.Web.E2ETests;
 /// against the real API. Covers the edit entry point and its role guard, the actual HTML5 drag
 /// between the lead and secondary cards, the draft-only guarantee (the hero and the public page stay
 /// on the saved order until a save is confirmed), the save/cancel lifecycle, the add/remove and
-/// compact position controls, and the editing layout at desktop and intermediate viewports.
+/// compact position controls, the one-to-four card range, and the editing layout at desktop and
+/// intermediate viewports.
 ///
 /// A persisted order is always proven by an independent anonymous navigation, so a client-side-only
 /// "save" cannot pass this class.
@@ -123,17 +124,23 @@ public class FeaturedTournamentEditorE2ETests(PlaywrightE2EFixture app) : Tourna
 
         var heroPrimary = page.Locator(".home-hero-media-image--primary");
         var heroSourceBeforeDraft = await heroPrimary.GetAttributeAsync("src");
+        var minOneHint = page.Locator(".featured-editor-hint").Filter(new() { HasText = Text.MinOne });
+        await Expect(minOneHint).ToHaveCountAsync(0);
 
-        // Remove the last card: the slot empties and saving stays unavailable with three positions.
-        var lastSlot = EditorRow(page, 2);
-        await lastSlot.Locator("button.home-tournament-slot-remove").ClickWhenInteractiveAsync();
-        await Expect(lastSlot.Locator(".home-tournament-slot-empty-copy")).ToBeVisibleAsync();
-        await Expect(SaveButton(page)).ToBeDisabledAsync();
+        // Removing the last card compacts the draft to three cards, which stays saveable, and leaves
+        // no empty position behind.
+        await RemoveCardAsync(page, EditorRow(page, 2), expectedCardsAfter: 3);
+        await Expect(EditorRow(page, 2)).ToHaveCountAsync(0);
+        await Expect(page.Locator(".featured-editor .home-tournament-slot--empty")).ToHaveCountAsync(0);
+        await Expect(page.Locator(".featured-editor .home-tournament-slot-empty-copy")).ToHaveCountAsync(0);
+        await Expect(SaveButton(page)).ToBeEnabledAsync();
+        await Expect(minOneHint).ToHaveCountAsync(0);
 
-        // Add it back from the available list; saving becomes available again.
+        // Add it back from the available list; it appends after the remaining cards.
         await page.Locator(".featured-editor-chip").Filter(new() { HasText = names[3] }).ClickWhenInteractiveAsync();
         await Expect(EditorRow(page, 2)).ToContainTextAsync(names[3]);
         await Expect(SaveButton(page)).ToBeEnabledAsync();
+        await Expect(minOneHint).ToHaveCountAsync(0);
 
         // The compact position selector is the non-drag alternative: promote the third card to lead.
         await EditorRow(page, 1).Locator("select.home-tournament-slot-select").SelectOptionAsync("1");
@@ -152,6 +159,86 @@ public class FeaturedTournamentEditorE2ETests(PlaywrightE2EFixture app) : Tourna
         await Expect(EditorRow(page, 0)).ToContainTextAsync(names[1]);
         await Expect(EditorRow(page, 1)).ToContainTextAsync(names[2]);
         await Expect(EditorRow(page, 2)).ToContainTextAsync(names[3]);
+
+        // Removing every card is the only selection that disables Save, and replenishing clears it.
+        await RemoveCardAsync(page, EditorRow(page, 2), expectedCardsAfter: 3);
+        await RemoveCardAsync(page, EditorRow(page, 1), expectedCardsAfter: 2);
+        await RemoveCardAsync(page, EditorRow(page, 0), expectedCardsAfter: 1);
+        await RemoveCardAsync(page, EditorLead(page), expectedCardsAfter: 0);
+        await Expect(SaveButton(page)).ToBeDisabledAsync();
+        await Expect(minOneHint).ToHaveCountAsync(1);
+
+        await page.Locator(".featured-editor-chip").Filter(new() { HasText = names[0] }).ClickWhenInteractiveAsync();
+        await Expect(EditorLead(page)).ToContainTextAsync(names[0]);
+        await Expect(SaveButton(page)).ToBeEnabledAsync();
+        await Expect(minOneHint).ToHaveCountAsync(0);
+
+        await CancelEditorAsync(page);
+    }
+
+    [Fact]
+    public async Task SavingThreeThenOneFeaturedTournamentsPersistsTheReducedArrangement()
+    {
+        var admin = await App.CreatePersonaAsync("featured-count-admin", isAdmin: true);
+        using var adminApi = App.CreateApiClient(admin);
+        var names = await SeedFeaturedAsync(adminApi);
+        var seededIds = await ReadFeaturedIdsAsync(adminApi);
+
+        await using var context = await App.NewAuthenticatedContextAsync(admin);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, "/");
+
+        try
+        {
+            await OpenEditorAsync(page);
+            var heroPrimary = page.Locator(".home-hero-media-image--primary");
+
+            // Three cards: the stored selection keeps its own count instead of being padded to four.
+            await RemoveCardAsync(page, EditorRow(page, 2), expectedCardsAfter: 3);
+            await SaveAsync(page);
+
+            await Expect(PublicLead(page)).ToContainTextAsync(names[0]);
+            await Expect(PublicRow(page, 0)).ToContainTextAsync(names[1]);
+            await Expect(PublicRow(page, 1)).ToContainTextAsync(names[2]);
+            await Expect(PublicRow(page, 2)).ToHaveCountAsync(0);
+            var threeCardLeadSource = await LeadImageSourceAsync(page);
+            Assert.NotNull(threeCardLeadSource);
+            await Expect(heroPrimary).ToHaveAttributeAsync("src", threeCardLeadSource!);
+            Assert.Equal(names[0..3], await ReadFeaturedNamesAsync(adminApi));
+
+            // A single lead card is a valid curated selection too.
+            await OpenEditorAsync(page);
+            await RemoveCardAsync(page, EditorRow(page, 1), expectedCardsAfter: 2);
+            await RemoveCardAsync(page, EditorRow(page, 0), expectedCardsAfter: 1);
+            await SaveAsync(page);
+
+            await Expect(PublicLead(page)).ToContainTextAsync(names[0]);
+            await Expect(page.Locator("#featured-tournaments .home-tournament-row")).ToHaveCountAsync(0);
+            var singleCardLeadSource = await LeadImageSourceAsync(page);
+            Assert.NotNull(singleCardLeadSource);
+            await Expect(heroPrimary).ToHaveAttributeAsync("src", singleCardLeadSource!);
+            Assert.Equal(new[] { names[0] }, await ReadFeaturedNamesAsync(adminApi));
+
+            // An independent anonymous navigation reads the one-card selection from the API.
+            await using var publicContext = await App.NewContextAsync();
+            var publicPage = await publicContext.NewPageAsync();
+            await TournamentE2E.GotoInteractiveAsync(publicPage, "/");
+            await Expect(PublicLead(publicPage)).ToContainTextAsync(names[0]);
+            await Expect(publicPage.Locator("#featured-tournaments .home-tournament-row")).ToHaveCountAsync(0);
+        }
+        finally
+        {
+            // The featured selection is shared state, so the seeded arrangement comes back for the
+            // tests that follow this one.
+            using var restored = await TournamentE2E.SendJsonAsync(
+                adminApi,
+                HttpMethod.Put,
+                "v1/lan/featured-tournaments",
+                new { tournamentIds = seededIds });
+            Assert.True(
+                restored.IsSuccessStatusCode,
+                $"Restoring the seeded featured selection failed: {(int)restored.StatusCode}");
+        }
     }
 
     [Fact]
@@ -274,6 +361,34 @@ public class FeaturedTournamentEditorE2ETests(PlaywrightE2EFixture app) : Tourna
     {
         await CancelButton(page).ClickWhenInteractiveAsync();
         await Expect(page.Locator(".featured-editor")).ToHaveCountAsync(0);
+    }
+
+    /// <summary>
+    /// Removes one card from the draft and waits for the compacted card count, so the assertions
+    /// never race the Blazor re-render.
+    /// </summary>
+    private static async Task RemoveCardAsync(IPage page, ILocator card, int expectedCardsAfter)
+    {
+        await card.Locator("button.home-tournament-slot-remove").ClickWhenInteractiveAsync();
+        await Expect(page.Locator(".featured-editor .home-tournament-slot")).ToHaveCountAsync(expectedCardsAfter);
+    }
+
+    private static Task<string?> LeadImageSourceAsync(IPage page) =>
+        page.Locator("#featured-tournaments .home-tournament-lead img.home-tournament-image--lead")
+            .GetAttributeAsync("src");
+
+    private static async Task<Guid[]> ReadFeaturedIdsAsync(HttpClient adminApi)
+    {
+        var featured = await TournamentE2E.ReadJsonAsync(await adminApi.GetAsync("v1/lan/featured-tournaments"));
+        return featured.GetProperty("tournamentIds").EnumerateArray().Select(item => item.GetGuid()).ToArray();
+    }
+
+    private static async Task<string[]> ReadFeaturedNamesAsync(HttpClient adminApi)
+    {
+        var featured = await TournamentE2E.ReadJsonAsync(await adminApi.GetAsync("v1/lan/featured-tournaments"));
+        return featured.GetProperty("tournaments").EnumerateArray()
+            .Select(item => item.GetProperty("name").GetString()!)
+            .ToArray();
     }
 
     /// <summary>
@@ -415,5 +530,6 @@ public class FeaturedTournamentEditorE2ETests(PlaywrightE2EFixture app) : Tourna
         public const string Edit = "Edit";
         public const string SaveChanges = "Save changes";
         public const string Cancel = "Cancel";
+        public const string MinOne = "Select at least one tournament before saving.";
     }
 }

@@ -1,11 +1,17 @@
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
 
-<section class="status-page brand-section" role="alert" aria-live="assertive">
+<section class="status-page brand-section status-page--@ToneClass" role="alert" aria-live="assertive" aria-busy="@BusyAttribute">
     <div class="brand-card status-page-card">
-        <span class="section-eyebrow">@Eyebrow</span>
+        <div class="status-page-headline">
+            <span class="status-page-marker @ToneIconClass" aria-hidden="true"></span>
+            @if(!string.IsNullOrWhiteSpace(Eyebrow))
+            {
+                <span class="section-eyebrow">@Eyebrow</span>
+            }
+        </div>
         <h1>@Title</h1>
-        <p>@Message</p>
+        <p class="status-page-message">@Message</p>
 
         @if(ChildContent != null)
         {
@@ -14,10 +20,16 @@
             </div>
         }
 
-        @if(!string.IsNullOrWhiteSpace(PrimaryHref) || !string.IsNullOrWhiteSpace(SecondaryHref))
+        @if(HasRetry || HasPrimaryLink || HasSecondaryLink)
         {
             <div class="status-page-actions">
-                @if(!string.IsNullOrWhiteSpace(PrimaryHref) && !string.IsNullOrWhiteSpace(PrimaryLabel))
+                @if(HasRetry)
+                {
+                    <button type="button" class="button-primary" disabled="@_isRetrying" @onclick="RetryAsync">
+                        @(_isRetrying ? EffectiveRetryingLabel : EffectiveRetryLabel)
+                    </button>
+                }
+                else if(HasPrimaryLink)
                 {
                     @if(PrimaryForceLoad)
                     {
@@ -29,7 +41,7 @@
                     }
                 }
 
-                @if(!string.IsNullOrWhiteSpace(SecondaryHref) && !string.IsNullOrWhiteSpace(SecondaryLabel))
+                @if(HasSecondaryLink)
                 {
                     <a href="@SecondaryHref" class="button-secondary">@SecondaryLabel</a>
                 }
@@ -42,12 +54,55 @@
     [Parameter] public string Eyebrow { get; set; } = "";
     [Parameter] public string Title { get; set; } = string.Empty;
     [Parameter] public string Message { get; set; } = string.Empty;
+    [Parameter] public StatusPageTone Tone { get; set; } = StatusPageTone.Danger;
     [Parameter] public string? PrimaryHref { get; set; }
     [Parameter] public string? PrimaryLabel { get; set; }
     [Parameter] public bool PrimaryForceLoad { get; set; }
+    [Parameter] public EventCallback OnRetry { get; set; }
+    [Parameter] public string? RetryLabel { get; set; }
+    [Parameter] public string? RetryingLabel { get; set; }
     [Parameter] public string? SecondaryHref { get; set; }
     [Parameter] public string? SecondaryLabel { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _isRetrying;
+
+    private bool HasRetry => OnRetry.HasDelegate;
+    private bool HasPrimaryLink => !string.IsNullOrWhiteSpace(PrimaryHref) && !string.IsNullOrWhiteSpace(PrimaryLabel);
+    private bool HasSecondaryLink => !string.IsNullOrWhiteSpace(SecondaryHref) && !string.IsNullOrWhiteSpace(SecondaryLabel);
+    private string EffectiveRetryLabel => RetryLabel ?? Localization["status.tryAgain"];
+    private string EffectiveRetryingLabel => RetryingLabel ?? Localization["status.retrying"];
+    private string? BusyAttribute => _isRetrying ? "true" : null;
+
+    private string ToneClass => Tone switch
+    {
+        StatusPageTone.Warning => "warning",
+        StatusPageTone.Info => "info",
+        _ => "danger"
+    };
+
+    private string ToneIconClass => Tone switch
+    {
+        StatusPageTone.Warning => "bi bi-shield-lock",
+        StatusPageTone.Info => "bi bi-compass",
+        _ => "bi bi-exclamation-octagon"
+    };
+
+    private async Task RetryAsync()
+    {
+        if(_isRetrying)
+            return;
+
+        _isRetrying = true;
+        try
+        {
+            await OnRetry.InvokeAsync();
+        }
+        finally
+        {
+            _isRetrying = false;
+        }
+    }
 
     private void ForceLoadPrimary() => NavigationManager.NavigateTo(PrimaryHref!, forceLoad: true);
 }

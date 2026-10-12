@@ -12,6 +12,9 @@
       "finalsFormat": "BestOf5",
       "participationMode": "Team",
       "teamSize": 5,
+      "firstPlacePrize": "CS2 trophy + 5x mechanical keyboards + 250 EUR team prize",
+      "secondPlacePrize": "5x premium gaming mice + 100 EUR team voucher",
+      "thirdPlacePrize": "5x branded mousepads + 50 EUR team voucher",
       "placements": [],
       "sponsorPlacement": {
         "id": 1,
@@ -486,6 +489,8 @@
       "finalsFormat": "BestOf5",
       "participationMode": "Team",
       "teamSize": 5,
+      "firstPlacePrize": "Rocket League trophy + 3x gaming headsets",
+      "secondPlacePrize": "3x mechanical keyboards",
       "placements": [
         {
           "place": 1,

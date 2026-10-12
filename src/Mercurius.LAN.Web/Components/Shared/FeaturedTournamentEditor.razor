@@ -1,6 +1,6 @@
 @using Mercurius.LAN.Web.Models.Tournaments
 
-@* Administrator draft for the four featured homepage tournaments. The arrangement itself is the
+@* Administrator draft for the featured homepage tournaments. The arrangement itself is the
    shared FeaturedTournamentCards editing mode, so the editor cannot drift from the public cards. *@
 
 <div class="featured-editor">
@@ -24,9 +24,11 @@
                                  OnMoveTournament="Move"
                                  OnRemoveTournament="RemoveAt" />
 
-        @if(_eligibleTournaments.Count < SlotCount)
+        @if(_slots.Count == 0)
         {
-            <p class="featured-editor-hint" role="status">@Localization.Get("Admin.Featured.notEnoughEligible", _eligibleTournaments.Count)</p>
+            @* An empty draft is the only selection that cannot be saved, so say why without waiting
+               for a click that can never happen. *@
+            <p class="featured-editor-hint" role="status">@Localization["Admin.Featured.minOne"]</p>
         }
 
         <section class="featured-editor-available" aria-labelledby="featured-editor-available-title">
@@ -49,7 +51,7 @@
             }
             else
             {
-                <p class="featured-editor-hint">@Localization["Admin.Featured.noAvailable"]</p>
+                <p class="featured-editor-hint">@Localization[NoAvailableCopy]</p>
             }
         </section>
 

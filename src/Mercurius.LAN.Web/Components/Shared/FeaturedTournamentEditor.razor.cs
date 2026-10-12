@@ -9,7 +9,7 @@ namespace Mercurius.LAN.Web.Components.Shared;
 
 public partial class FeaturedTournamentEditor : IAsyncDisposable
 {
-    private const int SlotCount = 4;
+    private const int MaxFeaturedTournaments = 4;
     private const int EligiblePageSize = 50;
 
     [Inject] private ITournamentService TournamentService { get; set; } = null!;
@@ -21,26 +21,29 @@ public partial class FeaturedTournamentEditor : IAsyncDisposable
     [Parameter] public EventCallback OnCancel { get; set; }
 
     private List<Tournament> _eligibleTournaments = [];
-    private List<Tournament?> _slots = [null, null, null, null];
+    private List<Tournament> _slots = [];
     private bool _isLoading = true;
     private bool _isSaving;
     private string? _loadError;
     private string? _saveError;
     private bool _disposed;
 
-    private bool IsFull => _slots.All(slot => slot is not null);
+    private bool IsFull => _slots.Count >= MaxFeaturedTournaments;
 
     private IReadOnlyList<Tournament> _availableTournaments =>
-        _eligibleTournaments.Where(candidate => _slots.All(slot => slot?.Id != candidate.Id)).ToList();
+        _eligibleTournaments.Where(candidate => _slots.All(slot => slot.Id != candidate.Id)).ToList();
 
-    private bool CanSave => _eligibleTournaments.Count >= SlotCount && SelectionIsEligible;
+    private string NoAvailableCopy =>
+        _eligibleTournaments.Count == 0 ? "Admin.Featured.noEligible" : "Admin.Featured.noAvailable";
 
-    // Every slot must reference a still-eligible tournament, so a stale or canceled summary can
+    // A draft is saveable while it holds one to four distinct still-eligible tournaments.
+    private bool CanSave => _slots.Count > 0 && SelectionIsEligible;
+
+    // Every card must reference a still-eligible tournament, so a stale or canceled summary can
     // neither enable the save button nor reach the backend.
     private bool SelectionIsEligible =>
-        _slots.All(slot => slot is not null
-            && _eligibleTournaments.Exists(candidate => candidate.Id == slot.Id))
-        && _slots.Select(slot => slot!.Id).Distinct().Count() == SlotCount;
+        _slots.All(slot => _eligibleTournaments.Exists(candidate => candidate.Id == slot.Id))
+        && _slots.Select(slot => slot.Id).Distinct().Count() == _slots.Count;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -94,32 +97,22 @@ public partial class FeaturedTournamentEditor : IAsyncDisposable
 
     private Task RetryLoadAsync() => LoadAsync();
 
-    // The draft starts from the current arrangement, but a featured id the backend can no longer
-    // resolve to an eligible tournament is dropped so it cannot be re-saved as if it were valid.
-    private List<Tournament?> BuildSlots(IReadOnlyList<Tournament> featured)
-    {
-        var slots = featured
-            .Take(SlotCount)
+    // The draft starts from the current arrangement at its saved count, but a featured id the
+    // backend can no longer resolve to an eligible tournament is dropped instead of padded into a
+    // placeholder position.
+    private List<Tournament> BuildSlots(IReadOnlyList<Tournament> featured) =>
+        featured
+            .Take(MaxFeaturedTournaments)
             .Select(tournament => _eligibleTournaments.FirstOrDefault(candidate => candidate.Id == tournament.Id))
-            .Cast<Tournament?>()
+            .OfType<Tournament>()
             .ToList();
-
-        while(slots.Count < SlotCount)
-            slots.Add(null);
-
-        return slots;
-    }
 
     private void Add(Tournament tournament)
     {
-        if(_isSaving)
+        if(_isSaving || IsFull || _slots.Exists(slot => slot.Id == tournament.Id))
             return;
 
-        var index = _slots.FindIndex(slot => slot is null);
-        if(index < 0)
-            return;
-
-        _slots[index] = tournament;
+        _slots.Add(tournament);
         _saveError = null;
     }
 
@@ -128,7 +121,7 @@ public partial class FeaturedTournamentEditor : IAsyncDisposable
         if(_isSaving || index < 0 || index >= _slots.Count)
             return;
 
-        _slots[index] = null;
+        _slots.RemoveAt(index);
         _saveError = null;
     }
 
@@ -152,34 +145,34 @@ public partial class FeaturedTournamentEditor : IAsyncDisposable
 
         _saveError = null;
 
-        if(_eligibleTournaments.Count < SlotCount)
+        if(_slots.Count == 0)
         {
-            _saveError = Localization.Get("Admin.Featured.notEnoughEligible", _eligibleTournaments.Count);
+            _saveError = Localization["Admin.Featured.minOne"];
             return;
         }
 
-        var selectedIds = _slots.Where(slot => slot is not null).Select(slot => slot!.Id).ToList();
         if(!SelectionIsEligible)
         {
-            _saveError = Localization["Admin.Featured.needFour"];
+            _saveError = Localization["Admin.Featured.rejected"];
             return;
         }
+
+        var selectedIds = _slots.Select(slot => slot.Id).ToList();
 
         _isSaving = true;
         // Snapshot the submitted arrangement so a late event cannot drop a confirmed id.
-        var submittedById = _slots
-            .Where(slot => slot is not null)
-            .ToDictionary(slot => slot!.Id, slot => slot);
+        var submittedById = _slots.ToDictionary(slot => slot.Id, slot => slot);
         IReadOnlyList<Tournament> confirmedOrder = [];
         var saved = false;
         try
         {
             var confirmed = await TournamentService.UpdateFeaturedTournamentsAsync(selectedIds);
-            _slots = confirmed.TournamentIds.Select(id => submittedById.GetValueOrDefault(id)).ToList();
-            while(_slots.Count < SlotCount)
-                _slots.Add(null);
+            _slots = confirmed.TournamentIds
+                .Select(id => submittedById.GetValueOrDefault(id))
+                .OfType<Tournament>()
+                .ToList();
 
-            confirmedOrder = _slots.Where(slot => slot is not null).Select(slot => slot!).ToList();
+            confirmedOrder = _slots.ToList();
             ToastService.ShowSuccess(Localization["Admin.Featured.saved"]);
             saved = true;
         }

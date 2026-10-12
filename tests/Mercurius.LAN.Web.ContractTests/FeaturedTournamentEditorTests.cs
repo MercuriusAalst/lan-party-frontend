@@ -40,7 +40,7 @@ public sealed class FeaturedTournamentEditorTests
         Assert.Contains(proxy.PageRequests, request => request.Page == 2);
         Assert.Equal(saved.Select(tournament => tournament.Id), SlotIds(editor));
         Assert.All(Slots(editor), slot =>
-            Assert.Same(Eligible(editor).Single(candidate => candidate.Id == slot!.Id), slot));
+            Assert.Same(Eligible(editor).Single(candidate => candidate.Id == slot.Id), slot));
         Assert.True(CanSave(editor));
     }
 
@@ -66,7 +66,7 @@ public sealed class FeaturedTournamentEditorTests
     }
 
     [Fact]
-    public async Task EditorIgnoresCanceledTournamentsAndCannotSaveFewerThanFourEligible()
+    public async Task EditorIgnoresCanceledTournamentsAndKeepsTheEligibleDraftSaveable()
     {
         var service = CreateService(out var proxy);
         var eligible = new[]
@@ -84,16 +84,49 @@ public sealed class FeaturedTournamentEditorTests
 
         Assert.Equal(3, Eligible(editor).Count);
         Assert.DoesNotContain(Eligible(editor), tournament => tournament.Id == IdOf(4));
+
+        // Nothing is selected yet, so the minimum-one copy is the only live reason.
         Assert.False(CanSave(editor));
+        Assert.Contains(MinOneText, RenderedText(editor));
+        Assert.DoesNotContain(NoEligibleText, RenderedText(editor));
+
+        Add(editor, Eligible(editor)[0]);
+
+        Assert.True(CanSave(editor));
+        Assert.DoesNotContain(MinOneText, RenderedText(editor));
+
+        await SaveAsync(editor);
+
+        Assert.Equal(new[] { IdOf(1) }, Assert.Single(proxy.UpdateRequests));
+    }
+
+    [Fact]
+    public async Task EditorWithNoEligibleTournamentsExplainsTheInventoryAndCannotSave()
+    {
+        var service = CreateService(out var proxy);
+        proxy.GetFeatured = () => Featured([]);
+        proxy.GetTournamentPage = (_, _) => Task.FromResult(new List<Tournament>());
+
+        var editor = CreateEditor(service);
+        await LoadAsync(editor);
+
+        Assert.Empty(Eligible(editor));
+        Assert.False(CanSave(editor));
+        Assert.Contains(MinOneText, RenderedText(editor));
+        Assert.Contains(NoEligibleText, RenderedText(editor));
 
         await SaveAsync(editor);
 
         Assert.Empty(proxy.UpdateRequests);
-        Assert.Equal("Admin.Featured.notEnoughEligible", SaveError(editor));
+        Assert.Equal(MinOneText, SaveError(editor));
     }
 
-    [Fact]
-    public async Task SavingRequiresFourDistinctFilledPositions()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public async Task SavingAcceptsEverySelectionCountBetweenOneAndFour(int count)
     {
         var service = CreateService(out var proxy);
         var a = Tournament(1);
@@ -106,21 +139,48 @@ public sealed class FeaturedTournamentEditorTests
         var editor = CreateEditor(service);
         await LoadAsync(editor);
 
-        SetField(editor, "_slots", new List<Tournament?> { a, b, b, d });
+        SetField(editor, "_slots", new List<Tournament> { a, b, c, d }.Take(count).ToList());
+
+        Assert.True(CanSave(editor));
+
         await SaveAsync(editor);
 
-        Assert.Empty(proxy.UpdateRequests);
-        Assert.Equal("Admin.Featured.needFour", SaveError(editor));
-
-        SetField(editor, "_slots", new List<Tournament?> { a, b, c, null });
-        await SaveAsync(editor);
-
-        Assert.Empty(proxy.UpdateRequests);
-        Assert.Equal("Admin.Featured.needFour", SaveError(editor));
+        Assert.Equal(new[] { IdOf(1), IdOf(2), IdOf(3), IdOf(4) }.Take(count), Assert.Single(proxy.UpdateRequests));
+        Assert.Equal(new[] { IdOf(1), IdOf(2), IdOf(3), IdOf(4) }.Take(count), SlotIds(editor));
+        Assert.Null(SaveError(editor));
     }
 
     [Fact]
-    public async Task MissingOrCanceledFeaturedSummariesAreNotSaveableAndNeverSentToTheBackend()
+    public async Task SavingRejectsDuplicateSelectionsAndAnEmptySelection()
+    {
+        var service = CreateService(out var proxy);
+        var a = Tournament(1);
+        var b = Tournament(2);
+        var c = Tournament(3);
+        var d = Tournament(4);
+        proxy.GetFeatured = () => Featured([a, b, c, d]);
+        proxy.GetTournamentPage = (_, _) => Task.FromResult(new List<Tournament> { a, b, c, d });
+
+        var editor = CreateEditor(service);
+        await LoadAsync(editor);
+
+        SetField(editor, "_slots", new List<Tournament> { a, b, b });
+        Assert.False(CanSave(editor));
+        await SaveAsync(editor);
+
+        Assert.Empty(proxy.UpdateRequests);
+        Assert.Equal("Admin.Featured.rejected", SaveError(editor));
+
+        SetField(editor, "_slots", new List<Tournament>());
+        Assert.False(CanSave(editor));
+        await SaveAsync(editor);
+
+        Assert.Empty(proxy.UpdateRequests);
+        Assert.Equal(MinOneText, SaveError(editor));
+    }
+
+    [Fact]
+    public async Task UnresolvableFeaturedSummariesAreDroppedAndNeverSentToTheBackend()
     {
         var service = CreateService(out var proxy);
         var a = Tournament(1);
@@ -136,24 +196,21 @@ public sealed class FeaturedTournamentEditorTests
         await LoadAsync(editor);
 
         // The unresolvable featured summaries are dropped instead of being shown as selectable.
-        Assert.DoesNotContain(Slots(editor), slot => slot is not null && (slot.Id == absent.Id || slot.Id == canceled.Id));
-        Assert.False(CanSave(editor));
-        await SaveAsync(editor);
-        Assert.Empty(proxy.UpdateRequests);
-        Assert.Equal("Admin.Featured.needFour", SaveError(editor));
+        Assert.Equal(new[] { IdOf(1), IdOf(2), IdOf(3) }, SlotIds(editor));
+        Assert.True(CanSave(editor));
 
         // Even a stale summary that slipped into a position is refused before the PUT is issued.
-        SetField(editor, "_slots", new List<Tournament?> { a, b, c, canceled });
+        SetField(editor, "_slots", new List<Tournament> { a, c, canceled });
         Assert.False(CanSave(editor));
         await SaveAsync(editor);
         Assert.Empty(proxy.UpdateRequests);
-        Assert.Equal("Admin.Featured.needFour", SaveError(editor));
+        Assert.Equal("Admin.Featured.rejected", SaveError(editor));
 
-        SetField(editor, "_slots", new List<Tournament?> { a, b, c, absent });
+        SetField(editor, "_slots", new List<Tournament> { absent });
         Assert.False(CanSave(editor));
         await SaveAsync(editor);
         Assert.Empty(proxy.UpdateRequests);
-        Assert.Equal("Admin.Featured.needFour", SaveError(editor));
+        Assert.Equal("Admin.Featured.rejected", SaveError(editor));
     }
 
     [Fact]
@@ -184,7 +241,7 @@ public sealed class FeaturedTournamentEditorTests
     }
 
     [Fact]
-    public async Task AddingFillsTheFirstEmptyPositionAndRemovingClearsOne()
+    public async Task AddingAppendsAvailableTournamentsAndRemovingCompactsTheDraft()
     {
         var service = CreateService(out var proxy);
         var a = Tournament(1);
@@ -197,22 +254,77 @@ public sealed class FeaturedTournamentEditorTests
         var editor = CreateEditor(service);
         await LoadAsync(editor);
 
-        Assert.Equal(new Tournament?[] { a, b, c, null }, Slots(editor));
-        Assert.False(CanSave(editor));
+        // A saved selection of three stays three cards instead of being padded to four positions.
+        Assert.Equal(new[] { a, b, c }, Slots(editor));
+        Assert.True(CanSave(editor));
 
         Add(editor, d);
 
-        Assert.Equal(new Tournament?[] { a, b, c, d }, Slots(editor));
+        Assert.Equal(new[] { a, b, c, d }, Slots(editor));
         Assert.True(CanSave(editor));
+
+        // A fifth tournament is refused, and so is a duplicate of an already selected one.
+        Add(editor, Tournament(5));
+        Add(editor, a);
+
+        Assert.Equal(new[] { a, b, c, d }, Slots(editor));
 
         RemoveAt(editor, 0);
 
-        Assert.Equal(new Tournament?[] { null, b, c, d }, Slots(editor));
-        Assert.False(CanSave(editor));
+        // The remaining cards close the gap and the first remaining card leads.
+        Assert.Equal(new[] { b, c, d }, Slots(editor));
+        Assert.True(CanSave(editor));
 
         Add(editor, a);
 
-        Assert.Equal(new Tournament?[] { a, b, c, d }, Slots(editor));
+        Assert.Equal(new[] { b, c, d, a }, Slots(editor));
+    }
+
+    [Fact]
+    public async Task RemovingCardsKeepsSaveAvailableUntilTheDraftIsEmptyAndReplenishingClearsTheHint()
+    {
+        var service = CreateService(out var proxy);
+        var a = Tournament(1);
+        var b = Tournament(2);
+        var c = Tournament(3);
+        var d = Tournament(4);
+        proxy.GetFeatured = () => Featured([a, b, c, d]);
+        proxy.GetTournamentPage = (_, _) => Task.FromResult(new List<Tournament> { a, b, c, d });
+
+        var editor = CreateEditor(service);
+        await LoadAsync(editor);
+
+        Assert.True(CanSave(editor));
+        Assert.DoesNotContain(MinOneText, RenderedText(editor));
+
+        RemoveAt(editor, 0);
+
+        // Three cards are a valid selection, so the hint stays hidden.
+        Assert.Equal(new[] { b, c, d }, Slots(editor));
+        Assert.True(CanSave(editor));
+        Assert.DoesNotContain(MinOneText, RenderedText(editor));
+
+        // Two cards still reorder without an empty position in between.
+        RemoveAt(editor, 0);
+        Assert.Equal(new[] { c, d }, Slots(editor));
+        MoveSlot(editor, 1, 0);
+        Assert.Equal(new[] { d, c }, Slots(editor));
+        Assert.True(CanSave(editor));
+
+        RemoveAt(editor, 0);
+        Assert.Equal(new[] { c }, Slots(editor));
+        Assert.True(CanSave(editor));
+
+        // Only the empty draft disables Save, so the reason must be visible without a click.
+        RemoveAt(editor, 0);
+        Assert.Empty(Slots(editor));
+        Assert.False(CanSave(editor));
+        Assert.Contains(MinOneText, RenderedText(editor));
+
+        Add(editor, a);
+
+        Assert.True(CanSave(editor));
+        Assert.DoesNotContain(MinOneText, RenderedText(editor));
     }
 
     [Fact]
@@ -240,27 +352,30 @@ public sealed class FeaturedTournamentEditorTests
     }
 
     [Fact]
-    public void EditingCardsRenderOneKeyedPositionPerTournamentThatFollowsAMove()
+    public void EditingCardsRenderOneKeyPerSelectedTournamentAndStaySafeBelowTwoCards()
     {
         var a = Tournament(1);
         var b = Tournament(2);
-        var cards = CreateCards(new List<Tournament?> { a, null, b, null });
+        var cards = CreateCards(new List<Tournament> { a, b });
 
         var before = RenderedPositionKeys(cards);
 
-        // Every position needs its own non-null key, and the two empty positions must not share one.
-        Assert.Equal(4, before.Count);
-        Assert.DoesNotContain(before, key => key is null);
-        Assert.Equal(4, before.Distinct().Count());
-        Assert.Equal(new[] { a.Id.ToString(), b.Id.ToString() }, new[] { before[0], before[2] }.Select(key => (string)key!));
+        Assert.Equal(2, before.Count);
+        Assert.Equal(2, before.Distinct().Count());
+        // The key is the tournament id itself, so Blazor follows the tournament rather than the row.
+        Assert.Equal(new object?[] { a.Id, b.Id }, before);
 
         // The key follows the tournament, not the row position, so Blazor moves the dragged card (and the
         // focused controls inside it) with the tournament instead of reusing the control at the old position.
-        SetInjectedProperty(cards, "Slots", new List<Tournament?> { null, a, b, null });
+        SetInjectedProperty(cards, "Slots", new List<Tournament> { b, a });
         var after = RenderedPositionKeys(cards);
 
         Assert.Equal(before[0], after[1]);
-        Assert.Equal(before[2], after[2]);
+        Assert.Equal(before[1], after[0]);
+
+        // One card renders as the lead without an error, and an emptied draft renders no cards at all.
+        Assert.Equal(new object?[] { a.Id }, RenderedPositionKeys(CreateCards(new List<Tournament> { a })));
+        Assert.Empty(RenderedPositionKeys(CreateCards([])));
     }
 
     [Fact]
@@ -317,7 +432,7 @@ public sealed class FeaturedTournamentEditorTests
         var saveTask = SaveAsync(editor);
 
         // A late mutation that slips past the handlers must not wipe the confirmed mapping.
-        SetField(editor, "_slots", new List<Tournament?> { null, null, null, null });
+        SetField(editor, "_slots", new List<Tournament>());
 
         pending.SetResult(Confirmed(IdOf(1), IdOf(2), IdOf(3), IdOf(4)));
         await saveTask;
@@ -391,13 +506,32 @@ public sealed class FeaturedTournamentEditorTests
 
         Assert.Contains("disabled=\"@(!CanSave || _isSaving)\"", editor);
         Assert.Contains("disabled=\"@_isSaving\"", editor);
+        Assert.Contains("Slots=\"_slots\"", editor);
         Assert.Contains("OnMoveTournament=\"Move\"", editor);
         Assert.Contains("OnRemoveTournament=\"RemoveAt\"", editor);
+
+        // The draft renders the selected cards, so no empty-position placeholder or copy survives.
+        Assert.DoesNotContain("home-tournament-slot--empty", cards);
+        Assert.DoesNotContain("emptySlot", cards);
+        Assert.DoesNotContain(
+            "home-tournament-slot--empty",
+            ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Shared/FeaturedTournamentCards.razor.css"));
+        Assert.DoesNotContain(
+            "emptySlot",
+            ReadRepositoryFile("src/Mercurius.LAN.Web/wwwroot/locales/translations.en-US.json"));
+        Assert.DoesNotContain(
+            "emptySlot",
+            ReadRepositoryFile("src/Mercurius.LAN.Web/wwwroot/locales/translations.nl-BE.json"));
 
         // Native HTML5 drag needs the literal draggable keywords and a real drop target; the compact
         // position control is the keyboard and single-pointer alternative.
         Assert.Contains("draggable=\"@draggable\"", cards);
-        Assert.Contains("\"true\" : \"false\"", cards);
+        // Enumerated attribute: the rendered values must be the keywords, never a bool, and the whole
+        // draft stops dragging once a save is pending.
+        var draggableDraft = CreateCards(new List<Tournament> { Tournament(1) });
+        Assert.Equal(new[] { "true" }, RenderedAttributeValues(draggableDraft, "draggable"));
+        SetInjectedProperty(draggableDraft, "Disabled", true);
+        Assert.Equal(new[] { "false" }, RenderedAttributeValues(draggableDraft, "draggable"));
         Assert.Contains("@ondragstart=", cards);
         Assert.Contains("@ondragover:preventDefault=\"true\"", cards);
         Assert.Contains("@ondrop=", cards);
@@ -457,7 +591,7 @@ public sealed class FeaturedTournamentEditorTests
         return editor;
     }
 
-    private static FeaturedTournamentCards CreateCards(IReadOnlyList<Tournament?> slots)
+    private static FeaturedTournamentCards CreateCards(IReadOnlyList<Tournament> slots)
     {
         var cards = new FeaturedTournamentCards();
         SetInjectedProperty(cards, "Configuration", new ConfigurationBuilder().Build());
@@ -501,11 +635,36 @@ public sealed class FeaturedTournamentEditorTests
     private static List<Tournament> Eligible(FeaturedTournamentEditor editor) =>
         (List<Tournament>)ReadField(editor, "_eligibleTournaments")!;
 
-    private static List<Tournament?> Slots(FeaturedTournamentEditor editor) =>
-        (List<Tournament?>)ReadField(editor, "_slots")!;
+    private static List<Tournament> Slots(FeaturedTournamentEditor editor) =>
+        (List<Tournament>)ReadField(editor, "_slots")!;
 
     private static List<Guid> SlotIds(FeaturedTournamentEditor editor) =>
-        Slots(editor).Select(slot => slot!.Id).ToList();
+        Slots(editor).Select(slot => slot.Id).ToList();
+
+    private const string MinOneText = "Admin.Featured.minOne";
+    private const string NoEligibleText = "Admin.Featured.noEligible";
+
+    // Runs the editor's Razor-generated BuildRenderTree and returns its literal text so the reactive
+    // validation copy can be asserted without a browser.
+    private static List<string> RenderedText(FeaturedTournamentEditor editor)
+    {
+        using var builder = new RenderTreeBuilder();
+        var method = typeof(FeaturedTournamentEditor)
+                .GetMethod("BuildRenderTree", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("BuildRenderTree was not found.");
+        method.Invoke(editor, [builder]);
+
+        var frames = builder.GetFrames();
+        var text = new List<string>();
+        for(var i = 0; i < frames.Count; i++)
+        {
+            var frame = frames.Array[i];
+            if(frame.FrameType == RenderTreeFrameType.Text)
+                text.Add(frame.TextContent);
+        }
+
+        return text;
+    }
 
     // Runs the Razor-generated BuildRenderTree directly so the diffing keys Blazor would emit for the
     // editable positions can be asserted without spinning up a browser.
@@ -526,6 +685,31 @@ public sealed class FeaturedTournamentEditorTests
         }
 
         return keys;
+    }
+
+    // Reads a rendered attribute's value from the cards' BuildRenderTree frames, so the enumerated
+    // draggable keywords can be asserted as rendered instead of by grepping the markup.
+    private static List<string> RenderedAttributeValues(FeaturedTournamentCards cards, string attributeName)
+    {
+        using var builder = new RenderTreeBuilder();
+        var method = cards.GetType().GetMethod("BuildRenderTree", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("BuildRenderTree was not found.");
+        method.Invoke(cards, [builder]);
+
+        var frames = builder.GetFrames();
+        var values = new List<string>();
+        for(var i = 0; i < frames.Count; i++)
+        {
+            var frame = frames.Array[i];
+            if(frame.FrameType == RenderTreeFrameType.Attribute
+                && frame.AttributeName == attributeName
+                && frame.AttributeValue is not null)
+            {
+                values.Add(frame.AttributeValue.ToString()!);
+            }
+        }
+
+        return values;
     }
 
     private static bool IsSaving(FeaturedTournamentEditor editor) => (bool)ReadField(editor, "_isSaving")!;

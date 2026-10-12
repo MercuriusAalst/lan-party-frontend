@@ -42,7 +42,7 @@ internal sealed class MockBackendStore
     private static readonly DateTime FeaturedFixtureCreatedAtUtc = new(2026, 5, 1, 9, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime FeaturedFixtureUpdatedAtUtc = new(2026, 5, 11, 12, 0, 0, DateTimeKind.Utc);
     private const int MaxDownstreamMatches = 512;
-    private const int FeaturedTournamentCount = 4;
+    private const int MaxFeaturedTournaments = 4;
 
     private readonly object _syncRoot = new();
     private readonly string _dataFilePath;
@@ -103,8 +103,9 @@ internal sealed class MockBackendStore
                 throw new UnauthorizedAccessException("Only an administrator may change the featured tournaments.");
 
             var requested = (tournamentIds ?? []).ToList();
-            if(requested.Count != FeaturedTournamentCount || requested.Distinct().Count() != FeaturedTournamentCount)
-                throw new InvalidOperationException($"Exactly {FeaturedTournamentCount} distinct tournaments must be selected.");
+            if(requested.Count is < 1 or > MaxFeaturedTournaments || requested.Distinct().Count() != requested.Count)
+                throw new InvalidOperationException(
+                    $"Select one to {MaxFeaturedTournaments} distinct tournaments.");
 
             var eligibleIds = ResolveEligibleFeaturedTournaments().Select(tournament => tournament.Id).ToHashSet();
             if(requested.Any(id => !eligibleIds.Contains(id)))
@@ -116,7 +117,8 @@ internal sealed class MockBackendStore
     }
 
     // Retains still-eligible saved selections in their relative order, then backfills from the
-    // default eligible order so a homepage row never repeats a tournament.
+    // default eligible order so a homepage row never repeats a tournament. An unconfigured
+    // selection defaults to the maximum; a saved selection is never padded past its own count.
     private List<TournamentExtended> ResolveFeaturedTournaments()
     {
         var eligible = ResolveEligibleFeaturedTournaments();
@@ -130,9 +132,12 @@ internal sealed class MockBackendStore
                 featured.Add(retained);
         }
 
+        var savedCount = _document.FeaturedTournamentIds.Count;
+        var target = savedCount == 0 ? MaxFeaturedTournaments : Math.Min(savedCount, MaxFeaturedTournaments);
+
         foreach(var tournament in eligible)
         {
-            if(featured.Count >= FeaturedTournamentCount)
+            if(featured.Count >= target)
                 break;
 
             if(selected.Add(tournament.Id))
@@ -595,6 +600,37 @@ internal sealed class MockBackendStore
         }
     }
 
+    public List<PublicUserDTO> GetAdminUsers(string? query = null, int? pageSize = null, int page = 1)
+    {
+        lock(_syncRoot)
+        {
+            var adminUserIds = _document.Profiles
+                .Where(profile => string.Equals(profile.Persona, "admin", StringComparison.OrdinalIgnoreCase))
+                .Select(profile => profile.Profile.User?.Id)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToHashSet();
+            var trimmedQuery = query?.Trim();
+
+            var admins = _document.Users
+                .Where(user => !user.IsDeleted && adminUserIds.Contains(user.Id))
+                .Where(user =>
+                    string.IsNullOrWhiteSpace(trimmedQuery) ||
+                    (user.Username ?? string.Empty).Contains(trimmedQuery!, StringComparison.OrdinalIgnoreCase) ||
+                    user.DisplayName.Contains(trimmedQuery!, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(user => user.Username, StringComparer.OrdinalIgnoreCase)
+                .Select(ToContactAdminProjection);
+
+            if(pageSize is > 0)
+            {
+                var pageNumber = Math.Max(page, 1);
+                admins = admins.Skip((pageNumber - 1) * pageSize.Value).Take(pageSize.Value);
+            }
+
+            return admins.ToList();
+        }
+    }
+
     public TournamentExtended CreateTournament(CreateTournamentDTO dto)
     {
         lock(_syncRoot)
@@ -620,11 +656,15 @@ internal sealed class MockBackendStore
                 Format = dto.Format,
                 FinalsFormat = dto.FinalsFormat,
                 ParticipationMode = participationMode,
-                TeamSize = dto.TeamSize
+                TeamSize = dto.TeamSize,
+                AssignedAdminUserId = dto.AssignedAdminUserId,
+                FirstPlacePrize = NormalizePrize(dto.FirstPlacePrize),
+                SecondPlacePrize = NormalizePrize(dto.SecondPlacePrize),
+                ThirdPlacePrize = NormalizePrize(dto.ThirdPlacePrize)
             };
 
             _document.Tournaments.Add(tournament);
-            return Clone(tournament)!;
+            return WithContactAdminProjection(Clone(tournament)!);
         }
     }
 
@@ -651,11 +691,15 @@ internal sealed class MockBackendStore
             tournament.AverageGameDurationMinutes = NormalizeLeaderboardScheduleDuration(bracketType, dto.AverageGameDurationMinutes);
             tournament.RoundBreakDurationMinutes = NormalizeLeaderboardScheduleDuration(bracketType, dto.RoundBreakDurationMinutes);
             tournament.EstimatedEndTime = tournament.Matches.Any() ? tournament.Matches.Max(match => match.EstimatedEndTime) : null;
+            tournament.AssignedAdminUserId = dto.AssignedAdminUserId;
+            tournament.FirstPlacePrize = NormalizePrize(dto.FirstPlacePrize);
+            tournament.SecondPlacePrize = NormalizePrize(dto.SecondPlacePrize);
+            tournament.ThirdPlacePrize = NormalizePrize(dto.ThirdPlacePrize);
 
             if(dto.Image != null)
                 tournament.ImageUrl = "/mock-data-local/generated-tournament.svg";
 
-            return Clone(tournament)!;
+            return WithContactAdminProjection(Clone(tournament)!);
         }
     }
 
@@ -1289,7 +1333,7 @@ internal sealed class MockBackendStore
         return clone;
     }
 
-    private static TournamentExtended? ClonePublicTournament(TournamentExtended? tournament)
+    private TournamentExtended? ClonePublicTournament(TournamentExtended? tournament)
     {
         if(tournament is not null)
         {
@@ -1301,10 +1345,37 @@ internal sealed class MockBackendStore
         if(clone == null)
             return null;
 
+        clone.ContactAdmin = ResolveContactAdmin(clone.AssignedAdminUserId);
         clone.AssignedAdminUserId = null;
         clone.Matches = clone.Matches.Select(ClonePublicMatch).ToList();
         return clone;
     }
+
+    // Contact admin is exposed as a public-safe projection only; raw assignment stays internal.
+    private TournamentExtended WithContactAdminProjection(TournamentExtended tournament)
+    {
+        tournament.ContactAdmin = ResolveContactAdmin(tournament.AssignedAdminUserId);
+        return tournament;
+    }
+
+    private PublicUserDTO? ResolveContactAdmin(Guid? userId)
+    {
+        if(!userId.HasValue)
+            return null;
+
+        var user = _document.Users.FirstOrDefault(candidate => candidate.Id == userId.Value && !candidate.IsDeleted);
+        return user is null ? null : ToContactAdminProjection(user);
+    }
+
+    private static PublicUserDTO ToContactAdminProjection(UserDTO user) => new()
+    {
+        Id = user.Id,
+        Username = user.Username,
+        DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Username ?? string.Empty : user.DisplayName
+    };
+
+    private static string? NormalizePrize(string? prize) =>
+        string.IsNullOrWhiteSpace(prize) ? null : prize.Trim();
 
     internal static bool CanViewPrivateReports(
         string persona,
@@ -3059,6 +3130,9 @@ internal sealed class MockBackendStore
         tournament.ParticipationMode = ParticipationMode.Team;
         tournament.TeamSize = 5;
         tournament.AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121");
+        tournament.FirstPlacePrize = "Gaming keyboard + 250 EUR";
+        tournament.SecondPlacePrize = "Gaming mouse";
+        tournament.ThirdPlacePrize = null;
         tournament.Placements = [];
         tournament.Users = [];
         tournament.Teams = Clone(teams)!;
@@ -4603,7 +4677,7 @@ internal sealed class MockBackendStore
         return string.Equals(invite.Status, "Pending", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static Tournament ToTournament(TournamentExtended tournament)
+    private Tournament ToTournament(TournamentExtended tournament)
     {
         return new Tournament
         {
@@ -4622,7 +4696,11 @@ internal sealed class MockBackendStore
             FinalsFormat = tournament.FinalsFormat,
             ParticipationMode = tournament.ParticipationMode,
             TeamSize = tournament.TeamSize,
-            SponsorPlacement = tournament.SponsorPlacement
+            SponsorPlacement = tournament.SponsorPlacement,
+            FirstPlacePrize = tournament.FirstPlacePrize,
+            SecondPlacePrize = tournament.SecondPlacePrize,
+            ThirdPlacePrize = tournament.ThirdPlacePrize,
+            ContactAdmin = ResolveContactAdmin(tournament.AssignedAdminUserId)
         };
     }
 

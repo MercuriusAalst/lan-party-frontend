@@ -217,15 +217,14 @@ public sealed class TeamManagementPageTests : E2ETestBase
 
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Team management unavailable" }))
                 .ToBeVisibleAsync(new() { Timeout = 15000 });
-            await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Try again" }))
-                .ToHaveAttributeAsync("href", "/teams/manage");
+            await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Try again" })).ToBeVisibleAsync();
             await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Browse Tournaments" })).ToBeVisibleAsync();
 
-            // The StatusPage retry is a link back to /teams/manage, so recovery is a real reload once
-            // the team table is visible again.
+            // The StatusPage retry is an in-place callback, so recovery reruns the team summary load
+            // in the current circuit once the team table is visible again.
             await fault.DisposeAsync();
 
-            await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Link, new() { Name = "Try again" }));
+            await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Try again" }));
 
             await Expect(page.GetByText("You do not have a team yet.")).ToBeVisibleAsync(new() { Timeout = 15000 });
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Start with a team" })).ToBeVisibleAsync();

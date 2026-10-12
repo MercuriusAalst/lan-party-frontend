@@ -1,3 +1,5 @@
+using Mercurius.LAN.Web.DTOs.Users;
+
 namespace Mercurius.LAN.Web.Models.Tournaments;
 
 public class Tournament
@@ -19,4 +21,8 @@ public class Tournament
     public ParticipationMode ParticipationMode { get; set; }
     public int? TeamSize { get; set; }
     public TournamentSponsorPlacement? SponsorPlacement { get; set; }
+    public string? FirstPlacePrize { get; set; }
+    public string? SecondPlacePrize { get; set; }
+    public string? ThirdPlacePrize { get; set; }
+    public PublicUserDTO? ContactAdmin { get; set; }
 }
