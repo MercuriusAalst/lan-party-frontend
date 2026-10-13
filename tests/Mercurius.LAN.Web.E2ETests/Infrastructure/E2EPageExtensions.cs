@@ -43,8 +43,14 @@ public static class E2EPageExtensions
                 request.ResourceType == "document" &&
                 ReferenceEquals(request.Frame, page.MainFrame))
             {
-                state.BeginNavigation();
+                state.NavigationRequested(request);
             }
+        };
+        page.RequestFailed += (_, request) => state.NavigationFailed(request);
+        page.FrameNavigated += (_, frame) =>
+        {
+            if (ReferenceEquals(frame, page.MainFrame))
+                state.NavigationCommitted(frame);
         };
         page.WebSocket += (_, socket) =>
         {
@@ -192,6 +198,7 @@ public static class E2EPageExtensions
         private readonly object _sync = new();
         private readonly List<string> _fatalConsoleMessages = [];
         private TaskCompletionSource _current = NewConnectionSource();
+        private IRequest? _pendingNavigation;
         private bool _closed;
 
         public IReadOnlyList<string> FatalConsoleMessages
@@ -230,14 +237,33 @@ public static class E2EPageExtensions
             }
         }
 
-        public void BeginNavigation()
+        public void NavigationRequested(IRequest request)
+        {
+            lock (_sync)
+            {
+                if (!_closed)
+                    _pendingNavigation = request;
+            }
+        }
+
+        public void NavigationFailed(IRequest request)
+        {
+            lock (_sync)
+            {
+                if (ReferenceEquals(request, _pendingNavigation))
+                    _pendingNavigation = null;
+            }
+        }
+
+        public void NavigationCommitted(IFrame frame)
         {
             TaskCompletionSource previous;
             lock (_sync)
             {
-                if (_closed)
+                if (_closed || _pendingNavigation is null || !SameNavigationUrl(_pendingNavigation.Url, frame.Url))
                     return;
 
+                _pendingNavigation = null;
                 previous = _current;
                 _current = NewConnectionSource();
             }
@@ -260,5 +286,10 @@ public static class E2EPageExtensions
 
         private static TaskCompletionSource NewConnectionSource() =>
             new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private static bool SameNavigationUrl(string requestUrl, string frameUrl) =>
+            Uri.TryCreate(requestUrl, UriKind.Absolute, out var requestUri) &&
+            Uri.TryCreate(frameUrl, UriKind.Absolute, out var frameUri) &&
+            string.Equals(requestUri.GetLeftPart(UriPartial.Query), frameUri.GetLeftPart(UriPartial.Query), StringComparison.Ordinal);
     }
 }
