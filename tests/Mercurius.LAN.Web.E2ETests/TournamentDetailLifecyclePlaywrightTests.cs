@@ -75,7 +75,7 @@ public class TournamentDetailLifecyclePlaywrightTests : TournamentE2ETestBase
         await Expect(start).ToBeEnabledAsync();
         await start.ClickAsync();
 
-        await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusOngoing);
+        await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusOngoing);
     }
 
     [Fact]
@@ -91,10 +91,10 @@ public class TournamentDetailLifecyclePlaywrightTests : TournamentE2ETestBase
 
         var adminActions = page.Locator(".Tournament-admin-actions");
         await adminActions.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.Cancel }).ClickAsync();
-        await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusCancelled);
+        await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusCancelled);
 
         await adminActions.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.Reset }).ClickAsync();
-        await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusOpen);
+        await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusOpen);
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public class TournamentDetailLifecyclePlaywrightTests : TournamentE2ETestBase
         var page = await context.NewPageAsync();
         await TournamentE2E.GotoInteractiveAsync(page, $"/tournaments/{id}");
 
-        await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusCancelled);
+        await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusCancelled);
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.Edit, Exact = true }))
             .ToHaveCountAsync(0);
     }
@@ -219,7 +219,7 @@ public class TournamentDetailLifecyclePlaywrightTests : TournamentE2ETestBase
     {
         try
         {
-            await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync(expectedStatus);
+            await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync(expectedStatus);
         }
         catch (PlaywrightException exception)
         {
