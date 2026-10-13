@@ -58,7 +58,7 @@ public sealed class MockBackendParityTests
             .OrderByDescending(match => match.RoundNumber)
             .ThenByDescending(match => match.MatchNumber)
             .First();
-        completionStore.UpdateMatch(existingFinalMatch.Id, new UpdateMatchDTO { Participant1Score = 1, Participant2Score = 0 });
+        completionStore.ForfeitMatch("admin", existingFinalMatch.Id, new ForfeitMatchDTO { Participant = MatchParticipantSide.Participant2 });
         completionStore.SetTournamentLifecycleState(FeaturedTournamentId, TournamentStatus.Completed);
         var completed = completionStore.GetTournament(FeaturedTournamentId)!;
         Assert.Equal(TournamentStatus.Completed, completed.Status);
@@ -115,7 +115,7 @@ public sealed class MockBackendParityTests
             .OrderByDescending(match => match.RoundNumber)
             .ThenByDescending(match => match.MatchNumber)
             .First();
-        completionStore.UpdateMatch(finalMatch.Id, new UpdateMatchDTO { Participant1Score = 1, Participant2Score = 0 });
+        completionStore.ForfeitMatch("admin", finalMatch.Id, new ForfeitMatchDTO { Participant = MatchParticipantSide.Participant2 });
         completionStore.SetTournamentLifecycleState(FeaturedTournamentId, TournamentStatus.Completed);
         Assert.Throws<InvalidOperationException>(() =>
             completionStore.SetTournamentLifecycleState(FeaturedTournamentId, TournamentStatus.Canceled));

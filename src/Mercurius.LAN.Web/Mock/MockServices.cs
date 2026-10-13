@@ -174,15 +174,6 @@ internal sealed class MockTournamentService : ITournamentService
         return _store.ReverseMatch(persona, matchId);
     }
 
-    public async Task<Match> UpdateMatchScoresAsync(
-        Guid matchId,
-        UpdateMatchDTO updateMatchDTO,
-        CancellationToken cancellationToken = default)
-    {
-        var persona = await GetCurrentPersonaAsync();
-        return _store.UpdateMatch(persona, matchId, updateMatchDTO);
-    }
-
     public async Task<CurrentUserTournamentRegistrationStateDTO> GetCurrentUserTournamentRegistrationStateAsync(
         Guid tournamentId,
         CancellationToken cancellationToken = default)

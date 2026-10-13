@@ -179,12 +179,6 @@ public sealed class TournamentService : ITournamentService
         CancellationToken cancellationToken = default) =>
         _lanClient.ReverseMatchAsync(matchId, cancellationToken);
 
-    public Task<Match> UpdateMatchScoresAsync(
-        Guid matchId,
-        UpdateMatchDTO updateMatchDTO,
-        CancellationToken cancellationToken = default) =>
-        _lanClient.UpdateMatchAsync(matchId, updateMatchDTO, cancellationToken);
-
     public Task<CurrentUserTournamentRegistrationStateDTO> GetCurrentUserTournamentRegistrationStateAsync(
         Guid tournamentId,
         CancellationToken cancellationToken = default) =>
