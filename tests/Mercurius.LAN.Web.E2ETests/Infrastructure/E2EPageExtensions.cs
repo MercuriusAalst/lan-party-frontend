@@ -43,6 +43,7 @@ public static class E2EPageExtensions
                 request.ResourceType == "document" &&
                 ReferenceEquals(request.Frame, page.MainFrame))
             {
+                // The old document can still open sockets until the new document commits.
                 state.NavigationRequested(request);
             }
         };
