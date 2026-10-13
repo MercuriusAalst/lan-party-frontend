@@ -1,9 +1,9 @@
 # repo-card: lan-party updated: 2026-10-13 by: scout/architect approved: 2026-10-13
-STACK: .NET 9, Blazor InteractiveServer, Refit, Bootstrap, Tailwind 3, xUnit
+STACK: .NET 10, Blazor InteractiveServer, Refit, Bootstrap, Tailwind 3, xUnit
 BUILD: dotnet build src/Mercurius.LAN.Web/Mercurius.LAN.Web.csproj
 CHECK_FAST: dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj
 VERIFY: dotnet build src/Mercurius.LAN.Web/Mercurius.LAN.Web.csproj && dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj
-UI_SHOTS:
+UI_SHOTS: mock mode only. Start the app and the browser in the same sandbox context (a sandboxed server is unreachable from an escalated browser): `ASPNETCORE_ENVIRONMENT=Development MockBackend__Enabled=true MockBackend__Persona=admin dotnet run --project src/Mercurius.LAN.Web --no-launch-profile --urls http://127.0.0.1:5288`, then Playwright CLI (`$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh -s=<session>`) `open http://127.0.0.1:5288/account/login?persona=admin&returnUrl=/tournaments`, `goto /tournaments/<id>`, `resize 1280 900` / `resize 390 844`, `screenshot`. PNGs land in the invoking shell's `.playwright-cli/`. Tournaments seeded at /tournaments/1a111111-1111-1111-1111-111111111111 and ...112.
 SPEC_WORKFLOW: openspec
 SPEC_PROFILE: mercurius-lan
 PR_TEMPLATE: none
