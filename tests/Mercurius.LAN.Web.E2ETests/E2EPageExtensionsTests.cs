@@ -51,6 +51,41 @@ public sealed class E2EPageExtensionsTests
         Assert.Contains("circuit closed before becoming interactive", error.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task SameDocumentAndFailedOrIframeNavigationsKeepCurrentGeneration()
+    {
+        var page = Fake<IPage>.Create();
+        var mainFrame = Fake<IFrame>.Create();
+        page.Set("MainFrame", mainFrame.Instance);
+        E2EPageExtensions.Observe(page.Instance);
+        var socket = Fake<IWebSocket>.Create();
+        socket.Set("Url", "ws://example.test/_blazor?id=current");
+        page.Raise("WebSocket", socket.Instance);
+        var wait = page.Instance.WaitForInteractiveAsync();
+
+        mainFrame.Set("Url", "http://example.test/#anchor");
+        page.Raise("FrameNavigated", mainFrame.Instance);
+
+        var request = Fake<IRequest>.Create();
+        request.Set("IsNavigationRequest", true);
+        request.Set("ResourceType", "document");
+        request.Set("Frame", mainFrame.Instance);
+        request.Set("Url", "http://example.test/next");
+        page.Raise("Request", request.Instance);
+
+        var iframe = Fake<IFrame>.Create();
+        iframe.Set("Url", "http://example.test/next");
+        page.Raise("FrameNavigated", iframe.Instance);
+        page.Raise("RequestFailed", request.Instance);
+
+        mainFrame.Set("Url", "http://example.test/next");
+        page.Raise("FrameNavigated", mainFrame.Instance);
+        socket.Raise("Close", socket.Instance);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => wait.WaitAsync(TimeSpan.FromSeconds(2)));
+        Assert.Contains("circuit closed before becoming interactive", error.Message, StringComparison.Ordinal);
+    }
+
     private sealed class Fake<T> where T : class
     {
         private readonly Proxy _proxy;
