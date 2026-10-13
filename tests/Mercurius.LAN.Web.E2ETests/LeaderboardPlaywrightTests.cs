@@ -194,7 +194,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
 
         await Expect(finish).ToBeEnabledAsync();
         await finish.ClickAsync();
-        await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusFinished);
+        await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync(TournamentE2E.Text.StatusFinished);
     }
 
     private static async Task RecordGuestAttemptThroughUiAsync(IPage page, string guestName, string value)
