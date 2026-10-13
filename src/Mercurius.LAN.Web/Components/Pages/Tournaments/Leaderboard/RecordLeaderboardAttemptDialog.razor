@@ -214,7 +214,7 @@
                                                 </button>
                                                 @if(_pendingRemovalAttemptId == attempt.Id)
                                                 {
-                                                    <button type="button" class="button-danger" disabled="@(_removingAttemptId == attempt.Id)" @onclick="() => RemoveAttemptAsync(attempt)">
+                                                    <button type="button" class="button-secondary button-danger" disabled="@(_removingAttemptId == attempt.Id)" @onclick="() => RemoveAttemptAsync(attempt)">
                                                         @Localization["Feature.leaderboard.confirmRemove"]
                                                     </button>
                                                     <button type="button" class="button-secondary" @onclick="CancelAttemptRemoval">
