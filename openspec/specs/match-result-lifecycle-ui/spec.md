@@ -20,6 +20,18 @@ The match details UI MUST show the backend lifecycle state, the current scores/r
 - **THEN** the UI MUST explain the server deadline for the other side
 - **AND** it MUST NOT show a redundant confirmation action for the submitting side
 
+#### Scenario: Awaiting-report description is shared
+
+- **WHEN** the backend reports awaiting ended confirmation or awaiting a score
+- **THEN** the UI MUST show one description stating that either side may report the score
+- **AND** it MUST state that the other side then has five minutes to agree or report a correction, otherwise the reported score becomes final
+
+#### Scenario: Score-confirmation description is perspective-neutral
+
+- **WHEN** the backend reports a score under confirmation
+- **THEN** the description MUST be correct for both the reporting side and the other side
+- **AND** it MUST state that the side that has not reported yet has five minutes to agree or report a correction, otherwise the reported score becomes final
+
 ### Requirement: Consensus and dispute actions
 The UI MUST allow an eligible participant/captain to submit a valid score only when the backend allows it. It MUST show pending confirmation, disputed, and admin-resolution-required states distinctly, including correction deadlines and an actionable refresh/error path. The UI MUST NOT claim a result is complete until a refreshed backend projection reports completion.
 

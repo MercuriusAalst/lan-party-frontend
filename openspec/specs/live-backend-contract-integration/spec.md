@@ -178,7 +178,8 @@ player, team, profile, tournament, sponsor, and organizer journeys.
 The front end MUST NOT send the removed `PUT /v1/lan/matches/{matchId}` request. The Refit boundary
 MUST NOT declare that route or its update request DTO, and the tournament service MUST NOT expose a
 match-score update method backed by it. Match score changes MUST use the supported lifecycle commands
-(confirm-ended, submit score, forfeit, resolve, reverse). Mock mode MUST NOT expose the removed update
+(submit score, forfeit, resolve, reverse). The removed confirm-ended command MUST NOT be sent or
+declared. Mock mode MUST NOT expose the removed update
 path, and mock fixtures MUST continue to work through the supported lifecycle commands. No front-end
 page called the removed route, so removing it prevents stale boundary usage rather than fixing a
 live-user failure.
