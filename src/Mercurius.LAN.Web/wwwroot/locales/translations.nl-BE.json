@@ -763,6 +763,8 @@
   "Feature.match.savedTournamentUnavailable": "Opgeslagen. De weergave van het tournament is tijdelijk niet beschikbaar.",
   "Feature.match.savingResult": "Resultaat opslaan...",
   "Feature.match.scoreReportSaved": "Je scoremelding is opgeslagen.",
+  "Feature.match.scoreFormatHint": "Eén deelnemer moet {0} keer winnen; de tegenstander mag 0–{1} keer winnen.",
+  "Feature.match.scoreMustBeDecisive": "Vul een beslissende score in voor dit matchformaat.",
   "Feature.match.scoreSubmissionUnavailable": "Score indienen is niet langer beschikbaar.",
   "Feature.match.signInToManage": "Meld je aan om een score door te geven of forfait te geven. Resultaten blijven voor iedereen zichtbaar.",
   "Feature.match.signInToManageShort": "Meld je aan om deze match te beheren.",

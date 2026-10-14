@@ -31,6 +31,7 @@ internal static class MatchE2E
     internal const string DeadlineLabel = "Score window deadline";
 
     internal const string ActionSaveFailed = "The match action could not be saved. Try again.";
+    internal const string ScoreMustBeDecisive = "Enter a decisive score for this match format.";
     internal const string ScoreReportSaved = "Your score report was saved.";
     internal const string TournamentNotInProgress = "This tournament is no longer in progress.";
     internal const string MatchNotDisputed = "This match does not currently require administrator resolution.";
@@ -225,6 +226,9 @@ internal static class MatchE2E
         // away is exactly what a user does after typing the final score.
         await lastScore.PressAsync("Tab");
         var submit = dialog.GetByRole(AriaRole.Button, new() { Name = SubmitScoreButton });
+        if(await submit.IsDisabledAsync())
+            return;
+
         await MatchE2E.ClickAsync(submit);
         // Different valid reports immediately enter the correction state, where the editor stays open.
         await Expect(dialog.Page.Locator(".blazored-toast-message").Last)

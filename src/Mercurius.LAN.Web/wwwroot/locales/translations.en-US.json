@@ -763,6 +763,8 @@
   "Feature.match.savedTournamentUnavailable": "Saved. The tournament display is temporarily unavailable.",
   "Feature.match.savingResult": "Saving result...",
   "Feature.match.scoreReportSaved": "Your score report was saved.",
+  "Feature.match.scoreFormatHint": "One participant must win {0}; the opponent may have 0–{1} wins.",
+  "Feature.match.scoreMustBeDecisive": "Enter a decisive score for this match format.",
   "Feature.match.scoreSubmissionUnavailable": "Score submission is no longer available.",
   "Feature.match.signInToManage": "Sign in to report a score or forfeit. Match results remain publicly viewable.",
   "Feature.match.signInToManageShort": "Sign in to manage this match.",

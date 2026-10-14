@@ -1,14 +1,65 @@
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using Mercurius.LAN.Web.Components.Pages.Tournaments;
 using Mercurius.LAN.Web.Components.Pages.Tournaments.Matches.DetailView;
 using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.Models.Matches;
 using Mercurius.LAN.Web.Models.Tournaments;
+using Refit;
 using Xunit;
 
 namespace Mercurius.LAN.Web.ContractTests;
 
 public sealed class MatchLifecycleUiStateTests
 {
+    [Theory]
+    [InlineData(TournamentFormat.BestOf1, 1, 0, true)]
+    [InlineData(TournamentFormat.BestOf1, 0, 1, true)]
+    [InlineData(TournamentFormat.BestOf3, 2, 1, true)]
+    [InlineData(TournamentFormat.BestOf3, 1, 2, true)]
+    [InlineData(TournamentFormat.BestOf5, 3, 2, true)]
+    [InlineData(TournamentFormat.BestOf5, 2, 3, true)]
+    [InlineData(TournamentFormat.BestOf1, 0, 0, false)]
+    [InlineData(TournamentFormat.BestOf1, 1, 1, false)]
+    [InlineData(TournamentFormat.BestOf1, 2, 0, false)]
+    [InlineData(TournamentFormat.BestOf3, 2, 2, false)]
+    [InlineData(TournamentFormat.BestOf3, 1, 0, false)]
+    [InlineData(TournamentFormat.BestOf3, 3, 0, false)]
+    [InlineData(TournamentFormat.BestOf5, 3, 3, false)]
+    [InlineData(TournamentFormat.BestOf5, 2, 1, false)]
+    [InlineData(TournamentFormat.BestOf5, 4, 0, false)]
+    [InlineData(TournamentFormat.BestOf3, -1, 0, false)]
+    [InlineData(TournamentFormat.BestOf5, 0, -1, false)]
+    [InlineData(TournamentFormat.BestOf3, null, 0, false)]
+    [InlineData(TournamentFormat.BestOf3, 2, null, false)]
+    [InlineData(TournamentFormat.BestOf3, null, null, false)]
+    public void SeriesScoreValidation_RequiresADecisiveScoreForTheConfiguredFormat(
+        TournamentFormat format,
+        int? participant1Score,
+        int? participant2Score,
+        bool expected)
+    {
+        Assert.Equal(expected, TournamentMatchDetailsDialog.IsValidSeriesScore(format, participant1Score, participant2Score));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.BadRequest, "{\"message\":\"The reported score is not decisive.\"}", "The reported score is not decisive.")]
+    [InlineData(HttpStatusCode.BadRequest, "{}", "Try again.")]
+    [InlineData(HttpStatusCode.InternalServerError, "{\"message\":\"database password leaked\"}", "Try again.")]
+    [InlineData(HttpStatusCode.Unauthorized, "{}", "Sign in to manage this match.")]
+    [InlineData(HttpStatusCode.Forbidden, "{}", "You are not authorized to perform this match action.")]
+    [InlineData(HttpStatusCode.Conflict, "{\"code\":\"match_reversal_blocked\"}", "This result cannot be reversed because a linked downstream match has already been played or resolved.")]
+    public async Task ErrorMessage_UsesOnlyValidationMessagesForBadRequests(
+        HttpStatusCode statusCode,
+        string content,
+        string expected)
+    {
+        var exception = await CreateMatchApiException(statusCode, content);
+
+        Assert.Equal(expected, TournamentMatchDetailsDialog.GetErrorMessage(exception, "Try again."));
+    }
+
     [Fact]
     public void InitialScores_PreferTheAuthorizedParticipantFullReport()
     {
@@ -246,4 +297,15 @@ public sealed class MatchLifecycleUiStateTests
         Match = new Match { Id = Guid.NewGuid() },
         AuthorizedParticipant = authorizedParticipant
     };
+
+    private static async Task<ApiException> CreateMatchApiException(HttpStatusCode statusCode, string content)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, "https://example.test/matches/score");
+        using var response = new HttpResponseMessage(statusCode)
+        {
+            Content = new StringContent(content, Encoding.UTF8, "application/json")
+        };
+
+        return await ApiException.Create(request, HttpMethod.Put, response, new RefitSettings(), innerException: null);
+    }
 }
