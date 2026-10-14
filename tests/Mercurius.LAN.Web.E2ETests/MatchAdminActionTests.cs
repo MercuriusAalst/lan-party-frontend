@@ -73,7 +73,7 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var panel = MatchE2E.Section(dialog, MatchE2E.AdminPanel);
         await Expect(panel.GetByText("Resolve the conflict with the verified final score. The selected result becomes official."))
             .ToBeVisibleAsync();
-        await Expect(panel.Locator("#admin-score-guidance")).ToContainTextAsync("One participant must win 2");
+        await Expect(panel.Locator("#admin-score-guidance")).ToContainTextAsync("the winner has 2 wins; the other side has 0 or 1.");
         var resolve = panel.GetByRole(AriaRole.Button, new() { Name = "Resolve result" });
         await Expect(resolve).ToBeDisabledAsync();
 

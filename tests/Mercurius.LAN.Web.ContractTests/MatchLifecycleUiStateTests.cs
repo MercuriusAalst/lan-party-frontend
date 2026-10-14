@@ -44,22 +44,28 @@ public sealed class MatchLifecycleUiStateTests
     }
 
     [Theory]
-    [InlineData(TournamentFormat.BestOf3, 2, 2, true)]
-    [InlineData(TournamentFormat.BestOf3, 1, 0, true)]
-    [InlineData(TournamentFormat.BestOf3, 3, 0, true)]
-    [InlineData(TournamentFormat.BestOf1, 1, 1, true)]
-    [InlineData(TournamentFormat.BestOf3, 2, 0, false)]
-    [InlineData(TournamentFormat.BestOf3, 1, 2, false)]
-    [InlineData(TournamentFormat.BestOf3, 2, null, false)]
-    [InlineData(TournamentFormat.BestOf3, null, 2, false)]
+    [InlineData(TournamentFormat.BestOf3, "2", "2", true)]
+    [InlineData(TournamentFormat.BestOf3, "1", "0", true)]
+    [InlineData(TournamentFormat.BestOf3, "3", "0", true)]
+    [InlineData(TournamentFormat.BestOf1, "1", "1", true)]
+    [InlineData(TournamentFormat.BestOf3, "2", "0", false)]
+    [InlineData(TournamentFormat.BestOf3, "1", "2", false)]
+    [InlineData(TournamentFormat.BestOf3, "2", "", false)]
+    [InlineData(TournamentFormat.BestOf3, "", "2", false)]
+    [InlineData(TournamentFormat.BestOf3, "", "", false)]
     [InlineData(TournamentFormat.BestOf3, null, null, false)]
+    [InlineData(TournamentFormat.BestOf3, "2.5", "0", true)]
+    [InlineData(TournamentFormat.BestOf3, "2", "0.5", true)]
+    [InlineData(TournamentFormat.BestOf3, "-1", "0", true)]
+    [InlineData(TournamentFormat.BestOf3, "2", "abc", true)]
+    [InlineData(TournamentFormat.BestOf3, "2.5", "", false)]
     public void ScoreValidationError_IsShownOnlyWhenBothScoresAreEnteredAndInvalid(
         TournamentFormat format,
-        int? participant1Score,
-        int? participant2Score,
+        string? participant1ScoreText,
+        string? participant2ScoreText,
         bool expected)
     {
-        Assert.Equal(expected, TournamentMatchDetailsDialog.ShouldShowScoreValidationError(format, participant1Score, participant2Score));
+        Assert.Equal(expected, TournamentMatchDetailsDialog.ShouldShowScoreValidationError(format, participant1ScoreText, participant2ScoreText));
     }
 
     [Theory]

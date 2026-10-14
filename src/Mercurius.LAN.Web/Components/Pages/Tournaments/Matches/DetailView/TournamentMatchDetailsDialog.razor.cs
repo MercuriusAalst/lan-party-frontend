@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using Blazored.Toast.Services;
 using Mercurius.LAN.Web.Components.Shared;
@@ -55,12 +56,14 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private MatchParticipantSide? _adminForfeitConfirmationSide;
     private bool _reverseConfirmationRequested;
     private string? _errorMessage;
-    private int? _participant1Score;
-    private int? _participant2Score;
-    private bool ShowScoreValidationError => ShouldShowScoreValidationError(Match.Format, _participant1Score, _participant2Score);
+    private string _participant1ScoreText = string.Empty;
+    private string _participant2ScoreText = string.Empty;
+    private int? ParsedParticipant1Score => ParseScoreText(_participant1ScoreText);
+    private int? ParsedParticipant2Score => ParseScoreText(_participant2ScoreText);
+    private bool ShowScoreValidationError => ShouldShowScoreValidationError(Match.Format, _participant1ScoreText, _participant2ScoreText);
     // Blazor renders a bool true as aria-invalid="", which ARIA treats as false; emit "true" or omit the attribute.
     private string? ScoreInvalidAriaValue => ShowScoreValidationError ? "true" : null;
-    private bool HasValidScoreInputs => IsValidSeriesScore(Match.Format, _participant1Score, _participant2Score);
+    private bool HasValidScoreInputs => IsValidSeriesScore(Match.Format, ParsedParticipant1Score, ParsedParticipant2Score);
     private int WinsNeeded => GetWinsNeeded(Match.Format);
     private CancellationTokenSource? _deadlineRefreshCancellation;
     private DateTime? _deadlineRefreshTriggeredFor;
@@ -199,13 +202,38 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
              (second == winsNeeded && first < winsNeeded));
     }
 
-    internal static bool ShouldShowScoreValidationError(TournamentFormat format, int? participant1Score, int? participant2Score) =>
-        participant1Score.HasValue && participant2Score.HasValue && !IsValidSeriesScore(format, participant1Score, participant2Score);
+    // Empty text means "not entered"; any other text that is not a plain nonnegative integer is entered but invalid (null).
+    internal static int? ParseScoreText(string? text) =>
+        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var score) ? score : null;
 
-    private string GetScoreFormatHint() => Localization.Get(
-        "Feature.match.scoreFormatHint",
-        WinsNeeded,
-        WinsNeeded - 1);
+    internal static string ScoreToText(int? score) => score?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+
+    internal static bool ShouldShowScoreValidationError(TournamentFormat format, string? participant1ScoreText, string? participant2ScoreText) =>
+        !string.IsNullOrEmpty(participant1ScoreText) &&
+        !string.IsNullOrEmpty(participant2ScoreText) &&
+        !IsValidSeriesScore(format, ParseScoreText(participant1ScoreText), ParseScoreText(participant2ScoreText));
+
+    internal static string? GetScoreGuidanceKey(TournamentFormat format) => format switch
+    {
+        TournamentFormat.BestOf1 => "Feature.match.scoreGuidanceBestOf1",
+        TournamentFormat.BestOf3 => "Feature.match.scoreGuidanceBestOf3",
+        TournamentFormat.BestOf5 => "Feature.match.scoreGuidanceBestOf5",
+        _ => null
+    };
+
+    internal static string GetScoreDescribedBy(TournamentFormat format, string idPrefix) =>
+        GetScoreGuidanceKey(format) is null
+            ? $"{idPrefix}-score-validation"
+            : $"{idPrefix}-score-guidance {idPrefix}-score-validation";
+
+    private string? GetScoreGuidance() =>
+        GetScoreGuidanceKey(Match.Format) is { } key ? Localization[key] : null;
+
+    private void SetScoreTexts(int? participant1Score, int? participant2Score)
+    {
+        _participant1ScoreText = ScoreToText(participant1Score);
+        _participant2ScoreText = ScoreToText(participant2Score);
+    }
 
     private string GetStatusLabel() => Match.LifecycleState switch
     {
@@ -429,7 +457,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
             _freshMatchProjection = Match;
             _actionState = state;
             _hasFreshActionState = true;
-            (_participant1Score, _participant2Score) = GetInitialScores(state);
+            var (initialParticipant1Score, initialParticipant2Score) = GetInitialScores(state);
+            SetScoreTexts(initialParticipant1Score, initialParticipant2Score);
             _hasLoaded = true;
             StartDeadlineRefresh();
             await NotifyMatchRefreshedAsync();
@@ -450,8 +479,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
                 _freshMatchProjection = Match;
                 _actionState = null;
                 _hasFreshActionState = false;
-                _participant1Score = publicMatch.Participant1Score;
-                _participant2Score = publicMatch.Participant2Score;
+                SetScoreTexts(publicMatch.Participant1Score, publicMatch.Participant2Score);
                 _requiresAuthentication = exception.StatusCode == HttpStatusCode.Unauthorized;
                 _hasLoaded = true;
                 StartDeadlineRefresh();
@@ -588,8 +616,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     {
         if(_actionState?.CanSubmitScore != true ||
            !HasValidScoreInputs ||
-           _participant1Score is not { } participant1Score ||
-           _participant2Score is not { } participant2Score)
+           ParsedParticipant1Score is not { } participant1Score ||
+           ParsedParticipant2Score is not { } participant2Score)
             return;
 
         var matchId = Match.Id;
@@ -651,8 +679,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     {
         if(_actionState?.CanResolve != true ||
            !HasValidScoreInputs ||
-           _participant1Score is not { } participant1Score ||
-           _participant2Score is not { } participant2Score)
+           ParsedParticipant1Score is not { } participant1Score ||
+           ParsedParticipant2Score is not { } participant2Score)
             return;
 
         var matchId = Match.Id;

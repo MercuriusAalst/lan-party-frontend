@@ -58,7 +58,7 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         var panel = MatchE2E.Section(adminDialog, MatchE2E.AdminPanel);
         await Expect(adminDialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AdminResolutionStatus })).ToBeVisibleAsync();
-        await Expect(panel.Locator("#admin-score-guidance")).ToContainTextAsync("One participant must win 2");
+        await Expect(panel.Locator("#admin-score-guidance")).ToContainTextAsync("the winner has 2 wins; the other side has 0 or 1.");
         var resolve = panel.GetByRole(AriaRole.Button, new() { Name = "Resolve result" });
         await Expect(resolve).ToBeDisabledAsync();
         await MatchE2E.FillAdminScoreAsync(panel, players[0].Username, 2);
