@@ -46,6 +46,8 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
 
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
         await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(dialog.Locator("#participant1-score")).ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(dialog.Locator("#participant2-score")).ToHaveAttributeAsync("aria-invalid", "true");
 
         await page.ReloadAsync();
         await page.WaitForInteractiveAsync();
@@ -68,6 +70,8 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
 
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
         await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(dialog.Locator("#participant1-score")).ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(dialog.Locator("#participant2-score")).ToHaveAttributeAsync("aria-invalid", "true");
 
         await page.ReloadAsync();
         await page.WaitForInteractiveAsync();
@@ -89,6 +93,8 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
 
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
         await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(dialog.Locator("#participant1-score")).ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(dialog.Locator("#participant2-score")).ToHaveAttributeAsync("aria-invalid", "true");
 
         await page.ReloadAsync();
         await page.WaitForInteractiveAsync();
@@ -129,6 +135,37 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
 
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
         await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(dialog.Locator("#participant1-score")).ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(dialog.Locator("#participant2-score")).ToHaveAttributeAsync("aria-invalid", "true");
+
+        await MatchE2E.CloseContextsAsync(app, context);
+    }
+
+    [Fact]
+    public async Task ScoreFormShowsNoErrorUntilBothScoresAreEnteredAndClearsItWhenValid()
+    {
+        var setup = await StartReadyToScoreAsync("BestOf3");
+
+        var context = await app.NewAuthenticatedContextAsync(setup.First);
+        var page = await OpenTournamentAsync(context, setup.TournamentId);
+        var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
+        var first = dialog.Locator("#participant1-score");
+        var second = dialog.Locator("#participant2-score");
+
+        await first.FillAsync("1");
+        await Expect(first).Not.ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToHaveCountAsync(0);
+
+        await second.FillAsync("1");
+        await Expect(first).ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(second).ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
+
+        await second.FillAsync("0");
+        await first.FillAsync("2");
+        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeEnabledAsync();
+        await Expect(first).Not.ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(second).Not.ToHaveAttributeAsync("aria-invalid", "true");
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
