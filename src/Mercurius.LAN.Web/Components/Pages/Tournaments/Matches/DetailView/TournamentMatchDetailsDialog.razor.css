@@ -282,15 +282,20 @@
 .match-admin-blocked-reason {
     padding: 0.65rem 0.8rem;
     border-left: 3px solid var(--color-deep-green);
-    background: rgba(233, 180, 76, 0.12);
-    color: #f1c86d !important;
+    background: var(--color-warning-soft);
+    color: var(--color-warning);
     font-weight: 700;
 }
 
+/* Outranks the generic `.match-action-panel p` muted colour without !important. */
+.match-action-panel .match-admin-blocked-reason {
+    color: var(--color-warning);
+}
+
 .match-outcome-chip--loser {
-    background: rgba(227, 107, 107, 0.14);
-    border-color: rgba(227, 107, 107, 0.5);
-    color: #ffb1b1;
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 42%, transparent);
+    color: var(--color-danger);
 }
 
 .match-score-editor {
