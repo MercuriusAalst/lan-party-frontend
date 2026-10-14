@@ -48,7 +48,7 @@ jobs:
       # Companion backend commit required by this suite until MercuriusAalst/lan-party-backend#139
       # (team membership realtime fan-out) lands on main. Update to the final backend commit,
       # then back to `main` once that change is merged.
-      E2E_BACKEND_REF: 3cfc07f76cd6cb66b0ac17595e01359d3d966606
+      E2E_BACKEND_REF: 01815c2d640c3c08e61b86616a2a94fe26c001a4
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
