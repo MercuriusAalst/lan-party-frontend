@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -211,6 +212,18 @@ public sealed class ApiContractTests
         await client.ReverseMatchAsync(matchId);
         Assert.Equal(HttpMethod.Post, handler.Request!.Method);
         Assert.Equal($"/v1/lan/matches/{matchId}/reverse", handler.Request.RequestUri!.AbsolutePath);
+    }
+
+    [Fact]
+    public void RemovedMatchUpdateRoute_IsNotBoundAndResolveRemains()
+    {
+        var methods = typeof(ILANClient).GetMethods();
+
+        Assert.DoesNotContain(methods, method =>
+            method.GetCustomAttribute<PutAttribute>()?.Path == "/v1/lan/matches/{matchId}");
+        Assert.Contains(methods, method =>
+            method.GetCustomAttribute<PostAttribute>()?.Path == "/v1/lan/matches/{matchId}/resolve");
+        Assert.Null(typeof(ILANClient).Assembly.GetType("Mercurius.LAN.Web.DTOs.Matches.UpdateMatchDTO"));
     }
 
     [Fact]

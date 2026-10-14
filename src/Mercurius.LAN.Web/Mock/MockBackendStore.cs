@@ -861,65 +861,6 @@ internal sealed class MockBackendStore
         }
     }
 
-    public Match UpdateMatch(string persona, Guid matchId, UpdateMatchDTO dto)
-    {
-        lock(_syncRoot)
-        {
-            var tournament = _document.Tournaments.FirstOrDefault(candidate => candidate.Matches.Any(match => match.Id == matchId))
-                ?? throw new InvalidOperationException($"Mock match '{matchId}' was not found.");
-
-            var match = tournament.Matches.First(existing => existing.Id == matchId);
-            EnsureMockTournamentInProgress(tournament);
-            if(!string.Equals(persona, "admin", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only a tournament administrator may resolve this match.");
-            ApplyMockDeadline(tournament, match);
-            if(match.LifecycleState is not (MatchLifecycleState.Disputed or MatchLifecycleState.AdminResolutionRequired))
-                throw new InvalidOperationException("This match does not require administrator resolution.");
-            if(!HasBothMockParticipants(match) || match.Participant1IsBYE || match.Participant2IsBYE)
-                throw new InvalidOperationException("Both non-BYE participants must be assigned before resolving this match.");
-            ValidateMockScore(match, dto.Participant1Score, dto.Participant2Score);
-            CompleteMockScore(tournament, match, dto.Participant1Score, dto.Participant2Score, MatchResultKind.AdminResolution);
-
-            return ClonePublicMatch(match);
-        }
-    }
-
-    public Match UpdateMatch(Guid matchId, UpdateMatchDTO dto)
-    {
-        lock(_syncRoot)
-        {
-            var tournament = _document.Tournaments.FirstOrDefault(candidate => candidate.Matches.Any(match => match.Id == matchId))
-                ?? throw new InvalidOperationException($"Mock match '{matchId}' was not found.");
-
-            var match = tournament.Matches.First(existing => existing.Id == matchId);
-            match.Participant1Score = dto.Participant1Score;
-            match.Participant2Score = dto.Participant2Score;
-
-            if(dto.Participant1Score == dto.Participant2Score)
-            {
-                match.UserWinnerId = null;
-                match.UserLoserId = null;
-                match.TeamWinnerId = null;
-                match.TeamLoserId = null;
-            }
-            else if(match.ParticipationMode == ParticipationMode.Team)
-            {
-                var participant1Won = dto.Participant1Score > dto.Participant2Score;
-                match.TeamWinnerId = participant1Won ? match.TeamParticipant1Id : match.TeamParticipant2Id;
-                match.TeamLoserId = participant1Won ? match.TeamParticipant2Id : match.TeamParticipant1Id;
-            }
-            else
-            {
-                var participant1Won = dto.Participant1Score > dto.Participant2Score;
-                match.UserWinnerId = participant1Won ? match.UserParticipant1Id : match.UserParticipant2Id;
-                match.UserLoserId = participant1Won ? match.UserParticipant2Id : match.UserParticipant1Id;
-            }
-
-            PropagateMatchResult(tournament, match);
-            return ClonePublicMatch(match);
-        }
-    }
-
     public MatchActionStateDTO GetMatchActionState(string persona, Guid matchId)
     {
         lock(_syncRoot)
@@ -3827,14 +3768,6 @@ internal sealed class MockBackendStore
         {
             PropagateMatchResult(tournament, matches, match);
         }
-    }
-
-    private static void PropagateMatchResult(TournamentExtended tournament, Match match)
-    {
-        PropagateMatchResult(
-            tournament,
-            tournament.Matches.ToList(),
-            match);
     }
 
     private static void PropagateMatchResult(

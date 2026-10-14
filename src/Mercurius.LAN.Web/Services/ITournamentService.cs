@@ -74,11 +74,6 @@ public interface ITournamentService
 
     Task<Match> ReverseMatchAsync(Guid matchId, CancellationToken cancellationToken = default);
 
-    Task<Match> UpdateMatchScoresAsync(
-        Guid matchId,
-        UpdateMatchDTO updateMatchDTO,
-        CancellationToken cancellationToken = default);
-
     Task<CurrentUserTournamentRegistrationStateDTO> GetCurrentUserTournamentRegistrationStateAsync(
         Guid tournamentId,
         CancellationToken cancellationToken = default);

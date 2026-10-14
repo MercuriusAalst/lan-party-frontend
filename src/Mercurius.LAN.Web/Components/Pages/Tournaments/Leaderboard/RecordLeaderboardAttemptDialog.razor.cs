@@ -87,7 +87,7 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         }
         catch(ApiException exception)
         {
-            _loadError = ResolveApiError(exception);
+            _loadError = ResolveApiError(exception, Localization["Feature.leaderboard.loadFailed"]);
         }
         catch(Exception)
         {
@@ -498,16 +498,17 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         }
     }
 
-    private string ResolveApiError(ApiException exception)
+    private string ResolveApiError(ApiException exception, string? fallback = null)
     {
         if(exception.StatusCode == HttpStatusCode.Forbidden)
             return Localization["Feature.leaderboard.unauthorized"];
         if(exception.StatusCode == HttpStatusCode.NotFound)
             return Localization["Feature.leaderboard.notFound"];
 
-        return string.IsNullOrWhiteSpace(exception.Content)
-            ? Localization["Feature.leaderboard.submitFailed"]
-            : exception.Content;
+        var message = exception.GetApiError()?.Message;
+        return string.IsNullOrWhiteSpace(message)
+            ? fallback ?? Localization["Feature.leaderboard.submitFailed"]
+            : message;
     }
 
     private string FormatAttemptValue(LeaderboardAttemptDTO attempt) =>

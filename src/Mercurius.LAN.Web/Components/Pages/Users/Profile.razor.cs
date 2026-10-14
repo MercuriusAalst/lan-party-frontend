@@ -1,6 +1,7 @@
 using Blazored.Toast.Services;
 using Mercurius.LAN.Web.APIClients;
 using Mercurius.LAN.Web.DTOs.Users;
+using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
@@ -125,7 +126,7 @@ public partial class Profile
         }
         catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.BadRequest || exception.StatusCode == HttpStatusCode.Conflict)
         {
-            ToastService.ShowError(await GetApiErrorAsync(exception));
+            ToastService.ShowError(GetApiError(exception));
         }
         catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -188,7 +189,7 @@ public partial class Profile
         }
         catch(ApiException exception)
         {
-            ToastService.ShowError(await GetApiErrorAsync(exception));
+            ToastService.ShowError(GetApiError(exception));
         }
         catch(Exception exception) when(exception is HttpRequestException or TaskCanceledException)
         {
@@ -210,7 +211,7 @@ public partial class Profile
         }
         catch(ApiException exception)
         {
-            ToastService.ShowError(await GetApiErrorAsync(exception));
+            ToastService.ShowError(GetApiError(exception));
         }
         catch(Exception exception) when(exception is HttpRequestException or TaskCanceledException)
         {
@@ -235,7 +236,7 @@ public partial class Profile
         }
         catch(ApiException exception)
         {
-            ToastService.ShowError(await GetApiErrorAsync(exception));
+            ToastService.ShowError(GetApiError(exception));
         }
         catch(Exception exception) when(exception is HttpRequestException or TaskCanceledException)
         {
@@ -351,17 +352,10 @@ public partial class Profile
         _ => propertyName
     };
 
-    private async Task<string> GetApiErrorAsync(ApiException exception, string? fallback = null)
+    private string GetApiError(ApiException exception, string? fallback = null)
     {
         fallback ??= Localization["General.Profile.RequestFailed"];
-        try
-        {
-            var content = await exception.GetContentAsAsync<string>();
-            return string.IsNullOrWhiteSpace(content) ? fallback : content;
-        }
-        catch
-        {
-            return string.IsNullOrWhiteSpace(exception.Content) ? fallback : exception.Content.Trim('"');
-        }
+        var message = exception.GetApiError()?.Message;
+        return string.IsNullOrWhiteSpace(message) ? fallback : message;
     }
 }
