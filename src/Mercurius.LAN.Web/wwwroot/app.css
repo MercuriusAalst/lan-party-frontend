@@ -1022,7 +1022,8 @@ select:focus {
     background: url('/img/riot.svg') no-repeat center center/contain;
 }
 
-.blazored-toast-container {
+/* The package ships a scoped `.blazored-toast-container[b-*] { z-index: 999 }` loaded after this file; the extra :root and [class] selectors outrank it so toasts show above dialogs (2000-2200). */
+:root .blazored-toast-container[class] {
     z-index: 4000;
 }
 

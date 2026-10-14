@@ -445,7 +445,18 @@
 }
 
 .match-modal-actions {
+    flex-wrap: wrap;
     justify-content: flex-end;
+}
+
+/* Grid containers stretch their children; action buttons size to their content instead. */
+.match-action-panel > button,
+.match-action-panel > a,
+.match-score-editor > button,
+.match-confirmation-box > button,
+.match-state-message > button,
+.match-state-message > a {
+    justify-self: start;
 }
 
 @media (max-width: 820px) {
@@ -462,11 +473,7 @@
     }
 
     .match-modal-actions {
-        justify-content: stretch;
-    }
-
-    .match-modal-actions > * {
-        width: 100%;
+        justify-content: flex-start;
     }
 }
 
@@ -484,15 +491,6 @@
 
     .match-header {
         flex-direction: column;
-    }
-
-    .match-admin-forfeit-actions {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .match-admin-forfeit-actions > * {
-        width: 100%;
     }
 }
 
