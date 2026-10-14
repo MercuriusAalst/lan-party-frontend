@@ -43,11 +43,11 @@ public sealed class TeamAuthorizationTests : E2ETestBase
         var remove = await memberApi.DeleteAsync($"/v1/lan/teams/{team.Id}/members/{captainId}");
         var removeLogo = await memberApi.DeleteAsync($"/v1/lan/teams/{team.Id}/logo");
 
-        // EnsureCaptain throws UnauthorizedAccessException, which the API exception handler maps to 401.
-        Assert.Equal(HttpStatusCode.Unauthorized, invite.StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, transfer.StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, remove.StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, removeLogo.StatusCode);
+        // EnsureCaptain throws ForbiddenException, which the API exception handler maps to 403.
+        Assert.Equal(HttpStatusCode.Forbidden, invite.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, transfer.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, remove.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, removeLogo.StatusCode);
 
         var summary = await TeamE2E.GetSummaryAsync(captainApi);
         var managed = Assert.Single(summary.CaptainedTeams);
@@ -65,7 +65,7 @@ public sealed class TeamAuthorizationTests : E2ETestBase
 
         var response = await memberApi.DeleteAsync($"/v1/lan/teams/{team.Id}/invites/{invite.Id}");
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         var summary = await TeamE2E.GetSummaryAsync(captainApi);
         Assert.Single(summary.SentPendingInvites);
     }
