@@ -287,17 +287,6 @@
     font-weight: 700;
 }
 
-.button-danger {
-    border-color: rgba(185, 28, 28, 0.28);
-    background: rgba(227, 107, 107, 0.14);
-    color: var(--color-danger);
-}
-
-.button-danger:hover,
-.button-danger:focus-visible {
-    background: rgba(227, 107, 107, 0.24);
-}
-
 .match-outcome-chip--loser {
     background: rgba(227, 107, 107, 0.14);
     border-color: rgba(227, 107, 107, 0.5);
