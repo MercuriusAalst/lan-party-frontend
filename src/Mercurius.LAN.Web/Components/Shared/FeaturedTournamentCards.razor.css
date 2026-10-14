@@ -235,13 +235,12 @@ button.home-tournament-row:focus-visible {
     top: 0.5rem;
     right: 0.5rem;
     z-index: 2;
-    padding: 0.2rem;
-    border-radius: 0.5rem;
-    background: var(--color-surface-raised);
 }
 
 .home-tournament-slot-select {
     max-width: 9rem;
+    text-align: center;
+    text-align-last: center;
 }
 
 .home-tournament-slot-remove {
