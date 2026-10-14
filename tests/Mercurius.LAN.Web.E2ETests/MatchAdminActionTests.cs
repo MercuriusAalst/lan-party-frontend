@@ -62,7 +62,6 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: "BestOf3");
         var matchId = (await MatchE2E.GetMatchesAsync(app.Api, tournamentId)).Single().Id;
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[0], 2, 1);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[1], 2, 0);
 
@@ -163,7 +162,7 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await MatchE2E.ClickAsync(confirmation.GetByRole(AriaRole.Button, new() { Name = "Cancel" }));
 
         await Expect(confirmation).ToHaveCountAsync(0);
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
 
         await MatchE2E.ClickAsync(dialog.GetByRole(AriaRole.Button, new() { Name = $"Forfeit {players[1].Username}" }));
         await MatchE2E.ClickAsync(dialog
@@ -191,7 +190,7 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var adminPage = await OpenTournamentAsync(adminContext, tournamentId);
         var adminDialog = await MatchE2E.OpenMatchAsync(adminPage, players[0].Username);
 
-        await Expect(adminDialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
+        await Expect(adminDialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
         // Both the resolve and the force-forfeit control explain their own block, so every
         // blocked-reason paragraph in the panel must carry the same tournament-level reason.
         var blockedReasons = await MatchE2E.Section(adminDialog, MatchE2E.AdminPanel)
@@ -205,7 +204,6 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var playerDialog = await MatchE2E.OpenMatchAsync(playerPage, players[0].Username);
 
         await Expect(MatchE2E.Section(playerDialog, MatchE2E.YourActionsPanel)).ToBeVisibleAsync();
-        await Expect(playerDialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.ConfirmEndedButton })).ToHaveCountAsync(0);
         await Expect(playerDialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToHaveCountAsync(0);
         await Expect(playerDialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.ForfeitSideButton })).ToHaveCountAsync(0);
 
@@ -221,9 +219,6 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(app, app.CreateApiClient(admin), players);
         var matchId = (await MatchE2E.GetMatchesAsync(app.Api, tournamentId)).Single().Id;
 
-        var anonymousConfirm = await app.Api.PostAsync($"v1/lan/matches/{matchId}/confirm-ended", null);
-        Assert.Equal(HttpStatusCode.Unauthorized, anonymousConfirm.StatusCode);
-
         var anonymousScore = await TournamentE2E.SendJsonAsync(
             app.Api, HttpMethod.Put, $"v1/lan/matches/{matchId}/score", new { Participant1Score = 1, Participant2Score = 0 });
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousScore.StatusCode);
@@ -231,10 +226,11 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var anonymousState = await app.Api.GetAsync($"v1/lan/matches/{matchId}/me");
         Assert.Equal(HttpStatusCode.Unauthorized, anonymousState.StatusCode);
 
-        var outsiderConfirm = await app.CreateApiClient(outsider).PostAsync($"v1/lan/matches/{matchId}/confirm-ended", null);
+        var outsiderScore = await TournamentE2E.SendJsonAsync(
+            app.CreateApiClient(outsider), HttpMethod.Put, $"v1/lan/matches/{matchId}/score", new { Participant1Score = 1, Participant2Score = 0 });
         Assert.True(
-            outsiderConfirm.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden,
-            $"Expected the participant guard to reject an outsider, got {(int)outsiderConfirm.StatusCode}.");
+            outsiderScore.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden,
+            $"Expected the participant guard to reject an outsider, got {(int)outsiderScore.StatusCode}.");
 
         var participantResolve = await app.CreateApiClient(players[0]).PostAsync($"v1/lan/matches/{matchId}/resolve", null);
         Assert.Equal(HttpStatusCode.Forbidden, participantResolve.StatusCode);

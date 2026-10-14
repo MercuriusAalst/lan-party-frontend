@@ -97,9 +97,6 @@ public sealed class MatchLifecycleUiStateTests
 
     [Theory]
     [InlineData(
-        "ConfirmEnded",
-        "Match-end confirmation is no longer available.")]
-    [InlineData(
         "SubmitScore",
         "Score submission is no longer available.")]
     [InlineData(

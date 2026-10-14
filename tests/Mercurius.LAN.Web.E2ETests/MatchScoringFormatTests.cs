@@ -50,7 +50,7 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         await page.ReloadAsync();
         await page.WaitForInteractiveAsync();
         var reopened = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await Expect(reopened.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.ReadyForScore })).ToBeVisibleAsync();
+        await Expect(reopened.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
         await Expect(reopened.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
@@ -71,7 +71,7 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         await page.ReloadAsync();
         await page.WaitForInteractiveAsync();
         var reopened = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await Expect(reopened.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.ReadyForScore })).ToBeVisibleAsync();
+        await Expect(reopened.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
@@ -91,7 +91,7 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         await page.ReloadAsync();
         await page.WaitForInteractiveAsync();
         var reopened = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await Expect(reopened.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.ReadyForScore })).ToBeVisibleAsync();
+        await Expect(reopened.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
@@ -136,7 +136,6 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         var players = await MatchE2E.CreatePersonasAsync(app, "match-score-player", 2);
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: format);
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
         return (tournamentId, players[0], players[1]);
     }
 

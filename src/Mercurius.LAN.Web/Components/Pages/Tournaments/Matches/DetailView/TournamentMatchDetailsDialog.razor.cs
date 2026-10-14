@@ -16,7 +16,6 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
 {
     internal enum MatchMutationAction
     {
-        ConfirmEnded,
         SubmitScore,
         Forfeit,
         ForceForfeit,
@@ -179,8 +178,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
 
     private string GetStatusLabel() => Match.LifecycleState switch
     {
-        MatchLifecycleState.AwaitingEndedConfirmation => Localization["Feature.match.statusAwaitingConfirmation"],
-        MatchLifecycleState.AwaitingScore => Localization["Feature.match.statusReadyForScore"],
+        MatchLifecycleState.AwaitingEndedConfirmation or MatchLifecycleState.AwaitingScore => Localization["Feature.match.statusAwaitingScore"],
         MatchLifecycleState.ScoreConfirmation => Localization["Feature.match.statusScoreConfirmation"],
         MatchLifecycleState.Disputed => Localization["Feature.match.statusDisputed"],
         MatchLifecycleState.AdminResolutionRequired => Localization["Feature.match.statusAdminResolution"],
@@ -381,9 +379,6 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private string GetEmptyParticipantLabel(bool isBye) =>
         isBye ? Localization["Feature.match.bye"] : Localization["Feature.match.tbd"];
 
-    private string GetEndedStatusLabel(bool ended) =>
-        ended ? Localization["Feature.match.confirmed"] : Localization["Feature.match.waiting"];
-
     private async Task<bool> RefreshAsync(Guid expectedMatchId)
     {
         var generation = ++_refreshGeneration;
@@ -557,16 +552,6 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     }
 
     private async Task RetryAsync() => await RefreshAsync(Match.Id);
-
-    private async Task ConfirmEndedAsync()
-    {
-        var matchId = Match.Id;
-        await RunMutationAsync(
-            () => TournamentService.ConfirmMatchEndedAsync(matchId),
-            Localization["Feature.match.confirmEndedSaved"],
-            state => state.CanConfirmEnded,
-            MatchMutationAction.ConfirmEnded);
-    }
 
     private async Task SubmitScoreAsync()
     {
@@ -761,7 +746,6 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
             MatchMutationAction.ForceForfeit => GetAdminBlockedReason(state.ForceForfeitBlockedReason),
             MatchMutationAction.Resolve => GetAdminBlockedReason(state.ResolveBlockedReason),
             MatchMutationAction.Reverse => GetAdminBlockedReason(state.ReverseBlockedReason),
-            MatchMutationAction.ConfirmEnded => "Match-end confirmation is no longer available.",
             MatchMutationAction.SubmitScore => "Score submission is no longer available.",
             MatchMutationAction.Forfeit => "Forfeiting is no longer available for your side.",
             _ => "The match changed while you were working. Try again."
@@ -773,7 +757,6 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         MatchMutationAction.ForceForfeit => GetLocalizedAdminBlockedReason(state.ForceForfeitBlockedReason),
         MatchMutationAction.Resolve => GetLocalizedAdminBlockedReason(state.ResolveBlockedReason),
         MatchMutationAction.Reverse => GetLocalizedAdminBlockedReason(state.ReverseBlockedReason),
-        MatchMutationAction.ConfirmEnded => Localization["Feature.match.confirmEndedUnavailable"],
         MatchMutationAction.SubmitScore => Localization["Feature.match.scoreSubmissionUnavailable"],
         MatchMutationAction.Forfeit => Localization["Feature.match.forfeitUnavailable"],
         _ => Localization["Feature.match.changedTryAgain"]

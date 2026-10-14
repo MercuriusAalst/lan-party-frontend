@@ -185,7 +185,7 @@ public sealed class ApiContractTests
     public async Task MatchLifecycleRoutes_UseExplicitParticipantAndAdminActions()
     {
         var matchId = Guid.Parse("77777777-7777-7777-7777-777777777777");
-        var handler = new RecordingHandler($"{{\"match\":{{\"id\":\"{matchId}\",\"lifecycleState\":\"AwaitingScore\"}},\"authorizedParticipant\":\"Participant1\",\"canConfirmEnded\":false,\"canSubmitScore\":true,\"canForfeit\":true,\"canResolve\":true,\"canForceForfeit\":true,\"canReverse\":true}}");
+        var handler = new RecordingHandler($"{{\"match\":{{\"id\":\"{matchId}\",\"lifecycleState\":\"AwaitingScore\"}},\"authorizedParticipant\":\"Participant1\",\"canSubmitScore\":true,\"canForfeit\":true,\"canResolve\":true,\"canForceForfeit\":true,\"canReverse\":true}}");
         using var httpClient = CreateHttpClient(handler);
         var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
 
@@ -195,10 +195,6 @@ public sealed class ApiContractTests
         Assert.True(actionState.CanResolve);
         Assert.True(actionState.CanForceForfeit);
         Assert.True(actionState.CanReverse);
-
-        await client.ConfirmMatchEndedAsync(matchId);
-        Assert.Equal(HttpMethod.Post, handler.Request!.Method);
-        Assert.Equal($"/v1/lan/matches/{matchId}/confirm-ended", handler.Request.RequestUri!.AbsolutePath);
 
         await client.SubmitMatchScoreAsync(matchId, new SubmitMatchScoreDTO { Participant1Score = 2, Participant2Score = 1 });
         Assert.Equal(HttpMethod.Put, handler.Request!.Method);

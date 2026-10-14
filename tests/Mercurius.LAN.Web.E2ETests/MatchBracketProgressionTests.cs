@@ -26,8 +26,6 @@ public class MatchBracketProgressionTests(PlaywrightE2EFixture app) : E2ETestBas
         var firstContext = await app.NewAuthenticatedContextAsync(first);
         var secondContext = await app.NewAuthenticatedContextAsync(second);
 
-        await InMatchAsync(firstContext, tournamentId, first.Username, dialog => MatchE2E.ConfirmEndedAsync(dialog));
-        await InMatchAsync(secondContext, tournamentId, second.Username, dialog => MatchE2E.ConfirmEndedAsync(dialog));
         await InMatchAsync(firstContext, tournamentId, first.Username,
             dialog => MatchE2E.SubmitScoreAsync(dialog, 1, 0));
         await InMatchAsync(secondContext, tournamentId, second.Username,
@@ -145,10 +143,8 @@ public class MatchBracketProgressionTests(PlaywrightE2EFixture app) : E2ETestBas
         var winner = MatchE2E.PersonaForUser(players, final.UserParticipant1Id);
         var runnerUp = MatchE2E.PersonaForUser(players, final.UserParticipant2Id);
 
-        // The winning report is confirmed by the API first so the Finish step starts from a
+        // The winning report is submitted by the API first so the Finish step starts from a
         // decided final; this keeps the assertion below focused on the published placements.
-        await MatchE2E.ConfirmEndedViaApiAsync(app, final.Id, winner);
-        await MatchE2E.ConfirmEndedViaApiAsync(app, final.Id, runnerUp);
         await MatchE2E.SubmitScoreViaApiAsync(app, final.Id, winner, 1, 0);
         await MatchE2E.SubmitScoreViaApiAsync(app, final.Id, runnerUp, 1, 0);
 

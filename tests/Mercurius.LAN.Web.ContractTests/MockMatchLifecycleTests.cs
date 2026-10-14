@@ -155,10 +155,8 @@ public sealed class MockMatchLifecycleTests
 
         Assert.Equal(MatchLifecycleState.Reversed, reversed.LifecycleState);
         Assert.Equal(default, reversed.EndTime);
-        Assert.True(store.GetMatchActionState("user", ReplayMatchId).CanConfirmEnded);
+        Assert.True(store.GetMatchActionState("user", ReplayMatchId).CanSubmitScore);
 
-        store.ConfirmMatchEnded("user", ReplayMatchId);
-        store.ConfirmMatchEnded("admin", ReplayMatchId);
         store.SubmitMatchScore(
             "user",
             ReplayMatchId,
@@ -175,7 +173,36 @@ public sealed class MockMatchLifecycleTests
 
         Assert.Equal(MatchLifecycleState.Reversed, reversedAgain.LifecycleState);
         Assert.Equal(default, reversedAgain.EndTime);
-        Assert.True(store.GetMatchActionState("user", ReplayMatchId).CanConfirmEnded);
+        Assert.True(store.GetMatchActionState("user", ReplayMatchId).CanSubmitScore);
+    }
+
+    [Fact]
+    public void MockDirectScoreReportRecordsTheEndingWithoutASeparateConfirmation()
+    {
+        var store = CreateReplayStore();
+        store.ReverseMatch("admin", ReplayMatchId);
+
+        // The first report alone records that side's ended confirmation; there is no confirm step.
+        Assert.True(store.GetMatchActionState("user", ReplayMatchId).CanSubmitScore);
+
+        store.SubmitMatchScore(
+            "user",
+            ReplayMatchId,
+            new SubmitMatchScoreDTO { Participant1Score = 1, Participant2Score = 0 });
+
+        var afterReport = store.GetMatch(ReplayMatchId);
+        Assert.Equal(MatchLifecycleState.ScoreConfirmation, afterReport.LifecycleState);
+        Assert.True(afterReport.Participant1Ended);
+        Assert.False(afterReport.Participant2Ended);
+        Assert.NotNull(afterReport.ScoreConfirmationDeadlineUtc);
+        Assert.True(store.GetMatchActionState("admin", ReplayMatchId).CanSubmitScore);
+
+        var completed = store.SubmitMatchScore(
+            "admin",
+            ReplayMatchId,
+            new SubmitMatchScoreDTO { Participant1Score = 1, Participant2Score = 0 });
+
+        Assert.Equal(MatchLifecycleState.Completed, completed.LifecycleState);
     }
 
     [Fact]
@@ -184,8 +211,6 @@ public sealed class MockMatchLifecycleTests
         var scoreConfirmationStore = CreateReplayStore();
 
         scoreConfirmationStore.ReverseMatch("admin", ReplayMatchId);
-        scoreConfirmationStore.ConfirmMatchEnded("user", ReplayMatchId);
-        scoreConfirmationStore.ConfirmMatchEnded("admin", ReplayMatchId);
         scoreConfirmationStore.SubmitMatchScore(
             "user",
             ReplayMatchId,
@@ -206,8 +231,6 @@ public sealed class MockMatchLifecycleTests
 
         var disputedStore = CreateReplayStore();
         disputedStore.ReverseMatch("admin", ReplayMatchId);
-        disputedStore.ConfirmMatchEnded("user", ReplayMatchId);
-        disputedStore.ConfirmMatchEnded("admin", ReplayMatchId);
         disputedStore.SubmitMatchScore(
             "user",
             ReplayMatchId,
