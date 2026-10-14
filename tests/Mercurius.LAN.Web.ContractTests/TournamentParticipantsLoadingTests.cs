@@ -68,14 +68,19 @@ public sealed class TournamentParticipantsLoadingTests
         Assert.DoesNotContain("Feature.tournaments.noTeamAvailable", initialContent);
 
         SetPrivateField(tab, "_registrationLoadRequested", false);
+        var signedOutContent = tab.RenderMarkupText();
+        Assert.Contains("Feature.tournaments.signInRegistration", signedOutContent);
+        Assert.DoesNotContain("Feature.tournaments.checkingYourOptions", signedOutContent);
+
         SetPrivateField(tab, "_isLoadingRegistration", true);
+        SetPrivateField(tab, "_isAuthenticated", true);
         var loadingContent = tab.RenderMarkupText();
         Assert.Contains("Feature.tournaments.checkingYourOptions", loadingContent);
         Assert.DoesNotContain("Feature.tournaments.signInRegistration", loadingContent);
         Assert.DoesNotContain("Feature.tournaments.noTeamAvailable", loadingContent);
+        Assert.DoesNotContain("Feature.tournaments.selectTeam", loadingContent);
 
         SetPrivateField(tab, "_isLoadingRegistration", false);
-        SetPrivateField(tab, "_isAuthenticated", true);
         SetPrivateField(tab, "_teamSummary", new CurrentUserTeamSummaryDTO());
         var resolvedContent = tab.RenderMarkupText();
         Assert.Contains("Feature.tournaments.noTeamAvailable", resolvedContent);
