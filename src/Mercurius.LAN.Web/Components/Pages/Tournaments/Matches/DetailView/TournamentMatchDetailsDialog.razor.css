@@ -437,3 +437,8 @@
         width: 100%;
     }
 }
+
+.match-score-validation {
+    min-height: 1.5rem;
+    margin: 0;
+}

@@ -163,15 +163,15 @@
                             <div class="score-inputs">
                                 <div class="match-score-field">
                                     <label for="participant1-score">@Participant1Name</label>
-                                    <input id="participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="player-score-guidance player-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1Score" @bind:event="oninput" />
+                                    <input id="participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="player-score-guidance player-score-validation" aria-invalid="@ScoreInvalidAriaValue" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1Score" @bind:event="oninput" />
                                 </div>
                                 <div class="match-score-field">
                                     <label for="participant2-score">@Participant2Name</label>
-                                    <input id="participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="player-score-guidance player-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2Score" @bind:event="oninput" />
+                                    <input id="participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="player-score-guidance player-score-validation" aria-invalid="@ScoreInvalidAriaValue" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2Score" @bind:event="oninput" />
                                 </div>
                             </div>
-                            <p id="player-score-validation" class="match-score-validation" role="status">@(HasAnyScoreInput && !HasValidScoreInputs ? Localization["Feature.match.scoreMustBeDecisive"] : string.Empty)</p>
-                            <button type="button" class="button-primary" disabled="@(_isSubmitting || _isLoading || !HasValidScoreInputs)" @onclick="SubmitScoreAsync">@Localization["Feature.match.submitScore"]</button>
+                            <p id="player-score-validation" class="match-score-validation" role="status">@(ShowScoreValidationError ? Localization["Feature.match.scoreMustBeDecisive"] : string.Empty)</p>
+                            <button type="button" class="button-primary" aria-describedby="player-score-guidance player-score-validation" disabled="@(_isSubmitting || _isLoading || !HasValidScoreInputs)" @onclick="SubmitScoreAsync">@Localization["Feature.match.submitScore"]</button>
                         </div>
                     }
                     @if(_actionState.CanForfeit)
@@ -223,15 +223,15 @@
                             <div class="score-inputs">
                                 <div class="match-score-field">
                                     <label for="admin-participant1-score">@Participant1Name</label>
-                                    <input id="admin-participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="admin-score-guidance admin-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1Score" @bind:event="oninput" />
+                                    <input id="admin-participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="admin-score-guidance admin-score-validation" aria-invalid="@ScoreInvalidAriaValue" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1Score" @bind:event="oninput" />
                                 </div>
                                 <div class="match-score-field">
                                     <label for="admin-participant2-score">@Participant2Name</label>
-                                    <input id="admin-participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="admin-score-guidance admin-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2Score" @bind:event="oninput" />
+                                    <input id="admin-participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="admin-score-guidance admin-score-validation" aria-invalid="@ScoreInvalidAriaValue" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2Score" @bind:event="oninput" />
                                 </div>
                             </div>
-                            <p id="admin-score-validation" class="match-score-validation" role="status">@(HasAnyScoreInput && !HasValidScoreInputs ? Localization["Feature.match.scoreMustBeDecisive"] : string.Empty)</p>
-                            <button type="button" class="button-primary" disabled="@(_isSubmitting || _isLoading || !_actionState.CanResolve || !HasValidScoreInputs)" @onclick="ResolveAsync">@Localization["Feature.match.resolveResult"]</button>
+                            <p id="admin-score-validation" class="match-score-validation" role="status">@(ShowScoreValidationError ? Localization["Feature.match.scoreMustBeDecisive"] : string.Empty)</p>
+                            <button type="button" class="button-primary" aria-describedby="admin-score-guidance admin-score-validation" disabled="@(_isSubmitting || _isLoading || !_actionState.CanResolve || !HasValidScoreInputs)" @onclick="ResolveAsync">@Localization["Feature.match.resolveResult"]</button>
                             }
                         }
                         @if(_actionState.CanForceForfeit)

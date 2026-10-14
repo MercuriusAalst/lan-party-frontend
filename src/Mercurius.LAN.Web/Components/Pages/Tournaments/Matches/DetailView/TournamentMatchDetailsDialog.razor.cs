@@ -57,7 +57,9 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private string? _errorMessage;
     private int? _participant1Score;
     private int? _participant2Score;
-    private bool HasAnyScoreInput => _participant1Score.HasValue || _participant2Score.HasValue;
+    private bool ShowScoreValidationError => ShouldShowScoreValidationError(Match.Format, _participant1Score, _participant2Score);
+    // Blazor renders a bool true as aria-invalid="", which ARIA treats as false; emit "true" or omit the attribute.
+    private string? ScoreInvalidAriaValue => ShowScoreValidationError ? "true" : null;
     private bool HasValidScoreInputs => IsValidSeriesScore(Match.Format, _participant1Score, _participant2Score);
     private int WinsNeeded => GetWinsNeeded(Match.Format);
     private CancellationTokenSource? _deadlineRefreshCancellation;
@@ -196,6 +198,9 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
             ((first == winsNeeded && second < winsNeeded) ||
              (second == winsNeeded && first < winsNeeded));
     }
+
+    internal static bool ShouldShowScoreValidationError(TournamentFormat format, int? participant1Score, int? participant2Score) =>
+        participant1Score.HasValue && participant2Score.HasValue && !IsValidSeriesScore(format, participant1Score, participant2Score);
 
     private string GetScoreFormatHint() => Localization.Get(
         "Feature.match.scoreFormatHint",
