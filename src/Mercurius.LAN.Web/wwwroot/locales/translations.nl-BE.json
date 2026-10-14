@@ -725,7 +725,6 @@
   "Feature.match.descriptionScoreConfirmation": "De eerste scoremelding is opgeslagen. De tegenstander heeft vijf minuten om akkoord te gaan of een correctie te melden.",
   "Feature.match.details": "Matchdetails",
   "Feature.match.detailsUnavailable": "Matchdetails zijn tijdelijk niet beschikbaar.",
-  "Feature.match.enterScoresBeforeResolve": "Vul de scores van beide kanten in voordat je deze match beslist.",
   "Feature.match.forfeitParticipant": "Geef {0} forfait",
   "Feature.match.forfeitParticipantQuestion": "Geef {0} forfait?",
   "Feature.match.forfeitSaved": "Het forfait is opgeslagen.",

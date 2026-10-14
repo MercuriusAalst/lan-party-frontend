@@ -205,6 +205,8 @@ The match details UI MUST explain the required wins for the configured Best-of f
 - **WHEN** either score is missing, negative, tied, exceeds the required wins, or neither participant reaches the required wins
 - **THEN** the UI MUST disable score submission
 - **AND** it MUST show accessible guidance explaining the valid score for the configured format
+- **AND** it MUST show the validation error, mark both score inputs as invalid to assistive technology, and style them as an error only after both scores have been entered
+- **AND** it MUST NOT show the validation error while only one score has been entered
 - **AND** the submission handler MUST NOT invoke the backend
 
 #### Scenario: Administrator enters an incomplete or invalid resolution score

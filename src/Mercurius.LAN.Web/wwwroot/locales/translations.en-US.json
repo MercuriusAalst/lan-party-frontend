@@ -725,7 +725,6 @@
   "Feature.match.descriptionScoreConfirmation": "The first score report is saved. The opponent has five minutes to agree or report a correction.",
   "Feature.match.details": "Match details",
   "Feature.match.detailsUnavailable": "Match details are temporarily unavailable.",
-  "Feature.match.enterScoresBeforeResolve": "Enter both participant scores before resolving this match.",
   "Feature.match.forfeitParticipant": "Forfeit {0}",
   "Feature.match.forfeitParticipantQuestion": "Forfeit {0}?",
   "Feature.match.forfeitSaved": "The forfeit was saved.",
