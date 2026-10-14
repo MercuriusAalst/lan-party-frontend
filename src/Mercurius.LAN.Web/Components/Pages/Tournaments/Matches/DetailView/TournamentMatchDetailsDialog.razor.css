@@ -201,7 +201,6 @@
 }
 
 .match-deadline span,
-.match-confirmation-status span,
 .match-admin-forfeit-actions span {
     color: var(--color-muted-text);
     font-size: 0.78rem;
@@ -210,8 +209,7 @@
     letter-spacing: 0.04em;
 }
 
-.match-deadline strong,
-.match-confirmation-status strong {
+.match-deadline strong {
     color: var(--color-ink);
     font-size: 0.9rem;
 }
@@ -250,15 +248,6 @@
     font-weight: 700;
 }
 
-.match-confirmation-status {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--color-border);
-}
-
 .match-reports {
     display: flex;
     flex-wrap: wrap;
@@ -282,26 +271,20 @@
 .match-admin-blocked-reason {
     padding: 0.65rem 0.8rem;
     border-left: 3px solid var(--color-deep-green);
-    background: rgba(233, 180, 76, 0.12);
-    color: #f1c86d !important;
+    background: var(--color-warning-soft);
+    color: var(--color-warning);
     font-weight: 700;
 }
 
-.button-danger {
-    border-color: rgba(185, 28, 28, 0.28);
-    background: rgba(227, 107, 107, 0.14);
-    color: var(--color-danger);
-}
-
-.button-danger:hover,
-.button-danger:focus-visible {
-    background: rgba(227, 107, 107, 0.24);
+/* Outranks the generic `.match-action-panel p` muted colour without !important. */
+.match-action-panel .match-admin-blocked-reason {
+    color: var(--color-warning);
 }
 
 .match-outcome-chip--loser {
-    background: rgba(227, 107, 107, 0.14);
-    border-color: rgba(227, 107, 107, 0.5);
-    color: #ffb1b1;
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 42%, transparent);
+    color: var(--color-danger);
 }
 
 .match-score-editor {

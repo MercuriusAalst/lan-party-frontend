@@ -783,6 +783,31 @@ main {
     box-shadow: var(--shadow-brand);
 }
 
+/* Destructive action variant; global so every dialog (CSS isolation) shares one definition. */
+.button-secondary.button-danger {
+    background: var(--color-danger-soft);
+    border-color: color-mix(in srgb, var(--color-danger) 42%, transparent);
+    color: var(--color-danger);
+}
+
+.button-secondary.button-danger:hover {
+    background: color-mix(in srgb, var(--color-danger) 22%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger) 60%, transparent);
+    color: var(--color-danger);
+}
+
+.button-secondary.button-danger:focus-visible {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.button-secondary.button-danger:disabled,
+.button-secondary.button-danger[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .btn-danger {
     border-radius: var(--radius-button);
     font-weight: 700;

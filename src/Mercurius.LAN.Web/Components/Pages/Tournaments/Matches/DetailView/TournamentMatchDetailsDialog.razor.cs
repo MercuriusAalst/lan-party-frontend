@@ -249,8 +249,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
 
     private string GetStatusDescription() => Match.LifecycleState switch
     {
-        MatchLifecycleState.AwaitingEndedConfirmation => Localization["Feature.match.descriptionAwaitingConfirmation"],
-        MatchLifecycleState.AwaitingScore => Localization["Feature.match.descriptionAwaitingScore"],
+        MatchLifecycleState.AwaitingEndedConfirmation or MatchLifecycleState.AwaitingScore => Localization["Feature.match.descriptionAwaitingReport"],
         MatchLifecycleState.ScoreConfirmation => Localization["Feature.match.descriptionScoreConfirmation"],
         MatchLifecycleState.Disputed => Localization["Feature.match.descriptionDisputed"],
         MatchLifecycleState.AdminResolutionRequired => Localization["Feature.match.descriptionAdminResolution"],

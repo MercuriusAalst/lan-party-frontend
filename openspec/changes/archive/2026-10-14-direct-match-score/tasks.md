@@ -12,5 +12,5 @@
 ## 3. Tests and validation
 
 - [x] 3.1 Update the contract and E2E callers for the removed route and capability and for direct score submission.
-- [x] 3.2 Run the focused match contract tests (56 passed) and attempt the E2E project build; the build exited 1 with no warnings or errors and is being diagnosed by the architect after merge.
+- [x] 3.2 Run the focused match contract tests (56 passed) and build the E2E project against the backend PR #151 head (`00f58bd9`); the E2E build only fails when `MERCURIUS_BACKEND_ROOT` / `BackendProjectRoot` does not point at a backend checkout, and with it set the build succeeds (0 errors).
 - [x] 3.3 Validate strictly and archive the change.
