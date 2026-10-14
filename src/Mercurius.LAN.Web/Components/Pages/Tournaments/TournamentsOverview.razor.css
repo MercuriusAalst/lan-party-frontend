@@ -381,3 +381,8 @@
         transform: none;
     }
 }
+
+.tournament-empty-copy {
+    margin: 0;
+    color: var(--color-muted-text);
+}
