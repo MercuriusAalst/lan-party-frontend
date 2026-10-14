@@ -73,15 +73,18 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var panel = MatchE2E.Section(dialog, MatchE2E.AdminPanel);
         await Expect(panel.GetByText("Resolve the conflict with the verified final score. The selected result becomes official."))
             .ToBeVisibleAsync();
-        await Expect(panel.GetByText("Enter both participant scores before resolving this match.")).ToBeVisibleAsync();
-        await Expect(panel.GetByRole(AriaRole.Button, new() { Name = "Resolve result" })).ToBeDisabledAsync();
+        await Expect(panel.Locator("#admin-score-guidance")).ToContainTextAsync("One participant must win 2");
+        var resolve = panel.GetByRole(AriaRole.Button, new() { Name = "Resolve result" });
+        await Expect(resolve).ToBeDisabledAsync();
+
+        await MatchE2E.FillAdminScoreAsync(panel, players[0].Username, 2);
+        await MatchE2E.FillAdminScoreAsync(panel, players[1].Username, 2);
+        await Expect(panel.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(resolve).ToBeDisabledAsync();
 
         await MatchE2E.FillAdminScoreAsync(panel, players[0].Username, 2);
         await MatchE2E.FillAdminScoreAsync(panel, players[1].Username, 0);
-        // The hint is rendered by the server from the bound values, so its removal proves the
-        // circuit received both scores; the button must then be clickable.
-        await Expect(panel.GetByText(MatchE2E.EnterScoresBeforeResolve)).ToHaveCountAsync(0);
-        var resolve = panel.GetByRole(AriaRole.Button, new() { Name = "Resolve result" });
+        await Expect(panel.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToHaveCountAsync(0);
         await Expect(resolve).ToBeEnabledAsync();
         await MatchE2E.ClickAsync(resolve);
 

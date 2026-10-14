@@ -36,7 +36,6 @@ internal static class MatchE2E
     internal const string TournamentNotInProgress = "This tournament is no longer in progress.";
     internal const string MatchNotDisputed = "This match does not currently require administrator resolution.";
     internal const string NoOfficialResultToReverse = "This match does not have an official result to reverse.";
-    internal const string EnterScoresBeforeResolve = "Enter both participant scores before resolving this match.";
 
     internal static string UniqueLabel(string prefix) => $"{prefix}-{Guid.NewGuid().ToString("N")[..8]}";
 
