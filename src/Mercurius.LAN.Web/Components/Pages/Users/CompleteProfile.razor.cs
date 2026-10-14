@@ -222,7 +222,7 @@ public partial class CompleteProfile
             if(IsRegistrationFlow) _isCompleted = true;
             else NavigationManager.NavigateTo(LocalReturnUrlHelper.GetSafeLocalReturnUrl(ReturnUrl), true);
         }
-        catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.BadRequest || exception.StatusCode == HttpStatusCode.Conflict) { ToastService.ShowError(await GetApiErrorAsync(exception)); }
+        catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.BadRequest || exception.StatusCode == HttpStatusCode.Conflict) { ToastService.ShowError(GetApiError(exception)); }
         catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.NotFound) { ToastService.ShowError(Localization["General.CompleteProfile.ProfileNotCreated"]); }
         catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -280,11 +280,11 @@ public partial class CompleteProfile
         }
     }
 
-    private async Task<string> GetApiErrorAsync(ApiException exception, string? fallback = null)
+    private string GetApiError(ApiException exception, string? fallback = null)
     {
         fallback ??= Localization["General.CompleteProfile.ProfileSaveFailed"];
-        try { var content = await exception.GetContentAsAsync<string>(); return string.IsNullOrWhiteSpace(content) ? fallback : content; }
-        catch { return string.IsNullOrWhiteSpace(exception.Content) ? fallback : exception.Content.Trim('"'); }
+        var message = exception.GetApiError()?.Message;
+        return string.IsNullOrWhiteSpace(message) ? fallback : message;
     }
 
     private static string? FindClaim(ClaimsPrincipal user, params string[] claimTypes)

@@ -8,12 +8,14 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using System.Net;
 
 namespace Mercurius.LAN.Web.Components.Pages.Teams;
 
 public partial class ManageTeams : IAsyncDisposable
 {
     private const long MaximumLogoBytes = 5 * 1024 * 1024;
+    private const string TeamChangedCode = "team_changed";
 
     [Inject] private ITeamService TeamService { get; set; } = null!;
     [Inject] private ITeamNotificationService NotificationService { get; set; } = null!;
@@ -28,6 +30,7 @@ public partial class ManageTeams : IAsyncDisposable
     private Guid? _selectedTeamId;
     private bool _isCreateTeamDialogOpen;
     private bool _isInviteDialogOpen;
+    private bool _teamChangedRefreshFailed;
     private Guid? _inviteTeamId;
     private string _inviteTeamName = string.Empty;
     private PublicUserDTO? _selectedUser;
@@ -241,10 +244,11 @@ public partial class ManageTeams : IAsyncDisposable
         if(!IsActive(activeCancellationToken))
             return;
 
-        _summary = await TeamService.GetCurrentUserTeamSummaryAsync(activeCancellationToken);
+        var summary = await TeamService.GetCurrentUserTeamSummaryAsync(activeCancellationToken);
         if(!IsActive(activeCancellationToken))
             return;
 
+        _summary = summary;
         EnsureSelectedTeam();
         await NotificationService.RefreshAsync(activeCancellationToken);
         if(!IsActive(activeCancellationToken))
@@ -253,6 +257,7 @@ public partial class ManageTeams : IAsyncDisposable
         await RealtimeService.JoinTeamsAsync(ManageableTeams.Select(team => team.Id), activeCancellationToken);
         if(IsActive(activeCancellationToken))
         {
+            _teamChangedRefreshFailed = false;
             _isRealtimeReady = RealtimeService.IsConnected;
             await RenderIfActiveAsync();
         }
@@ -556,9 +561,36 @@ public partial class ManageTeams : IAsyncDisposable
         {
             await action();
         }
+        catch(TeamServiceException exception) when(IsTeamChangedConflict(exception))
+        {
+            ShowActionToast(Localization["General.TeamManage.TeamChanged"], TeamActionSeverity.Warning);
+            await RefreshAfterTeamChangedAsync();
+        }
         catch(Exception exception)
         {
             ShowActionToast(GetErrorMessage(exception), TeamActionSeverity.Error);
+        }
+    }
+
+    private static bool IsTeamChangedConflict(TeamServiceException exception) =>
+        exception.StatusCode == HttpStatusCode.Conflict &&
+        string.Equals(exception.Code, TeamChangedCode, StringComparison.Ordinal);
+
+    private async Task RefreshAfterTeamChangedAsync()
+    {
+        try
+        {
+            await RefreshSummaryAsync();
+        }
+        catch(OperationCanceledException) when(_disposed)
+        {
+        }
+        catch(Exception)
+        {
+            // Contain a failed recovery: keep the conflict feedback and last confirmed state visible
+            // and expose the retry action instead of replacing them with a generic error.
+            _teamChangedRefreshFailed = true;
+            await RenderIfActiveAsync();
         }
     }
 

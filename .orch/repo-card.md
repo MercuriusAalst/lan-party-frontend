@@ -1,46 +1,37 @@
-# repo-card: lan-party updated: 2026-10-13 by: scout/architect approved: 2026-10-13
-STACK: .NET 10, Blazor InteractiveServer, Refit, Bootstrap, Tailwind 3, xUnit
-BUILD: dotnet build src/Mercurius.LAN.Web/Mercurius.LAN.Web.csproj
-CHECK_FAST: dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj
-VERIFY: dotnet build src/Mercurius.LAN.Web/Mercurius.LAN.Web.csproj && dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj
-UI_SHOTS:
+# repo-card: lan-party-frontend   updated: 2026-10-13   by: scout   approved: 2026-10-13
+STACK: .NET 10, Blazor, xUnit, Playwright
+BUILD: dotnet build Mercurius.LAN.sln -c Release
+CHECK_FAST: dotnet test tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj --filter FullyQualifiedName~DeleteAccountAnonymizesTheProfileAndEndsTheSession
+VERIFY: dotnet build Mercurius.LAN.sln -c Release -m:1 -nr:false -p:UseSharedCompilation=false && dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj -c Release --no-restore && dotnet test tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj -c Release --no-restore
+UI_SHOTS: none
 SPEC_WORKFLOW: openspec
 SPEC_PROFILE: mercurius-lan
 PR_TEMPLATE: none
 PR_FORMAT: openspec-workflow/profiles/mercurius-lan/pr-format.md
 PROTECTED: main
-RUNTIME: Blazor server; assume containers, multiple replicas and rolling deployments; backend owns durable match state
-HOT_SPOTS: APIClients/ILANClient.cs; Mock/MockBackendStore.cs; authentication; match lifecycle
-RELATED_REPOS: backend=D:/Github Repositories/mercurius-aalst-back-end; helm=D:/Github Repositories/lan-party-helmchart
+RUNTIME: unknown (assume multi-instance); E2E uses isolated PostgreSQL databases and a backend checkout
+HOT_SPOTS: authentication, account deletion, API contracts
+RELATED_REPOS: backend=D:/Github Repositories/mercurius-aalst-back-end
 CONVENTIONS:
-- Reuse component .razor/.razor.cs/.razor.css patterns and shared app.css classes.
-- Backend action capabilities authorize UI actions; refresh after mutation.
-- Maintain mock parity and both en-US/nl-BE translations.
-- No new packages, projects or Shared types without architect review.
+- Preserve MudBlazor UI patterns and existing feature folders.
+- Keep API clients, services and mock implementations aligned.
+- E2E tests require PostgreSQL, Chromium and the companion backend revision from CI.
+- Test helpers must preserve genuine circuit failures, cancellation and bounded waits.
 
-## STRUCTURE (approved 2026-10-13; existing layout)
-SHAPE: mixed; single presentation project, kinds grouped by feature
+## STRUCTURE (approved 2026-10-13)
+SHAPE: mixed (single web app with feature folders and separate test projects)
 CORE: single Web project
-PROJECTS: tests/Mercurius.LAN.Web.ContractTests -> src/Mercurius.LAN.Web; Web has no repository project references
-FOLDERS: src/Mercurius.LAN.Web/Components/Pages/<Feature>/; DTOs/<Feature>/; Models/<Feature>/; Services/; APIClients/; Extensions/
-MODULE-WIDE: Mock/ and MockData.Local/ for mock implementation and fixtures
-CROSS-CUTTING: Components/Shared/; Localization/; wwwroot/app.css; wwwroot/locales/
-SHARED: Components/Shared/; reuse existing components, additions need architect review
-NAMESPACE: matches project and folder path
-TESTS: tests/Mercurius.LAN.Web.ContractTests/; existing flat contract test files
-NEW PROJECT OR MODULE: STOP IF; architect decides
+PROJECTS: ContractTests -> Web; E2ETests -> Web + backend API
+FOLDERS: Components/Pages/<Feature>; E2E Infrastructure helpers; test classes at test-project root
+CROSS-CUTTING: Components/Layout, APIClients, Services
+SHARED: no new shared types permitted for this task
+NAMESPACE: follows existing project and folder conventions
+TESTS: tests/Mercurius.LAN.Web.ContractTests; tests/Mercurius.LAN.Web.E2ETests
+NEW PROJECT OR MODULE: STOP IF; architect decision required
 EXAMPLES:
-- Components/Pages/Tournaments/Matches/DetailView/TournamentMatchDetailsDialog.razor
-- DTOs/Matches/SubmitMatchScoreDTO.cs
-- Services/TournamentService.cs
-- tests/Mercurius.LAN.Web.ContractTests/MockMatchLifecycleTests.cs
+- src/Mercurius.LAN.Web/Components/Pages/Users/Profile.razor.cs
+- src/Mercurius.LAN.Web/APIClients/ILANClient.cs
+- tests/Mercurius.LAN.Web.E2ETests/Infrastructure/E2EPageExtensions.cs
+- tests/Mercurius.LAN.Web.E2ETests/ProfileAndOnboardingTests.cs
 EXCEPTIONS:
-- Existing flat Services and contract test layouts: leave as is.
-
-## UI capture procedure
-No repo-native screenshot script exists; UI_SHOTS stays empty. To capture in mock mode manually, run the app and the browser in the same sandbox context (a sandboxed server is unreachable from an escalated browser):
-`ASPNETCORE_ENVIRONMENT=Development MockBackend__Enabled=true MockBackend__Persona=admin dotnet run --project src/Mercurius.LAN.Web --no-launch-profile --urls http://127.0.0.1:5288`
-then Playwright CLI (`$CODEX_HOME/skills/playwright/scripts/playwright_cli.sh -s=<session>`):
-`open http://127.0.0.1:5288/account/login?persona=admin&returnUrl=/tournaments`, `goto /tournaments/<id>`, `resize 1280 900` / `resize 390 844`, `screenshot`. PNGs land in the invoking shell's `.playwright-cli/`.
-Mock tournaments: /tournaments/1a111111-1111-1111-1111-111111111111 and ...112. Stop the dev server afterwards; it holds the build output and blocks `dotnet build` on Windows.
-E2E harness (real API + Postgres) needs `-p:BackendProjectRoot=<backend checkout>` or `MERCURIUS_BACKEND_ROOT`.
+- E2ETests is outside Mercurius.LAN.sln and is verified separately; leave as is.
