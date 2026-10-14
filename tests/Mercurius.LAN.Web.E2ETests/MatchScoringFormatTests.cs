@@ -42,7 +42,7 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         var context = await app.NewAuthenticatedContextAsync(setup.First);
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await MatchE2E.SubmitScoreAsync(dialog, 1, 1);
+        await MatchE2E.SubmitScoreAsync(dialog, 1, 1, expectValidScore: false);
 
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
         await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
@@ -64,7 +64,7 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         var context = await app.NewAuthenticatedContextAsync(setup.First);
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await MatchE2E.SubmitScoreAsync(dialog, 1, 0);
+        await MatchE2E.SubmitScoreAsync(dialog, 1, 0, expectValidScore: false);
 
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
         await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
@@ -85,7 +85,7 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         var context = await app.NewAuthenticatedContextAsync(setup.First);
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await MatchE2E.SubmitScoreAsync(dialog, 3, 0);
+        await MatchE2E.SubmitScoreAsync(dialog, 3, 0, expectValidScore: false);
 
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
         await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
@@ -125,7 +125,7 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         var context = await app.NewAuthenticatedContextAsync(setup.Second);
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.Second.Username);
-        await MatchE2E.SubmitScoreAsync(dialog, 2, 2);
+        await MatchE2E.SubmitScoreAsync(dialog, 2, 2, expectValidScore: false);
 
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
         await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();

@@ -30,7 +30,6 @@ internal static class MatchE2E
     internal const string AdminPanel = "Administrator match actions";
     internal const string DeadlineLabel = "Score window deadline";
 
-    internal const string ActionSaveFailed = "The match action could not be saved. Try again.";
     internal const string ScoreMustBeDecisive = "Enter a decisive score for this match format.";
     internal const string ScoreReportSaved = "Your score report was saved.";
     internal const string TournamentNotInProgress = "This tournament is no longer in progress.";
@@ -214,24 +213,26 @@ internal static class MatchE2E
     internal static async Task SubmitScoreAsync(
         ILocator dialog,
         int participant1Score,
-        int participant2Score)
+        int participant2Score,
+        bool expectValidScore = true)
     {
         // Scores use the match's participant slots, which may not match registration order.
         await dialog.Locator("#participant1-score").FillAsync(participant1Score.ToString());
         var lastScore = dialog.Locator("#participant2-score");
         await lastScore.FillAsync(participant2Score.ToString());
-        // The score fields bind on change, so the field that was edited last must lose focus
-        // before the submit button (gated on the bound values) can become clickable. Tabbing
-        // away is exactly what a user does after typing the final score.
-        await lastScore.PressAsync("Tab");
         var submit = dialog.GetByRole(AriaRole.Button, new() { Name = SubmitScoreButton });
-        if(await submit.IsDisabledAsync())
+        if(!expectValidScore)
+        {
+            await Expect(submit).ToBeDisabledAsync();
             return;
+        }
 
+        // Wait for the input-bound values to reach the component before clicking.
+        await Expect(submit).ToBeEnabledAsync();
         await MatchE2E.ClickAsync(submit);
         // Different valid reports immediately enter the correction state, where the editor stays open.
         await Expect(dialog.Page.Locator(".blazored-toast-message").Last)
-            .ToHaveTextAsync(new Regex($"^(?:{Regex.Escape(ScoreReportSaved)}|{Regex.Escape(ActionSaveFailed)})$"));
+            .ToHaveTextAsync(ScoreReportSaved);
     }
 
     /// <summary>Fills one of the administrator resolve score fields, by participant name.</summary>
@@ -239,9 +240,6 @@ internal static class MatchE2E
     {
         var field = adminPanel.GetByRole(AriaRole.Spinbutton, new() { Name = participantName });
         await field.FillAsync(score.ToString());
-        // Same change-committed binding as the participant editor: leave the field so the
-        // server-side gate above the Resolve button can clear.
-        await field.PressAsync("Tab");
     }
 
     internal sealed record MatchView(

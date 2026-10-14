@@ -163,11 +163,11 @@
                             <div class="score-inputs">
                                 <div class="match-score-field">
                                     <label for="participant1-score">@Participant1Name</label>
-                                    <input id="participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="player-score-guidance player-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1Score" />
+                                    <input id="participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="player-score-guidance player-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1Score" @bind:event="oninput" />
                                 </div>
                                 <div class="match-score-field">
                                     <label for="participant2-score">@Participant2Name</label>
-                                    <input id="participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="player-score-guidance player-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2Score" />
+                                    <input id="participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="player-score-guidance player-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2Score" @bind:event="oninput" />
                                 </div>
                             </div>
                             <p id="player-score-validation" class="match-score-validation" role="status">@(HasAnyScoreInput && !HasValidScoreInputs ? Localization["Feature.match.scoreMustBeDecisive"] : string.Empty)</p>
@@ -223,11 +223,11 @@
                             <div class="score-inputs">
                                 <div class="match-score-field">
                                     <label for="admin-participant1-score">@Participant1Name</label>
-                                    <input id="admin-participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="admin-score-guidance admin-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1Score" />
+                                    <input id="admin-participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="admin-score-guidance admin-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1Score" @bind:event="oninput" />
                                 </div>
                                 <div class="match-score-field">
                                     <label for="admin-participant2-score">@Participant2Name</label>
-                                    <input id="admin-participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="admin-score-guidance admin-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2Score" />
+                                    <input id="admin-participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="admin-score-guidance admin-score-validation" aria-invalid="@(HasAnyScoreInput && !HasValidScoreInputs)" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2Score" @bind:event="oninput" />
                                 </div>
                             </div>
                             <p id="admin-score-validation" class="match-score-validation" role="status">@(HasAnyScoreInput && !HasValidScoreInputs ? Localization["Feature.match.scoreMustBeDecisive"] : string.Empty)</p>
