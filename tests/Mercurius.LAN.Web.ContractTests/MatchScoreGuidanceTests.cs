@@ -8,45 +8,6 @@ namespace Mercurius.LAN.Web.ContractTests;
 public sealed class MatchScoreGuidanceTests
 {
     [Theory]
-    [InlineData("", null)]
-    [InlineData(null, null)]
-    [InlineData("0", 0)]
-    [InlineData("2", 2)]
-    [InlineData("2.5", null)]
-    [InlineData("2,5", null)]
-    [InlineData("-1", null)]
-    [InlineData("+1", null)]
-    [InlineData("e", null)]
-    [InlineData("1e1", null)]
-    [InlineData(" 2", null)]
-    [InlineData("99999999999", null)]
-    public void ParseScoreText_AcceptsOnlyPlainNonnegativeIntegers(string? text, int? expected)
-    {
-        Assert.Equal(expected, TournamentMatchDetailsDialog.ParseScoreText(text));
-    }
-
-    [Fact]
-    public void NonIntegerScoreText_IsInvalidAndNeverFallsBackToAnEarlierValue()
-    {
-        // "2" then "2.5" typed into the first field: the parsed value must not remain 2.
-        Assert.Equal(2, TournamentMatchDetailsDialog.ParseScoreText("2"));
-        Assert.Null(TournamentMatchDetailsDialog.ParseScoreText("2.5"));
-        Assert.True(TournamentMatchDetailsDialog.ShouldShowScoreValidationError(TournamentFormat.BestOf3, "2.5", "0"));
-        Assert.False(TournamentMatchDetailsDialog.IsValidSeriesScore(
-            TournamentFormat.BestOf3,
-            TournamentMatchDetailsDialog.ParseScoreText("2.5"),
-            TournamentMatchDetailsDialog.ParseScoreText("0")));
-    }
-
-    [Fact]
-    public void ScoreToText_RoundTripsThroughParseScoreText()
-    {
-        Assert.Equal(string.Empty, TournamentMatchDetailsDialog.ScoreToText(null));
-        Assert.Equal("2", TournamentMatchDetailsDialog.ScoreToText(2));
-        Assert.Equal(2, TournamentMatchDetailsDialog.ParseScoreText(TournamentMatchDetailsDialog.ScoreToText(2)));
-    }
-
-    [Theory]
     [InlineData(TournamentFormat.BestOf1, "Feature.match.scoreGuidanceBestOf1")]
     [InlineData(TournamentFormat.BestOf3, "Feature.match.scoreGuidanceBestOf3")]
     [InlineData(TournamentFormat.BestOf5, "Feature.match.scoreGuidanceBestOf5")]
@@ -57,11 +18,11 @@ public sealed class MatchScoreGuidanceTests
     }
 
     [Theory]
-    [InlineData(TournamentFormat.BestOf1, "player", "player-score-guidance player-score-validation")]
-    [InlineData(TournamentFormat.BestOf5, "admin", "admin-score-guidance admin-score-validation")]
-    [InlineData((TournamentFormat)99, "player", "player-score-validation")]
-    [InlineData((TournamentFormat)99, "admin", "admin-score-validation")]
-    public void ScoreDescribedBy_ReferencesGuidanceOnlyWhenItIsRendered(TournamentFormat format, string prefix, string expected)
+    [InlineData(TournamentFormat.BestOf1, "player", "player-score-guidance player-score-summary")]
+    [InlineData(TournamentFormat.BestOf5, "admin", "admin-score-guidance admin-score-summary")]
+    [InlineData((TournamentFormat)99, "player", null)]
+    [InlineData((TournamentFormat)99, "admin", null)]
+    public void ScoreDescribedBy_ReferencesGuidanceOnlyWhenItIsRendered(TournamentFormat format, string prefix, string? expected)
     {
         Assert.Equal(expected, TournamentMatchDetailsDialog.GetScoreDescribedBy(format, prefix));
     }
@@ -91,20 +52,27 @@ public sealed class MatchScoreGuidanceTests
     }
 
     [Fact]
-    public void ScoreMarkup_BindsTextInputsAndRendersGuidanceOnlyWhenAvailable()
+    public void ScoreMarkup_UsesRadioPickersAndRendersGuidanceOnlyWhenAvailable()
     {
         var markup = File.ReadAllText(FindRepositoryFile(Path.Combine(
             "src", "Mercurius.LAN.Web", "Components", "Pages", "Tournaments", "Matches", "DetailView", "TournamentMatchDetailsDialog.razor")));
 
-        Assert.Equal(2, CountOccurrences(markup, "@bind=\"_participant1ScoreText\""));
-        Assert.Equal(2, CountOccurrences(markup, "@bind=\"_participant2ScoreText\""));
-        Assert.DoesNotContain("@bind=\"_participant1Score\"", markup);
-        Assert.DoesNotContain("@bind=\"_participant2Score\"", markup);
-        Assert.Equal(4, CountOccurrences(markup, "type=\"number\""));
+        Assert.DoesNotContain("type=\"number\"", markup);
+        Assert.DoesNotContain("_participant1ScoreText", markup);
+        Assert.Equal(1, CountOccurrences(markup, "@ScorePicker(\"player\")"));
+        Assert.Equal(1, CountOccurrences(markup, "@ScorePicker(\"admin\")"));
         Assert.Contains("@if(GetScoreGuidance() is { } playerScoreGuidance)", markup);
         Assert.Contains("@if(GetScoreGuidance() is { } adminScoreGuidance)", markup);
         Assert.DoesNotContain("aria-describedby=\"player-score-guidance", markup);
         Assert.DoesNotContain("aria-describedby=\"admin-score-guidance", markup);
+    }
+
+    [Theory]
+    [InlineData("translations.en-US.json")]
+    [InlineData("translations.nl-BE.json")]
+    public void ScoreMustBeDecisiveKey_IsRemoved(string fileName)
+    {
+        Assert.False(ReadLocale(fileName).ContainsKey("Feature.match.scoreMustBeDecisive"));
     }
 
     private static Dictionary<string, string> ReadLocale(string fileName)

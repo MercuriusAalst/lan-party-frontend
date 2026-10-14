@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using Blazored.Toast.Services;
 using Mercurius.LAN.Web.Components.Shared;
@@ -56,14 +55,10 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private MatchParticipantSide? _adminForfeitConfirmationSide;
     private bool _reverseConfirmationRequested;
     private string? _errorMessage;
-    private string _participant1ScoreText = string.Empty;
-    private string _participant2ScoreText = string.Empty;
-    private int? ParsedParticipant1Score => ParseScoreText(_participant1ScoreText);
-    private int? ParsedParticipant2Score => ParseScoreText(_participant2ScoreText);
-    private bool ShowScoreValidationError => ShouldShowScoreValidationError(Match.Format, _participant1ScoreText, _participant2ScoreText);
-    // Blazor renders a bool true as aria-invalid="", which ARIA treats as false; emit "true" or omit the attribute.
-    private string? ScoreInvalidAriaValue => ShowScoreValidationError ? "true" : null;
-    private bool HasValidScoreInputs => IsValidSeriesScore(Match.Format, ParsedParticipant1Score, ParsedParticipant2Score);
+    private MatchParticipantSide? _winner;
+    private int? _loserScore;
+    private (int Participant1Score, int Participant2Score)? SelectedScores => MapSelectionToScores(Match.Format, _winner, _loserScore);
+    private bool HasValidScoreInputs => SelectedScores is { } scores && IsValidSeriesScore(Match.Format, scores.Participant1Score, scores.Participant2Score);
     private int WinsNeeded => GetWinsNeeded(Match.Format);
     private CancellationTokenSource? _deadlineRefreshCancellation;
     private DateTime? _deadlineRefreshTriggeredFor;
@@ -202,16 +197,33 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
              (second == winsNeeded && first < winsNeeded));
     }
 
-    // Empty text means "not entered"; any other text that is not a plain nonnegative integer is entered but invalid (null).
-    internal static int? ParseScoreText(string? text) =>
-        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var score) ? score : null;
+    // Maps the picked winner and the loser's games won to the participant scores in displayed order.
+    // Returns null while the selection is incomplete or outside the range the format allows; Best of 1 implies a loser score of 0.
+    internal static (int Participant1Score, int Participant2Score)? MapSelectionToScores(TournamentFormat format, MatchParticipantSide? winner, int? loserScore)
+    {
+        var winsNeeded = GetWinsNeeded(format);
+        if(winsNeeded == 0 || winner is null)
+            return null;
 
-    internal static string ScoreToText(int? score) => score?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+        var loser = winsNeeded == 1 ? 0 : loserScore;
+        if(loser is not { } loserGames || loserGames < 0 || loserGames >= winsNeeded)
+            return null;
 
-    internal static bool ShouldShowScoreValidationError(TournamentFormat format, string? participant1ScoreText, string? participant2ScoreText) =>
-        !string.IsNullOrEmpty(participant1ScoreText) &&
-        !string.IsNullOrEmpty(participant2ScoreText) &&
-        !IsValidSeriesScore(format, ParseScoreText(participant1ScoreText), ParseScoreText(participant2ScoreText));
+        return winner == MatchParticipantSide.Participant1
+            ? (winsNeeded, loserGames)
+            : (loserGames, winsNeeded);
+    }
+
+    // Inverse of MapSelectionToScores: scores that are not a decisive series result yield an empty selection.
+    internal static (MatchParticipantSide? Winner, int? LoserScore) GetSelectionFromScores(TournamentFormat format, int? participant1Score, int? participant2Score)
+    {
+        if(!IsValidSeriesScore(format, participant1Score, participant2Score))
+            return (null, null);
+
+        return participant1Score == GetWinsNeeded(format)
+            ? (MatchParticipantSide.Participant1, participant2Score)
+            : (MatchParticipantSide.Participant2, participant1Score);
+    }
 
     internal static string? GetScoreGuidanceKey(TournamentFormat format) => format switch
     {
@@ -221,19 +233,32 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         _ => null
     };
 
-    internal static string GetScoreDescribedBy(TournamentFormat format, string idPrefix) =>
+    internal static string? GetScoreDescribedBy(TournamentFormat format, string idPrefix) =>
         GetScoreGuidanceKey(format) is null
-            ? $"{idPrefix}-score-validation"
-            : $"{idPrefix}-score-guidance {idPrefix}-score-validation";
+            ? null
+            : $"{idPrefix}-score-guidance {idPrefix}-score-summary";
 
     private string? GetScoreGuidance() =>
         GetScoreGuidanceKey(Match.Format) is { } key ? Localization[key] : null;
 
-    private void SetScoreTexts(int? participant1Score, int? participant2Score)
+    private void SetScoreSelection(int? participant1Score, int? participant2Score) =>
+        (_winner, _loserScore) = GetSelectionFromScores(Match.Format, participant1Score, participant2Score);
+
+    private void SelectWinner(MatchParticipantSide side)
     {
-        _participant1ScoreText = ScoreToText(participant1Score);
-        _participant2ScoreText = ScoreToText(participant2Score);
+        if(_winner != side)
+            _loserScore = null;
+
+        _winner = side;
     }
+
+    private IEnumerable<int> LoserScoreOptions => Enumerable.Range(0, Math.Max(0, WinsNeeded - 1));
+
+    private string LoserName => _winner == MatchParticipantSide.Participant1 ? Participant2Name : Participant1Name;
+
+    private string ScoreSummary => SelectedScores is { } scores
+        ? Localization.Get("Feature.match.scoreSummary", Participant1Name, scores.Participant1Score, scores.Participant2Score, Participant2Name)
+        : string.Empty;
 
     private string GetStatusLabel() => Match.LifecycleState switch
     {
@@ -457,7 +482,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
             _actionState = state;
             _hasFreshActionState = true;
             var (initialParticipant1Score, initialParticipant2Score) = GetInitialScores(state);
-            SetScoreTexts(initialParticipant1Score, initialParticipant2Score);
+            SetScoreSelection(initialParticipant1Score, initialParticipant2Score);
             _hasLoaded = true;
             StartDeadlineRefresh();
             await NotifyMatchRefreshedAsync();
@@ -478,7 +503,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
                 _freshMatchProjection = Match;
                 _actionState = null;
                 _hasFreshActionState = false;
-                SetScoreTexts(publicMatch.Participant1Score, publicMatch.Participant2Score);
+                SetScoreSelection(publicMatch.Participant1Score, publicMatch.Participant2Score);
                 _requiresAuthentication = exception.StatusCode == HttpStatusCode.Unauthorized;
                 _hasLoaded = true;
                 StartDeadlineRefresh();
@@ -615,8 +640,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     {
         if(_actionState?.CanSubmitScore != true ||
            !HasValidScoreInputs ||
-           ParsedParticipant1Score is not { } participant1Score ||
-           ParsedParticipant2Score is not { } participant2Score)
+           SelectedScores is not { } scores)
             return;
 
         var matchId = Match.Id;
@@ -625,8 +649,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
                 matchId,
                 new SubmitMatchScoreDTO
                 {
-                    Participant1Score = participant1Score,
-                    Participant2Score = participant2Score
+                    Participant1Score = scores.Participant1Score,
+                    Participant2Score = scores.Participant2Score
                 }),
             Localization["Feature.match.scoreReportSaved"],
             state => state.CanSubmitScore,
@@ -678,8 +702,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     {
         if(_actionState?.CanResolve != true ||
            !HasValidScoreInputs ||
-           ParsedParticipant1Score is not { } participant1Score ||
-           ParsedParticipant2Score is not { } participant2Score)
+           SelectedScores is not { } scores)
             return;
 
         var matchId = Match.Id;
@@ -688,8 +711,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
                 matchId,
                 new ResolveMatchDTO
                 {
-                    Participant1Score = participant1Score,
-                    Participant2Score = participant2Score
+                    Participant1Score = scores.Participant1Score,
+                    Participant2Score = scores.Participant2Score
                 }),
             Localization["Feature.match.resultResolved"],
             state => state.CanResolve,
