@@ -143,14 +143,6 @@ internal sealed class MockTournamentService : ITournamentService
         return _store.GetMatchOpponentProfile(persona, matchId);
     }
 
-    public async Task<Match> ConfirmMatchEndedAsync(
-        Guid matchId,
-        CancellationToken cancellationToken = default)
-    {
-        var persona = await GetCurrentPersonaAsync();
-        return _store.ConfirmMatchEnded(persona, matchId);
-    }
-
     public async Task<Match> SubmitMatchScoreAsync(
         Guid matchId,
         SubmitMatchScoreDTO request,

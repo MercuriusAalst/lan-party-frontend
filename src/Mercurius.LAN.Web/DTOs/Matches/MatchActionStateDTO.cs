@@ -4,7 +4,6 @@ public sealed class MatchActionStateDTO
 {
     public Models.Matches.Match Match { get; set; } = null!;
     public MatchParticipantSide? AuthorizedParticipant { get; set; }
-    public bool CanConfirmEnded { get; set; }
     public bool CanSubmitScore { get; set; }
     public bool CanForfeit { get; set; }
     public bool CanResolve { get; set; }

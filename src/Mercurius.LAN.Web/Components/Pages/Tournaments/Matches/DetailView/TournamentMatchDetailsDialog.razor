@@ -98,13 +98,6 @@
                         </div>
                     }
                     <ParticipantComponent Participant="GetParticipantById(Participant1Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant1IsBYE)" CanViewUserDetails="@CanViewParticipant1Details" OnUserSelected="DisplayUserPopup" />
-                    @if(_hasLoaded)
-                    {
-                        <div class="match-confirmation-status">
-                            <span>@Localization["Feature.match.matchEnded"]</span>
-                            <strong>@GetEndedStatusLabel(Match.Participant1Ended)</strong>
-                        </div>
-                    }
                 </section>
                 <section class="@GetCardClass(Participant2Id)">
                     @if(IsWinner(Participant2Id) || (WinnerId != null && Participant2Id != null))
@@ -121,13 +114,6 @@
                         </div>
                     }
                     <ParticipantComponent Participant="GetParticipantById(Participant2Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant2IsBYE)" CanViewUserDetails="@CanViewParticipant2Details" OnUserSelected="DisplayUserPopup" />
-                    @if(_hasLoaded)
-                    {
-                        <div class="match-confirmation-status">
-                            <span>@Localization["Feature.match.matchEnded"]</span>
-                            <strong>@GetEndedStatusLabel(Match.Participant2Ended)</strong>
-                        </div>
-                    }
                 </section>
             </div>
 
@@ -151,11 +137,6 @@
             {
                 <section class="match-action-panel" aria-label='@Localization["Feature.match.yourActionsAria"]'>
                     <span class="section-eyebrow">@ActionSubjectLabel</span>
-                    @if(_actionState.CanConfirmEnded)
-                    {
-                        <p>@Localization["Feature.match.confirmEndedHelp"]</p>
-                        <button type="button" class="button-primary" disabled="@(_isSubmitting || _isLoading)" @onclick="ConfirmEndedAsync">@Localization["Feature.match.confirmEnded"]</button>
-                    }
                     @if(ShowPrivateReports && (PrivateReport1.HasValue || PrivateReport2.HasValue))
                     {
                         <div class="match-reports" aria-label='@Localization["Feature.match.privateReportsAria"]'>

@@ -162,11 +162,6 @@ public sealed class TournamentService : ITournamentService
         CancellationToken cancellationToken = default) =>
         _lanClient.GetMatchOpponentProfileAsync(matchId, cancellationToken);
 
-    public Task<Match> ConfirmMatchEndedAsync(
-        Guid matchId,
-        CancellationToken cancellationToken = default) =>
-        _lanClient.ConfirmMatchEndedAsync(matchId, cancellationToken);
-
     public Task<Match> SubmitMatchScoreAsync(
         Guid matchId,
         SubmitMatchScoreDTO request,

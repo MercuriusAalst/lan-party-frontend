@@ -15,8 +15,7 @@ namespace Mercurius.LAN.Web.E2ETests;
 internal static class MatchE2E
 {
     // Rendered labels from TournamentMatchDetailsDialog (en-US).
-    internal const string AwaitingConfirmation = "Awaiting confirmation";
-    internal const string ReadyForScore = "Ready for score";
+    internal const string AwaitingScore = "Awaiting score";
     internal const string ScoreConfirmationStatus = "Score confirmation";
     internal const string DisputedStatus = "Score disputed";
     internal const string AdminResolutionStatus = "Admin resolution required";
@@ -24,7 +23,6 @@ internal static class MatchE2E
     internal const string ForfeitedStatus = "Forfeited";
     internal const string ReversedStatus = "Reversed";
 
-    internal const string ConfirmEndedButton = "Confirm match ended";
     internal const string SubmitScoreButton = "Submit score report";
     internal const string ForfeitSideButton = "Forfeit your side";
 
@@ -111,13 +109,6 @@ internal static class MatchE2E
         return tournament.GetProperty("matches").EnumerateArray().Select(MatchView.From).ToList();
     }
 
-    /// <summary>Fast preconditions: drive the participant confirm/score endpoints without the browser.</summary>
-    internal static async Task ConfirmEndedViaApiAsync(PlaywrightE2EFixture app, Guid matchId, E2EPersona persona)
-    {
-        var response = await app.CreateApiClient(persona).PostAsync($"v1/lan/matches/{matchId}/confirm-ended", null);
-        response.EnsureSuccessStatusCode();
-    }
-
     internal static async Task SubmitScoreViaApiAsync(
         PlaywrightE2EFixture app,
         Guid matchId,
@@ -133,18 +124,6 @@ internal static class MatchE2E
         response.EnsureSuccessStatusCode();
     }
 
-    /// <summary>Both sides confirm the end, which is the state every score report starts from.</summary>
-    internal static async Task ReachReadyForScoreAsync(
-        PlaywrightE2EFixture app,
-        Guid tournamentId,
-        E2EPersona first,
-        E2EPersona second)
-    {
-        var match = (await GetMatchesAsync(app.Api, tournamentId)).Single();
-        await ConfirmEndedViaApiAsync(app, match.Id, first);
-        await ConfirmEndedViaApiAsync(app, match.Id, second);
-    }
-
     /// <summary>Completes a match through the API, keeping bracket/progression tests focused.</summary>
     internal static async Task CompleteMatchViaApiAsync(
         PlaywrightE2EFixture app,
@@ -154,8 +133,6 @@ internal static class MatchE2E
         int participant1Score,
         int participant2Score)
     {
-        await ConfirmEndedViaApiAsync(app, matchId, first);
-        await ConfirmEndedViaApiAsync(app, matchId, second);
         await SubmitScoreViaApiAsync(app, matchId, first, participant1Score, participant2Score);
         await SubmitScoreViaApiAsync(app, matchId, second, participant1Score, participant2Score);
     }
@@ -232,14 +209,6 @@ internal static class MatchE2E
     {
         await MatchE2E.ClickAsync(dialog.GetByRole(AriaRole.Button, new() { Name = "Close match details" }));
         await Expect(dialog).ToBeHiddenAsync();
-    }
-
-    internal static async Task ConfirmEndedAsync(ILocator dialog)
-    {
-        var button = dialog.GetByRole(AriaRole.Button, new() { Name = ConfirmEndedButton });
-        await Expect(button).ToBeVisibleAsync();
-        await MatchE2E.ClickAsync(button);
-        await Expect(button).ToBeHiddenAsync();
     }
 
     internal static async Task SubmitScoreAsync(

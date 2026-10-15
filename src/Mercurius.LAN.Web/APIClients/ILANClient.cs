@@ -223,11 +223,6 @@ public interface ILANClient
         Guid matchId,
         CancellationToken cancellationToken = default);
 
-    [Post("/v1/lan/matches/{matchId}/confirm-ended")]
-    Task<Match> ConfirmMatchEndedAsync(
-        Guid matchId,
-        CancellationToken cancellationToken = default);
-
     [Put("/v1/lan/matches/{matchId}/score")]
     Task<Match> SubmitMatchScoreAsync(
         Guid matchId,

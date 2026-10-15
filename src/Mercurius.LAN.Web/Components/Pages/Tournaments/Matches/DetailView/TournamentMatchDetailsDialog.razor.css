@@ -201,7 +201,6 @@
 }
 
 .match-deadline span,
-.match-confirmation-status span,
 .match-admin-forfeit-actions span {
     color: var(--color-muted-text);
     font-size: 0.78rem;
@@ -210,8 +209,7 @@
     letter-spacing: 0.04em;
 }
 
-.match-deadline strong,
-.match-confirmation-status strong {
+.match-deadline strong {
     color: var(--color-ink);
     font-size: 0.9rem;
 }
@@ -248,15 +246,6 @@
 .match-refresh-message {
     color: var(--color-muted-text);
     font-weight: 700;
-}
-
-.match-confirmation-status {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--color-border);
 }
 
 .match-reports {

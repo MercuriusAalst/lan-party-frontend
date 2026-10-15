@@ -4,17 +4,33 @@
 TBD - created by archiving change issue-44-match-result-lifecycle-ui. Update Purpose after archive.
 ## Requirements
 ### Requirement: State-aware match details
-The match details UI MUST show the backend lifecycle state, both ended-confirmation statuses, current scores/reports, and any server-provided confirmation or correction deadline. A client countdown MUST be advisory and MUST NOT transition a match locally.
 
-#### Scenario: Match is awaiting ended confirmation
-- **WHEN** a player opens a match before both sides confirm ended
-- **THEN** the UI MUST show which side has confirmed
-- **AND** it MUST offer the eligible player/captain a confirm-ended action
+The match details UI MUST show the backend lifecycle state, the current scores/reports, and any server-provided confirmation or correction deadline. A client countdown MUST be advisory and MUST NOT transition a match locally. The UI MUST NOT require either side to confirm the match ended before reporting a score.
 
-#### Scenario: Both sides confirmed
-- **WHEN** the backend reports that both sides confirmed ended
-- **THEN** the score form MUST become available to eligible participants
-- **AND** the UI MUST explain the server deadline after the first report
+#### Scenario: Match is awaiting a score
+
+- **WHEN** an eligible participant or captain opens a match that the backend reports as awaiting ended confirmation, awaiting a score, or reversed
+- **THEN** the score form MUST be available to eligible participants
+- **AND** the UI MUST NOT offer a separate match-end confirmation action
+- **AND** it MUST NOT show a per-side ended-confirmation status
+
+#### Scenario: First score submitted
+
+- **WHEN** the backend reports a saved first score report
+- **THEN** the UI MUST explain the server deadline for the other side
+- **AND** it MUST NOT show a redundant confirmation action for the submitting side
+
+#### Scenario: Awaiting-report description is shared
+
+- **WHEN** the backend reports awaiting ended confirmation or awaiting a score
+- **THEN** the UI MUST show one description stating that either side may report the score
+- **AND** it MUST state that the other side then has five minutes to agree or report a correction, otherwise the reported score becomes final
+
+#### Scenario: Score-confirmation description is perspective-neutral
+
+- **WHEN** the backend reports a score under confirmation
+- **THEN** the description MUST be correct for both the reporting side and the other side
+- **AND** it MUST state that the side that has not reported yet has five minutes to agree or report a correction, otherwise the reported score becomes final
 
 ### Requirement: Consensus and dispute actions
 The UI MUST allow an eligible participant/captain to submit a valid score only when the backend allows it. It MUST show pending confirmation, disputed, and admin-resolution-required states distinctly, including correction deadlines and an actionable refresh/error path. The UI MUST NOT claim a result is complete until a refreshed backend projection reports completion.
@@ -85,19 +101,24 @@ The UI MUST show loading immediately when a match refresh or mutation begins, di
 - **AND** they MUST NOT submit or render the wrapper's stale pre-refresh match
 
 ### Requirement: Mock/live parity
-The mock service MUST expose the same lifecycle DTOs, command methods, validation outcomes, and state transitions as the live client for happy paths, duplicate actions, disputes, deadlines, forfeits, admin resolution, and reversal guards.
+
+The mock service MUST expose the same lifecycle DTOs, command methods, validation outcomes, and state transitions as the live client for happy paths, duplicate actions, disputes, deadlines, forfeits, admin resolution, and reversal guards. The mock MUST NOT expose a match-end confirmation command or capability.
 
 #### Scenario: Mock match follows lifecycle actions
+
 - **WHEN** a participant or administrator uses the mock match service
-- **THEN** the mock MUST apply the same confirmation, score, dispute, forfeit, resolution, deadline, and reversal guards exposed by the live contract
+- **THEN** the mock MUST apply the same score, dispute, forfeit, resolution, deadline, and reversal guards exposed by the live contract
+- **AND** the mock MUST record a side's ended confirmation atomically with its score report instead of requiring a separate confirmation command
 - **AND** the mock MUST return explicit lifecycle state instead of inferring completion from a winner or score alone
 
 #### Scenario: Anonymous mock requests remain public
+
 - **WHEN** an anonymous mock login or unauthenticated request asks for match action state
 - **THEN** the mock service MUST resolve the request as anonymous rather than the default participant persona
 - **AND** it MUST return the public match projection without private reports or lifecycle mutation capabilities
 
 #### Scenario: Interactive mock services retain the authenticated persona
+
 - **WHEN** an authenticated mock user or administrator invokes a service from an interactive circuit without an ambient HTTP context
 - **THEN** the mock service MUST resolve the persona from the circuit authentication state
 - **AND** it MUST preserve the corresponding profile, action, and private-report authorization behavior

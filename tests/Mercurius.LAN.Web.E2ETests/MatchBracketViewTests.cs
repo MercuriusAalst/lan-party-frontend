@@ -78,7 +78,7 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
         await Expect(dialog).ToContainTextAsync(players[0].Username);
         await Expect(dialog).ToContainTextAsync(players[1].Username);
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
 
         await MatchE2E.CloseDialogAsync(dialog);
         await Expect(page.Locator("[role='dialog'][aria-labelledby='match-dialog-title']")).ToHaveCountAsync(0);
@@ -100,7 +100,7 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await page.WaitForInteractiveAsync();
 
         var dialog = await MatchE2E.OpenMatchFromScheduleAsync(page, players[0].Username);
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
     }

@@ -953,16 +953,15 @@ internal sealed class MockBackendStore
             var hasBothParticipants = GetMockParticipantId(match, MatchParticipantSide.Participant1).HasValue &&
                 GetMockParticipantId(match, MatchParticipantSide.Participant2).HasValue;
             var hasByeParticipant = match.Participant1IsBYE || match.Participant2IsBYE;
-            var canConfirm = canAct &&
-                hasBothParticipants && !hasByeParticipant &&
-                match.LifecycleState is not (MatchLifecycleState.Completed or MatchLifecycleState.Forfeited or MatchLifecycleState.AdminResolutionRequired) &&
-                !HasMockEnded(match, side!.Value);
+            var awaitingInitialReport = match.LifecycleState is MatchLifecycleState.AwaitingEndedConfirmation
+                or MatchLifecycleState.AwaitingScore
+                or MatchLifecycleState.Reversed
+                or MatchLifecycleState.ScoreConfirmation;
             var scoreStateAllowsSubmission = side.HasValue &&
-                (match.LifecycleState == MatchLifecycleState.AwaitingScore ||
-                 (match.LifecycleState == MatchLifecycleState.ScoreConfirmation && !HasMockSubmittedScore(match, side.Value)) ||
-                 (match.LifecycleState == MatchLifecycleState.Disputed && GetMockCorrectionCount(match, side.Value) < 1));
-            var canSubmit = canAct && hasBothParticipants && !hasByeParticipant && match.Participant1Ended && match.Participant2Ended &&
-                scoreStateAllowsSubmission;
+                (awaitingInitialReport
+                    ? !HasMockSubmittedScore(match, side.Value)
+                    : match.LifecycleState == MatchLifecycleState.Disputed && GetMockCorrectionCount(match, side.Value) < 1);
+            var canSubmit = canAct && hasBothParticipants && !hasByeParticipant && scoreStateAllowsSubmission;
             var canForfeit = canAct && match.LifecycleState is not (MatchLifecycleState.Completed or MatchLifecycleState.Forfeited or MatchLifecycleState.AdminResolutionRequired);
             canForfeit &= hasBothParticipants && !hasByeParticipant;
             var canResolve = isAdmin &&
@@ -998,7 +997,6 @@ internal sealed class MockBackendStore
             {
                 Match = ClonePublicMatch(match),
                 AuthorizedParticipant = side,
-                CanConfirmEnded = canConfirm,
                 CanSubmitScore = canSubmit,
                 CanForfeit = canForfeit,
                 CanResolve = canResolve,
@@ -1078,37 +1076,6 @@ internal sealed class MockBackendStore
         }
     }
 
-    public Match ConfirmMatchEnded(string persona, Guid matchId)
-    {
-        lock(_syncRoot)
-        {
-            var (tournament, match) = GetMatchContext(matchId);
-            EnsureMockTournamentInProgress(tournament);
-            ApplyMockDeadline(tournament, match);
-            var side = FindMockParticipantSide(persona, tournament, match)
-                ?? throw new InvalidOperationException("Only an assigned participant may confirm this match.");
-
-            EnsureMockParticipantNumber(side);
-            if(!HasBothMockParticipants(match) || match.Participant1IsBYE || match.Participant2IsBYE)
-                throw new InvalidOperationException("A BYE match cannot accept participant actions.");
-            if(match.LifecycleState is MatchLifecycleState.Completed or MatchLifecycleState.Forfeited or MatchLifecycleState.AdminResolutionRequired)
-                throw new InvalidOperationException("This match is not accepting participant actions.");
-            if(HasMockEnded(match, side))
-                throw new InvalidOperationException("Your end confirmation has already been saved.");
-
-            if(side == MatchParticipantSide.Participant1)
-                match.Participant1Ended = true;
-            else
-                match.Participant2Ended = true;
-
-            if(match.Participant1Ended && match.Participant2Ended)
-                match.LifecycleState = MatchLifecycleState.AwaitingScore;
-
-            match.ResultVersion++;
-            return Clone(match)!;
-        }
-    }
-
     public Match SubmitMatchScore(string persona, Guid matchId, SubmitMatchScoreDTO request)
     {
         lock(_syncRoot)
@@ -1122,18 +1089,28 @@ internal sealed class MockBackendStore
                 throw new InvalidOperationException("Both non-BYE participants must be assigned before submitting a score.");
 
             ValidateMockScore(match, request.Participant1Score, request.Participant2Score);
-            if(!match.Participant1Ended || !match.Participant2Ended)
-                throw new InvalidOperationException("Both participants must confirm the match ended before submitting a score.");
             if(match.LifecycleState is MatchLifecycleState.Completed or MatchLifecycleState.Forfeited or MatchLifecycleState.AdminResolutionRequired)
                 throw new InvalidOperationException("This match is no longer accepting score reports.");
-            if(match.LifecycleState == MatchLifecycleState.ScoreConfirmation && HasMockSubmittedScore(match, side))
+            if((match.LifecycleState is MatchLifecycleState.AwaitingEndedConfirmation
+                    or MatchLifecycleState.AwaitingScore
+                    or MatchLifecycleState.Reversed
+                    or MatchLifecycleState.ScoreConfirmation) && HasMockSubmittedScore(match, side))
                 throw new InvalidOperationException("Your initial score report has already been submitted.");
             if(match.LifecycleState == MatchLifecycleState.Disputed && GetMockCorrectionCount(match, side) >= 1)
                 throw new InvalidOperationException("Each side may correct its score only once.");
 
+            // A score report records that side's ended confirmation; no separate confirmation step exists.
             SetMockReportedScore(match, side, request.Participant1Score, request.Participant2Score);
-            if(match.LifecycleState == MatchLifecycleState.AwaitingScore)
+            if(side == MatchParticipantSide.Participant1)
+                match.Participant1Ended = true;
+            else
+                match.Participant2Ended = true;
+
+            if(match.LifecycleState is MatchLifecycleState.AwaitingEndedConfirmation
+               or MatchLifecycleState.AwaitingScore
+               or MatchLifecycleState.Reversed)
             {
+                // The first report opens a fresh window, like the backend; any stale deadline is replaced.
                 match.LifecycleState = MatchLifecycleState.ScoreConfirmation;
                 match.ScoreConfirmationDeadlineUtc = DateTime.UtcNow.AddMinutes(5);
             }
@@ -1369,9 +1346,6 @@ internal sealed class MockBackendStore
             return MatchParticipantSide.Participant2;
         return null;
     }
-
-    private static bool HasMockEnded(Match match, MatchParticipantSide side) =>
-        side == MatchParticipantSide.Participant1 ? match.Participant1Ended : match.Participant2Ended;
 
     private static bool HasMockSubmittedScore(Match match, MatchParticipantSide side) =>
         side == MatchParticipantSide.Participant1

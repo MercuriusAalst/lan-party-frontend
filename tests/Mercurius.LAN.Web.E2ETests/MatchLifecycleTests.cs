@@ -5,9 +5,9 @@ using static Microsoft.Playwright.Assertions;
 namespace Mercurius.LAN.Web.E2ETests;
 
 /// <summary>
-/// The participant-facing half of the match state machine: who may act, the ended
-/// confirmations, score reporting / confirmation / dispute / correction, forfeits and the
-/// visibility rules for anonymous and non-participant visitors.
+/// The participant-facing half of the match state machine: who may act, direct score
+/// reporting / confirmation / dispute / correction, forfeits and the visibility rules for
+/// anonymous and non-participant visitors.
 /// </summary>
 [Collection(E2ECollection.Name)]
 public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
@@ -25,9 +25,9 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await page.WaitForInteractiveAsync();
 
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("Both sides must confirm that the match has ended.")).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("Sign in to confirm your side, report a score, or forfeit. Match results remain publicly viewable.")).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("Either side may report the score. After the first report, the other side has five minutes to agree or report a correction; otherwise the reported score becomes final.")).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("Sign in to report a score or forfeit. Match results remain publicly viewable.")).ToBeVisibleAsync();
         await Expect(dialog.GetByRole(AriaRole.Link, new() { Name = "Sign in" })).ToBeVisibleAsync();
 
         await Expect(MatchE2E.Section(dialog, MatchE2E.YourActionsPanel)).ToHaveCountAsync(0);
@@ -50,18 +50,17 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await page.WaitForInteractiveAsync();
 
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
         await Expect(MatchE2E.Section(dialog, MatchE2E.YourActionsPanel)).ToHaveCountAsync(0);
-        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.ConfirmEndedButton })).ToHaveCountAsync(0);
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
 
     [Fact]
-    public async Task ConfirmingTheEndIsRecordedForThatSideOnly()
+    public async Task DirectScoreEntryIsOfferedWithoutAnEndedConfirmationStep()
     {
-        var admin = await app.CreatePersonaAsync(MatchE2E.UniqueLabel("match-confirm-admin"), isAdmin: true);
-        var players = await MatchE2E.CreatePersonasAsync(app, "match-confirm-player", 2);
+        var admin = await app.CreatePersonaAsync(MatchE2E.UniqueLabel("match-direct-admin"), isAdmin: true);
+        var players = await MatchE2E.CreatePersonasAsync(app, "match-direct-player", 2);
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(app, app.CreateApiClient(admin), players);
 
         var context = await app.NewAuthenticatedContextAsync(players[0]);
@@ -70,25 +69,19 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await page.WaitForInteractiveAsync();
 
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
-        await MatchE2E.ConfirmEndedAsync(dialog);
 
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("Confirmed", new() { Exact = true })).ToHaveCountAsync(1);
-        await Expect(dialog.GetByText("Waiting", new() { Exact = true })).ToHaveCountAsync(1);
-        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.ConfirmEndedButton })).ToHaveCountAsync(0);
-
-        await MatchE2E.CloseDialogAsync(dialog);
-        await page.ReloadAsync();
-        await page.WaitForInteractiveAsync();
-
-        var reopened = await MatchE2E.OpenMatchAsync(page, players[0].Username);
-        await Expect(reopened.GetByText("Confirmed", new() { Exact = true })).ToHaveCountAsync(1);
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
+        await Expect(dialog.Locator("#participant1-score")).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeVisibleAsync();
+        // The removed ended-confirmation action and per-side status display are gone.
+        await Expect(dialog.GetByText("Confirmed", new() { Exact = true })).ToHaveCountAsync(0);
+        await Expect(dialog.GetByText("Waiting", new() { Exact = true })).ToHaveCountAsync(0);
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
 
     [Fact]
-    public async Task BothSidesConfirmingTheEndUnlocksScoreReportingInSeparateSessions()
+    public async Task BothSidesSeeDirectScoreEntryInSeparateSessions()
     {
         var admin = await app.CreatePersonaAsync(MatchE2E.UniqueLabel("match-both-admin"), isAdmin: true);
         var players = await MatchE2E.CreatePersonasAsync(app, "match-both-player", 2);
@@ -100,22 +93,11 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var secondPage = await OpenTournamentAsync(secondContext, tournamentId);
 
         var firstDialog = await MatchE2E.OpenMatchAsync(firstPage, players[0].Username);
-        await MatchE2E.ConfirmEndedAsync(firstDialog);
-        await Expect(firstDialog.GetByText("Waiting", new() { Exact = true })).ToHaveCountAsync(1);
+        await Expect(firstDialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeVisibleAsync();
 
         var secondDialog = await MatchE2E.OpenMatchAsync(secondPage, players[1].Username);
-        await MatchE2E.ConfirmEndedAsync(secondDialog);
-
-        await Expect(secondDialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.ReadyForScore })).ToBeVisibleAsync();
-        await Expect(secondDialog.GetByText("Both sides have confirmed the end. Either eligible participant or captain may submit the score."))
-            .ToBeVisibleAsync();
+        await Expect(secondDialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
         await Expect(secondDialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeVisibleAsync();
-
-        await firstPage.ReloadAsync();
-        await firstPage.WaitForInteractiveAsync();
-        var refreshedDialog = await MatchE2E.OpenMatchAsync(firstPage, players[0].Username);
-        await Expect(refreshedDialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.ReadyForScore })).ToBeVisibleAsync();
-        await Expect(refreshedDialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, firstContext, secondContext);
     }
@@ -127,7 +109,6 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var players = await MatchE2E.CreatePersonasAsync(app, "match-report-player", 2);
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: "BestOf3");
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
 
         var firstContext = await app.NewAuthenticatedContextAsync(players[0]);
         var firstPage = await OpenTournamentAsync(firstContext, tournamentId);
@@ -135,7 +116,7 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await MatchE2E.SubmitScoreAsync(dialog, 2, 1);
 
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.ScoreConfirmationStatus })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("The first score report is saved. The opponent has five minutes to agree or report a correction."))
+        await Expect(dialog.GetByText("A score has been reported. The side that has not reported yet has five minutes to agree or report a correction; otherwise the reported score becomes final."))
             .ToBeVisibleAsync();
         await Expect(MatchE2E.Section(dialog, MatchE2E.DeadlineLabel)).ToBeVisibleAsync();
         await Expect(MatchE2E.Section(dialog, MatchE2E.DeadlineLabel)).ToContainTextAsync("Window closes");
@@ -162,7 +143,6 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var players = await MatchE2E.CreatePersonasAsync(app, "match-agree-player", 2);
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: "BestOf3");
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
         await MatchE2E.SubmitScoreViaApiAsync(app, (await MatchE2E.GetMatchesAsync(app.Api, tournamentId)).Single().Id, players[0], 2, 1);
 
         var secondContext = await app.NewAuthenticatedContextAsync(players[1]);
@@ -187,7 +167,6 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var players = await MatchE2E.CreatePersonasAsync(app, "match-dispute-player", 2);
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: "BestOf3");
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
         await MatchE2E.SubmitScoreViaApiAsync(app, (await MatchE2E.GetMatchesAsync(app.Api, tournamentId)).Single().Id, players[0], 2, 1);
 
         var secondContext = await app.NewAuthenticatedContextAsync(players[1]);
@@ -213,12 +192,8 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: "BestOf3");
         var matchId = (await MatchE2E.GetMatchesAsync(app.Api, tournamentId)).Single().Id;
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[0], 2, 1);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[1], 2, 0);
-        // The disputed state is only reached when the confirmation window is evaluated, so the
-        // correction window is opened first through the isolated database timestamp.
-        await MatchE2E.ExpireScoreWindowAsync(app, matchId);
 
         var firstContext = await app.NewAuthenticatedContextAsync(players[0]);
         var firstPage = await OpenTournamentAsync(firstContext, tournamentId);
@@ -245,7 +220,7 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
-    public async Task TeamCaptainSeesCaptainActionsAndCanConfirmTheEnd()
+    public async Task TeamCaptainSeesCaptainActionsAndDirectScoreEntry()
     {
         var admin = await app.CreatePersonaAsync(MatchE2E.UniqueLabel("match-team-admin"), isAdmin: true);
         var captains = await MatchE2E.CreatePersonasAsync(app, "match-team-captain", 2);
@@ -265,9 +240,7 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(panel).ToBeVisibleAsync();
         await Expect(panel.GetByText("Your captain actions")).ToBeVisibleAsync();
 
-        await MatchE2E.ConfirmEndedAsync(dialog);
-        await Expect(dialog.GetByText("Confirmed", new() { Exact = true })).ToHaveCountAsync(1);
-        await Expect(dialog.GetByText("Waiting", new() { Exact = true })).ToHaveCountAsync(1);
+        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
@@ -288,7 +261,7 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(confirmation).ToBeVisibleAsync();
         await MatchE2E.ClickAsync(confirmation.GetByRole(AriaRole.Button, new() { Name = "Keep playing" }));
         await Expect(confirmation).ToHaveCountAsync(0);
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
 
         await MatchE2E.ClickAsync(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.ForfeitSideButton }));
         await MatchE2E.ClickAsync(dialog
@@ -312,7 +285,6 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: "BestOf3");
         var matchId = (await MatchE2E.GetMatchesAsync(app.Api, tournamentId)).Single().Id;
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[0], 2, 1);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[1], 2, 1);
 

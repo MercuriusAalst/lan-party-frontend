@@ -39,7 +39,6 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: "BestOf3");
         var matchId = (await MatchE2E.GetMatchesAsync(app.Api, tournamentId)).Single().Id;
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[0], 2, 1);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[1], 2, 0);
         await MatchE2E.ExpireScoreWindowAsync(app, matchId, correction: true);
@@ -74,7 +73,7 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
-    public async Task UnconfirmedMatchIsUnaffectedByAnUnrelatedPastDeadline()
+    public async Task UnreportedMatchIsUnaffectedByAnUnrelatedPastDeadline()
     {
         var admin = await app.CreatePersonaAsync(MatchE2E.UniqueLabel("deadline-noop-admin"), isAdmin: true);
         var players = await MatchE2E.CreatePersonasAsync(app, "deadline-noop-player", 2);
@@ -87,8 +86,8 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var page = await OpenTournamentAsync(context, tournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
 
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingConfirmation })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("Both sides must confirm that the match has ended.")).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("Either side may report the score. After the first report, the other side has five minutes to agree or report a correction; otherwise the reported score becomes final.")).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
@@ -101,7 +100,6 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var tournamentId = await MatchE2E.StartIndividualTournamentAsync(
             app, app.CreateApiClient(admin), players, format: "BestOf3");
         var matchId = (await MatchE2E.GetMatchesAsync(app.Api, tournamentId)).Single().Id;
-        await MatchE2E.ReachReadyForScoreAsync(app, tournamentId, players[0], players[1]);
         await MatchE2E.SubmitScoreViaApiAsync(app, matchId, players[0], report1, report2);
         return (tournamentId, matchId, players[0], players[1]);
     }
