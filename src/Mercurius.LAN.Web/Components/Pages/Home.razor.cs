@@ -18,17 +18,19 @@ public partial class Home : IAsyncDisposable
     [Inject] private ISponsorService SponsorService { get; set; } = null!;
     [Inject] private IOptions<LanEventOptions> EventOptions { get; set; } = null!;
 
-    private List<Tournament> _tournaments = [];
+    private List<Tournament> _featuredTournaments = [];
     private List<Sponsor> _sponsors = [];
     private bool _isTournamentsLoading = true;
     private bool _isSponsorsLoading = true;
     private string? _tournamentsError;
     private string? _sponsorsError;
     private long _loadVersion;
+    private long _featuredLoadVersion;
     private bool _disposed;
+    private bool _isEditingFeatured;
 
-    private IReadOnlyList<Tournament> FeaturedTournaments => _tournaments?.Take(4).ToList() ?? [];
-    private IReadOnlyList<Tournament> HeroTournaments => _tournaments?.Take(3).ToList() ?? [];
+    private IReadOnlyList<Tournament> FeaturedTournaments => _featuredTournaments;
+    private IReadOnlyList<Tournament> HeroTournaments => _featuredTournaments.Take(3).ToList();
 
     private string EventWindow => EventOptions.Value.EventWindow;
 
@@ -60,24 +62,28 @@ public partial class Home : IAsyncDisposable
 
     private async Task LoadTournamentsAsync(long loadVersion)
     {
+        // The featured read keeps its own generation so a confirmed save can retire a response that is
+        // still in flight without touching the sponsor read.
+        var featuredLoadVersion = ++_featuredLoadVersion;
+
         try
         {
-            var tournaments = await TournamentService.GetTournamentsAsync(pageSize: 12);
-            if(IsCurrentLoad(loadVersion))
-                _tournaments = tournaments;
+            var featured = await TournamentService.GetFeaturedTournamentsAsync();
+            if(IsCurrentFeaturedLoad(featuredLoadVersion))
+                _featuredTournaments = featured?.Tournaments ?? [];
         }
         catch(Exception)
         {
-            if(!IsCurrentLoad(loadVersion))
+            if(!IsCurrentFeaturedLoad(featuredLoadVersion))
                 return;
 
-            _tournaments = [];
+            _featuredTournaments = [];
             _tournamentsError = Localization["General.Home.LoadError"];
             ToastService.ShowError(Localization["General.Home.LoadToast"]);
         }
         finally
         {
-            if(IsCurrentLoad(loadVersion))
+            if(IsCurrentFeaturedLoad(featuredLoadVersion))
             {
                 _isTournamentsLoading = false;
                 await RenderIfCurrentAsync(loadVersion);
@@ -118,6 +124,9 @@ public partial class Home : IAsyncDisposable
 
     private bool IsCurrentLoad(long loadVersion) => !_disposed && loadVersion == _loadVersion;
 
+    private bool IsCurrentFeaturedLoad(long featuredLoadVersion) =>
+        !_disposed && featuredLoadVersion == _featuredLoadVersion;
+
     protected virtual Task RequestRenderAsync() => InvokeAsync(StateHasChanged);
 
     private async Task RenderIfCurrentAsync(long loadVersion)
@@ -137,6 +146,21 @@ public partial class Home : IAsyncDisposable
     private void NavigateToTournament(Guid tournamentId)
     {
         NavigationManager.NavigateTo($"/tournaments/{tournamentId}");
+    }
+
+    private void StartEditingFeatured() => _isEditingFeatured = true;
+
+    private void CancelEditingFeatured() => _isEditingFeatured = false;
+
+    // Adopt the confirmed server order so the featured cards and the hero both reflect the save.
+    private void ApplyFeaturedOrder(IReadOnlyList<Tournament> order)
+    {
+        // Retire any featured read that started before the save so its response cannot restore the old order.
+        _featuredLoadVersion++;
+        _featuredTournaments = order.ToList();
+        _isTournamentsLoading = false;
+        _tournamentsError = null;
+        _isEditingFeatured = false;
     }
 
     public ValueTask DisposeAsync()

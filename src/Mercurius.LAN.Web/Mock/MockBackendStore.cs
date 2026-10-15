@@ -42,6 +42,7 @@ internal sealed class MockBackendStore
     private static readonly DateTime FeaturedFixtureCreatedAtUtc = new(2026, 5, 1, 9, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime FeaturedFixtureUpdatedAtUtc = new(2026, 5, 11, 12, 0, 0, DateTimeKind.Utc);
     private const int MaxDownstreamMatches = 512;
+    private const int MaxFeaturedTournaments = 4;
 
     private readonly object _syncRoot = new();
     private readonly string _dataFilePath;
@@ -80,6 +81,78 @@ internal sealed class MockBackendStore
             return Clone(tournaments.ToList())!;
         }
     }
+
+    public FeaturedTournamentsDTO GetFeaturedTournaments()
+    {
+        lock(_syncRoot)
+        {
+            var featured = ResolveFeaturedTournaments();
+            return new FeaturedTournamentsDTO
+            {
+                TournamentIds = featured.Select(tournament => tournament.Id).ToList(),
+                Tournaments = Clone(featured.Select(ToTournament).ToList())!
+            };
+        }
+    }
+
+    public FeaturedTournamentIdsDTO UpdateFeaturedTournaments(IReadOnlyList<Guid> tournamentIds, string persona)
+    {
+        lock(_syncRoot)
+        {
+            if(!string.Equals(persona, "admin", StringComparison.OrdinalIgnoreCase))
+                throw new UnauthorizedAccessException("Only an administrator may change the featured tournaments.");
+
+            var requested = (tournamentIds ?? []).ToList();
+            if(requested.Count is < 1 or > MaxFeaturedTournaments || requested.Distinct().Count() != requested.Count)
+                throw new InvalidOperationException(
+                    $"Select one to {MaxFeaturedTournaments} distinct tournaments.");
+
+            var eligibleIds = ResolveEligibleFeaturedTournaments().Select(tournament => tournament.Id).ToHashSet();
+            if(requested.Any(id => !eligibleIds.Contains(id)))
+                throw new InvalidOperationException("Every featured tournament must exist and must not be canceled.");
+
+            _document.FeaturedTournamentIds = requested;
+            return new FeaturedTournamentIdsDTO { TournamentIds = requested.ToList() };
+        }
+    }
+
+    // Retains still-eligible saved selections in their relative order, then backfills from the
+    // default eligible order so a homepage row never repeats a tournament. An unconfigured
+    // selection defaults to the maximum; a saved selection is never padded past its own count.
+    private List<TournamentExtended> ResolveFeaturedTournaments()
+    {
+        var eligible = ResolveEligibleFeaturedTournaments();
+        var eligibleById = eligible.ToDictionary(tournament => tournament.Id);
+        var featured = new List<TournamentExtended>();
+        var selected = new HashSet<Guid>();
+
+        foreach(var id in _document.FeaturedTournamentIds)
+        {
+            if(selected.Add(id) && eligibleById.TryGetValue(id, out var retained))
+                featured.Add(retained);
+        }
+
+        var savedCount = _document.FeaturedTournamentIds.Count;
+        var target = savedCount == 0 ? MaxFeaturedTournaments : Math.Min(savedCount, MaxFeaturedTournaments);
+
+        foreach(var tournament in eligible)
+        {
+            if(featured.Count >= target)
+                break;
+
+            if(selected.Add(tournament.Id))
+                featured.Add(tournament);
+        }
+
+        return featured;
+    }
+
+    private List<TournamentExtended> ResolveEligibleFeaturedTournaments() =>
+        _document.Tournaments
+            .Where(tournament => tournament.Status != TournamentStatus.Canceled)
+            .OrderBy(tournament => tournament.PlannedStartTime)
+            .ThenBy(tournament => tournament.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     public List<GlobalSearchResultDTO> SearchGlobal(string query)
     {
@@ -4530,6 +4603,7 @@ internal sealed class MockBackendStore
             FinalsFormat = tournament.FinalsFormat,
             ParticipationMode = tournament.ParticipationMode,
             TeamSize = tournament.TeamSize,
+            SponsorPlacement = tournament.SponsorPlacement,
             FirstPlacePrize = tournament.FirstPlacePrize,
             SecondPlacePrize = tournament.SecondPlacePrize,
             ThirdPlacePrize = tournament.ThirdPlacePrize,

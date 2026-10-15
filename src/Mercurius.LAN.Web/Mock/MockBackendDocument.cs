@@ -8,6 +8,7 @@ namespace Mercurius.LAN.Web.Mock;
 internal sealed class MockBackendDocument
 {
     public List<TournamentExtended> Tournaments { get; set; } = [];
+    public List<Guid> FeaturedTournamentIds { get; set; } = [];
     public List<Team> Teams { get; set; } = [];
     public List<UserDTO> Users { get; set; } = [];
     public List<MockProfileRecord> Profiles { get; set; } = [];
