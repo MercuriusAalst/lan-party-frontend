@@ -764,6 +764,7 @@
   "Feature.match.scoreGuidanceBestOf1": "Best of 1: de winnaar heeft 1 overwinning, de tegenstander 0.",
   "Feature.match.scoreGuidanceBestOf3": "Best of 3: de winnaar heeft 2 overwinningen; de tegenstander heeft er 0 of 1.",
   "Feature.match.scoreGuidanceBestOf5": "Best of 5: de winnaar heeft 3 overwinningen; de tegenstander heeft er 0, 1 of 2.",
+  "Feature.match.scoreFormatUnsupported": "Voor dit matchformaat kan geen score worden doorgegeven. Neem contact op met een beheerder.",
   "Feature.match.scoreLoserLegend": "Games gewonnen door {0} ({1})",
   "Feature.match.scoreSummary": "{0} {1} – {2} {3}",
   "Feature.match.scoreWinnerLegend": "Wie heeft gewonnen?",

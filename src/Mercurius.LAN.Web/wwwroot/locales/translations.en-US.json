@@ -764,6 +764,7 @@
   "Feature.match.scoreGuidanceBestOf1": "Best of 1: the winner has 1 win, the other side 0.",
   "Feature.match.scoreGuidanceBestOf3": "Best of 3: the winner has 2 wins; the other side has 0 or 1.",
   "Feature.match.scoreGuidanceBestOf5": "Best of 5: the winner has 3 wins; the other side has 0, 1 or 2.",
+  "Feature.match.scoreFormatUnsupported": "The score cannot be reported for this match format. Contact an administrator for help.",
   "Feature.match.scoreLoserLegend": "{0}'s games won ({1})",
   "Feature.match.scoreSummary": "{0} {1} – {2} {3}",
   "Feature.match.scoreWinnerLegend": "Who won?",

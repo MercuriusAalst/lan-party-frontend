@@ -157,14 +157,24 @@
                         <div class="match-score-editor">
                             <div class="match-score-editor-copy">
                                 <h3>@Localization["Feature.match.reportFinalScore"]</h3>
-                                <p>@Localization["Feature.match.reportFinalScoreHelp"]</p>
+                                @if(IsSupportedFormat)
+                                {
+                                    <p>@Localization["Feature.match.reportFinalScoreHelp"]</p>
+                                }
                             </div>
-                            @if(GetScoreGuidance() is { } playerScoreGuidance)
+                            @if(IsSupportedFormat)
                             {
-                                <p id="player-score-guidance" class="match-score-guidance">@playerScoreGuidance</p>
+                                @if(GetScoreGuidance() is { } playerScoreGuidance)
+                                {
+                                    <p id="player-score-guidance" class="match-score-guidance">@playerScoreGuidance</p>
+                                }
+                                @ScorePicker("player")
+                                <button type="button" class="button-primary" aria-describedby="@GetScoreDescribedBy(Match.Format, "player")" disabled="@(_isSubmitting || _isLoading || !HasValidScoreInputs)" @onclick="SubmitScoreAsync">@Localization["Feature.match.submitScore"]</button>
                             }
-                            @ScorePicker("player")
-                            <button type="button" class="button-primary" aria-describedby="@GetScoreDescribedBy(Match.Format, "player")" disabled="@(_isSubmitting || _isLoading || !HasValidScoreInputs)" @onclick="SubmitScoreAsync">@Localization["Feature.match.submitScore"]</button>
+                            else
+                            {
+                                <p class="match-score-unsupported" role="note">@Localization["Feature.match.scoreFormatUnsupported"]</p>
+                            }
                         </div>
                     }
                     @if(_actionState.CanForfeit)
@@ -204,7 +214,10 @@
                             }
                             @if(_actionState.CanResolve)
                             {
-                                <p>@Localization["Feature.match.resolveHelp"]</p>
+                                @if(IsSupportedFormat)
+                                {
+                                    <p>@Localization["Feature.match.resolveHelp"]</p>
+                                }
                             }
                             else
                             {
@@ -212,12 +225,19 @@
                             }
                             @if(_actionState.CanResolve)
                             {
-                            @if(GetScoreGuidance() is { } adminScoreGuidance)
+                            @if(IsSupportedFormat)
                             {
-                                <p id="admin-score-guidance" class="match-score-guidance">@adminScoreGuidance</p>
+                                @if(GetScoreGuidance() is { } adminScoreGuidance)
+                                {
+                                    <p id="admin-score-guidance" class="match-score-guidance">@adminScoreGuidance</p>
+                                }
+                                @ScorePicker("admin")
+                                <button type="button" class="button-primary" aria-describedby="@GetScoreDescribedBy(Match.Format, "admin")" disabled="@(_isSubmitting || _isLoading || !_actionState.CanResolve || !HasValidScoreInputs)" @onclick="ResolveAsync">@Localization["Feature.match.resolveResult"]</button>
                             }
-                            @ScorePicker("admin")
-                            <button type="button" class="button-primary" aria-describedby="@GetScoreDescribedBy(Match.Format, "admin")" disabled="@(_isSubmitting || _isLoading || !_actionState.CanResolve || !HasValidScoreInputs)" @onclick="ResolveAsync">@Localization["Feature.match.resolveResult"]</button>
+                            else
+                            {
+                                <p class="match-score-unsupported" role="note">@Localization["Feature.match.scoreFormatUnsupported"]</p>
+                            }
                             }
                         }
                         @if(_actionState.CanForceForfeit)
@@ -280,7 +300,7 @@
 </CascadingValue>
 
 @code {
-    private RenderFragment ScorePicker(string idPrefix) => @<div class="score-picker">
+    private RenderFragment ScorePicker(string idPrefix) => !IsSupportedFormat ? (builder => { }) : @<div class="score-picker">
         <fieldset class="score-picker-group" aria-describedby="@GetScoreDescribedBy(Match.Format, idPrefix)">
             <legend>@Localization["Feature.match.scoreWinnerLegend"]</legend>
             <div class="score-picker-options">
@@ -312,9 +332,6 @@
                 </div>
             </fieldset>
         }
-        @if(WinsNeeded > 0)
-        {
-            <p id="@($"{idPrefix}-score-summary")" class="match-score-summary" aria-live="polite">@ScoreSummary</p>
-        }
+        <p id="@($"{idPrefix}-score-summary")" class="match-score-summary" aria-live="polite">@ScoreSummary</p>
     </div>;
 }

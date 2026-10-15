@@ -60,6 +60,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private (int Participant1Score, int Participant2Score)? SelectedScores => MapSelectionToScores(Match.Format, _winner, _loserScore);
     private bool HasValidScoreInputs => SelectedScores is { } scores && IsValidSeriesScore(Match.Format, scores.Participant1Score, scores.Participant2Score);
     private int WinsNeeded => GetWinsNeeded(Match.Format);
+    // Score selection only makes sense for a Best-of format with a known number of required wins.
+    private bool IsSupportedFormat => IsSupportedScoreFormat(Match.Format);
     private CancellationTokenSource? _deadlineRefreshCancellation;
     private DateTime? _deadlineRefreshTriggeredFor;
     private Task? _deadlineRefreshTask;
@@ -177,6 +179,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         TournamentFormat.BestOf5 => Localization["Feature.tournament.formatBestOf5"],
         _ => Match.Format.ToString()
     };
+
+    internal static bool IsSupportedScoreFormat(TournamentFormat format) => GetWinsNeeded(format) > 0;
 
     internal static int GetWinsNeeded(TournamentFormat format) => format switch
     {
