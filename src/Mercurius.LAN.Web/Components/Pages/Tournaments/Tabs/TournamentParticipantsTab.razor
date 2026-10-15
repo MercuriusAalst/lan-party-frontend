@@ -186,11 +186,12 @@
                     </header>
 
                     <div class="registration-dialog-body">
-                        @if(_isLoadingRegistration)
+                        @if(_registrationLoadRequested || _isLoadingRegistration)
                         {
                             <p class="registration-message" role="status">@Localization["Feature.tournaments.checkingYourOptions"]</p>
                         }
-
+                        else
+                        {
             @if(_registrationError is not null)
             {
                 <div class="registration-message registration-message--error" role="alert">
@@ -603,6 +604,7 @@
                     }
                 </div>
             }
+                        }
 
                     </div>
                 </div>

@@ -24,6 +24,13 @@ public interface ITournamentService
         Guid id,
         CancellationToken cancellationToken = default);
 
+    Task<FeaturedTournamentsDTO> GetFeaturedTournamentsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<FeaturedTournamentIdsDTO> UpdateFeaturedTournamentsAsync(
+        IReadOnlyList<Guid> tournamentIds,
+        CancellationToken cancellationToken = default);
+
     Task<List<PublicUserDTO>> GetAdminUsersAsync(
         string? query = null,
         int? pageSize = null,

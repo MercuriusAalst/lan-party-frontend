@@ -1168,5 +1168,24 @@
   "form.teamSizeRange": "Team tournaments require a team size between 1 and 50.",
   "form.plannedStartTimeRequired": "Planned start time is required.",
   "form.leaderboardMetricRequired": "Leaderboard tournaments require a ranking metric.",
-  "form.leaderboardIndividualOnly": "Leaderboard tournaments are individual competitions."
+  "form.leaderboardIndividualOnly": "Leaderboard tournaments are individual competitions.",
+
+  "Admin.Featured.edit": "Edit",
+  "Admin.Featured.dragHint": "Drag the tournament cards to reorder them, or use the position selector.",
+  "Admin.Featured.loading": "Loading featured tournaments...",
+  "Admin.Featured.loadFailed": "The featured tournaments could not be loaded.",
+  "Admin.Featured.slotLabel": "Position {0}",
+  "Admin.Featured.moveToPosition": "Move to position",
+  "Admin.Featured.positionOption": "Position {0}",
+  "Admin.Featured.remove": "Remove {0}",
+  "Admin.Featured.availableHeading": "Available tournaments",
+  "Admin.Featured.noAvailable": "Every eligible tournament is already featured.",
+  "Admin.Featured.save": "Save changes",
+  "Admin.Featured.cancel": "Cancel",
+  "Admin.Featured.saved": "Featured tournaments saved.",
+  "Admin.Featured.minOne": "Select at least one tournament before saving.",
+  "Admin.Featured.noEligible": "No eligible tournaments are available to feature.",
+  "Admin.Featured.rejected": "The selection was rejected. Save one to four distinct, non-cancelled tournaments.",
+  "Admin.Featured.forbidden": "You need administrator access to change the featured tournaments.",
+  "Admin.Featured.saveFailed": "The featured tournaments could not be saved."
 }

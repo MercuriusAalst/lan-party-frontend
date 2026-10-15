@@ -38,6 +38,7 @@ public class SponsorManagementPlaywrightTests : TournamentE2ETestBase
 
         // Reload proves the sponsor persisted server-side; the admin search finds it again.
         await TournamentE2E.ReloadInteractiveAsync(page);
+        await page.WaitForInteractiveAsync();
         await page.Locator(".custom-autocomplete-input").FillAsync(name);
         await Expect(page.Locator(".custom-autocomplete-dropdown li").Filter(new() { HasText = name }))
             .ToBeVisibleAsync();
