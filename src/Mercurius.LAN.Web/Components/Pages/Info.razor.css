@@ -79,8 +79,8 @@
 }
 
 .packing-item {
-    --packing-accent: var(--color-primary-green);
-    --packing-tint: var(--color-success-soft);
+    --packing-accent: var(--color-muted-text);
+    --packing-tint: var(--color-neutral-soft);
     position: relative;
     z-index: 3;
     display: grid;
@@ -104,8 +104,8 @@
 }
 
 .packing-item--hardware {
-    --packing-accent: var(--color-gaming-essential);
-    --packing-tint: var(--color-success-soft);
+    --packing-accent: var(--color-muted-text);
+    --packing-tint: var(--color-neutral-soft);
 }
 
 .packing-item--basic {

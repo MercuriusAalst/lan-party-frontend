@@ -169,7 +169,7 @@
 .tournaments-filter-chip:hover,
 .tournaments-filter-chip.is-active {
     border-color: var(--color-primary-green);
-    background: rgba(57, 201, 101, 0.14);
+    background: var(--color-neutral-soft);
     color: var(--color-ink);
     box-shadow: none;
 }

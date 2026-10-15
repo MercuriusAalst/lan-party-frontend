@@ -1320,10 +1320,10 @@ html[data-theme="dark"] .home-hero-wordmark {
     z-index: 1;
 }
 
-/* Keep the packing priorities legible without changing their light-theme palette. */
+/* Keep the packing priorities legible; hardware is neutral slate, basic stays orange and optional stays blue. */
 html[data-theme="dark"] .info-page .packing-item--hardware {
-    --packing-accent: #8bd6ad;
-    --packing-tint: rgba(139, 214, 173, 0.18);
+    --packing-accent: var(--color-muted-text);
+    --packing-tint: color-mix(in srgb, var(--color-muted-text) 18%, transparent);
 }
 
 html[data-theme="dark"] .info-page .packing-item--basic {
@@ -1346,8 +1346,8 @@ html[data-theme="dark"] .info-page .packing-item {
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme]) .info-page .packing-item--hardware {
-        --packing-accent: #8bd6ad;
-        --packing-tint: rgba(139, 214, 173, 0.18);
+        --packing-accent: var(--color-muted-text);
+        --packing-tint: color-mix(in srgb, var(--color-muted-text) 18%, transparent);
     }
 
     :root:not([data-theme]) .info-page .packing-item--basic {
