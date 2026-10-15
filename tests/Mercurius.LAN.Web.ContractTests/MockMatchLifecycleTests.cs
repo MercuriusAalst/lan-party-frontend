@@ -206,6 +206,23 @@ public sealed class MockMatchLifecycleTests
     }
 
     [Fact]
+    public void MockFirstReportOpensAFreshWindowEvenWithAStaleDeadline()
+    {
+        var store = CreateReplayStore(awaitingScoreWithStaleDeadline: true);
+        Assert.Equal(MatchLifecycleState.AwaitingScore, store.GetMatch(ReplayMatchId).LifecycleState);
+
+        var before = DateTime.UtcNow;
+        var afterReport = store.SubmitMatchScore(
+            "user",
+            ReplayMatchId,
+            new SubmitMatchScoreDTO { Participant1Score = 1, Participant2Score = 0 });
+
+        Assert.Equal(MatchLifecycleState.ScoreConfirmation, afterReport.LifecycleState);
+        Assert.NotNull(afterReport.ScoreConfirmationDeadlineUtc);
+        Assert.True(afterReport.ScoreConfirmationDeadlineUtc > before.AddMinutes(4));
+    }
+
+    [Fact]
     public void MockForfeitClearsPendingScoreAndCorrectionDeadlines()
     {
         var scoreConfirmationStore = CreateReplayStore();
@@ -661,7 +678,7 @@ public sealed class MockMatchLifecycleTests
         }
     }
 
-    private static MockBackendStore CreateReplayStore()
+    private static MockBackendStore CreateReplayStore(bool awaitingScoreWithStaleDeadline = false)
     {
         var now = DateTime.UtcNow;
         var user = new UserProfileDTO
@@ -727,6 +744,20 @@ public sealed class MockMatchLifecycleTests
             EstimatedEndTime = now.AddMinutes(-30),
             ResultVersion = 1
         };
+        if(awaitingScoreWithStaleDeadline)
+        {
+            match.TeamWinnerId = null;
+            match.TeamLoserId = null;
+            match.Participant1Score = null;
+            match.Participant2Score = null;
+            match.LifecycleState = MatchLifecycleState.AwaitingScore;
+            match.ResultKind = null;
+            match.Participant1Ended = false;
+            match.Participant2Ended = false;
+            match.EndTime = default;
+            match.ScoreConfirmationDeadlineUtc = now.AddHours(-1);
+        }
+
         var tournament = new TournamentExtended
         {
             Id = ReplayTournamentId,

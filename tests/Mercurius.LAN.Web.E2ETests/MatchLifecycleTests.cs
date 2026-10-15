@@ -26,7 +26,7 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("Enter the score to report the match result.")).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("Either side may report the score. After the first report, the other side has five minutes to agree or report a correction; otherwise the reported score becomes final.")).ToBeVisibleAsync();
         await Expect(dialog.GetByText("Sign in to report a score or forfeit. Match results remain publicly viewable.")).ToBeVisibleAsync();
         await Expect(dialog.GetByRole(AriaRole.Link, new() { Name = "Sign in" })).ToBeVisibleAsync();
 
@@ -116,7 +116,7 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await MatchE2E.SubmitScoreAsync(dialog, 2, 1);
 
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.ScoreConfirmationStatus })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("The first score report is saved. The opponent has five minutes to agree or report a correction."))
+        await Expect(dialog.GetByText("A score has been reported. The side that has not reported yet has five minutes to agree or report a correction; otherwise the reported score becomes final."))
             .ToBeVisibleAsync();
         await Expect(MatchE2E.Section(dialog, MatchE2E.DeadlineLabel)).ToBeVisibleAsync();
         await Expect(MatchE2E.Section(dialog, MatchE2E.DeadlineLabel)).ToContainTextAsync("Window closes");

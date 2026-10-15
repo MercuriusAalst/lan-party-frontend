@@ -92,7 +92,7 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
 
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("Enter the score to report the match result.")).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("Either side may report the score. After the first report, the other side has five minutes to agree or report a correction; otherwise the reported score becomes final.")).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
     }

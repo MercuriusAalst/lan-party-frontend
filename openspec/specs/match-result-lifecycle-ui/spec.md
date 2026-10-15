@@ -256,4 +256,3 @@ The match details UI MUST display a nonempty backend validation message for HTTP
 - **WHEN** a score action receives a response without a supported validation message or a non-400 server failure
 - **THEN** the UI MUST show its generic localized fallback
 - **AND** it MUST NOT expose a server error body
-
