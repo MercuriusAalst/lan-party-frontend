@@ -23,6 +23,14 @@ else
 {
     <section class="team-manage-page">
         <div id="received-invites" class="brand-section-anchor" aria-hidden="true"></div>
+        @if(_teamChangedRefreshFailed)
+        {
+            <div class="team-invite-inbox" role="alert">
+                <p class="team-inline-empty">@Localization["General.TeamManage.TeamChanged"]</p>
+                <p class="team-inline-empty">@Localization["General.TeamManage.TeamChangedRefreshFailed"]</p>
+                <button type="button" class="button-primary" @onclick="RefreshAfterTeamChangedAsync">@Localization["status.tryAgain"]</button>
+            </div>
+        }
         @if(_summary.ReceivedPendingInvites.Count > 0)
         {
             <section class="team-invite-inbox" aria-labelledby="team-invite-heading">
