@@ -252,7 +252,11 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         _winner = side;
     }
 
-    private IEnumerable<int> LoserScoreOptions => Enumerable.Range(0, Math.Max(0, WinsNeeded - 1));
+    // The loser can have won 0 up to one game less than the winner's required wins; Best of 1 has no loser step.
+    internal static IReadOnlyList<int> GetLoserScoreOptions(TournamentFormat format) =>
+        GetWinsNeeded(format) is > 1 and var winsNeeded ? Enumerable.Range(0, winsNeeded).ToArray() : [];
+
+    private IReadOnlyList<int> LoserScoreOptions => GetLoserScoreOptions(Match.Format);
 
     private string LoserName => _winner == MatchParticipantSide.Participant1 ? Participant2Name : Participant1Name;
 
