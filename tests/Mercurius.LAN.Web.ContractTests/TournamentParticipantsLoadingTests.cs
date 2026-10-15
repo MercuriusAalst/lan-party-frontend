@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Security.Claims;
 using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
+using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.DTOs.Registrations;
 using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Localization;
@@ -9,6 +10,7 @@ using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.RenderTree;
+using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.JSInterop;
@@ -48,6 +50,47 @@ public sealed class TournamentParticipantsLoadingTests
         await tab.LoadAfterRenderAsync();
 
         Assert.Equal(0, service.AdminRegistrationRequestCount);
+    }
+
+    [Fact]
+    public void RegistrationDialogHidesWorkflowUntilContextLoadFinishes()
+    {
+        var service = CreateTournamentService();
+        var tab = CreateTab(service, popupOnly: true, dialogOpen: true);
+        var tournament = CreateTournament();
+        tournament.ParticipationMode = ParticipationMode.Team;
+        tournament.TeamSize = 2;
+        tab.SetTournamentForTest(tournament);
+
+        var initialContent = tab.RenderMarkupText();
+        Assert.Contains("Feature.tournaments.checkingYourOptions", initialContent);
+        Assert.DoesNotContain("Feature.tournaments.signInRegistration", initialContent);
+        Assert.DoesNotContain("Feature.tournaments.noTeamAvailable", initialContent);
+
+        SetPrivateField(tab, "_registrationLoadRequested", false);
+        var signedOutContent = tab.RenderMarkupText();
+        Assert.Contains("Feature.tournaments.signInRegistration", signedOutContent);
+        Assert.DoesNotContain("Feature.tournaments.checkingYourOptions", signedOutContent);
+
+        SetPrivateField(tab, "_isLoadingRegistration", true);
+        SetPrivateField(tab, "_isAuthenticated", true);
+        var loadingContent = tab.RenderMarkupText();
+        Assert.Contains("Feature.tournaments.checkingYourOptions", loadingContent);
+        Assert.DoesNotContain("Feature.tournaments.signInRegistration", loadingContent);
+        Assert.DoesNotContain("Feature.tournaments.noTeamAvailable", loadingContent);
+        Assert.DoesNotContain("Feature.tournaments.selectTeam", loadingContent);
+
+        SetPrivateField(tab, "_isLoadingRegistration", false);
+        SetPrivateField(tab, "_teamSummary", new CurrentUserTeamSummaryDTO());
+        var resolvedContent = tab.RenderMarkupText();
+        Assert.Contains("Feature.tournaments.noTeamAvailable", resolvedContent);
+        Assert.DoesNotContain("Feature.tournaments.checkingYourOptions", resolvedContent);
+        Assert.DoesNotContain("Feature.tournaments.signInRegistration", resolvedContent);
+
+        SetPrivateField(tab, "_registrationError", "Registration context failed.");
+        var failedContent = tab.RenderMarkupText();
+        Assert.Contains("Registration context failed.", failedContent);
+        Assert.DoesNotContain("Feature.tournaments.checkingYourOptions", failedContent);
     }
 
     [Fact]
@@ -221,6 +264,18 @@ public sealed class TournamentParticipantsLoadingTests
         }
 
         public Task LoadAfterRenderAsync() => base.OnAfterRenderAsync(false);
+
+        public string RenderMarkupText()
+        {
+            var builder = new RenderTreeBuilder();
+            typeof(TournamentParticipantsTab)
+                .GetMethod("BuildRenderTree", PrivateInstance)!
+                .Invoke(this, [builder]);
+            var frames = builder.GetFrames();
+            return string.Concat(frames.Array.Take(frames.Count)
+                .Where(frame => frame.FrameType == RenderTreeFrameType.Text)
+                .Select(frame => frame.TextContent));
+        }
 
         public void InitializeForTest() => base.OnInitialized();
 

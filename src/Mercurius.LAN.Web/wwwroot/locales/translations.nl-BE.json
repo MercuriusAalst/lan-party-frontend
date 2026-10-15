@@ -1174,5 +1174,24 @@
   "form.teamSizeRange": "Voor teamTournaments zijn teams van 1 tot 50 spelers vereist.",
   "form.plannedStartTimeRequired": "Een geplande starttijd is verplicht.",
   "form.leaderboardMetricRequired": "Kies hoe de ranking voor dit leaderboardtournament wordt bepaald.",
-  "form.leaderboardIndividualOnly": "LeaderboardTournaments zijn voor individuele spelers."
+  "form.leaderboardIndividualOnly": "LeaderboardTournaments zijn voor individuele spelers.",
+
+  "Admin.Featured.edit": "Bewerken",
+  "Admin.Featured.dragHint": "Sleep de Tournament-kaarten om ze te herschikken, of gebruik de positiekeuze.",
+  "Admin.Featured.loading": "Uitgelichte Tournaments laden...",
+  "Admin.Featured.loadFailed": "De uitgelichte Tournaments konden niet worden geladen.",
+  "Admin.Featured.slotLabel": "Positie {0}",
+  "Admin.Featured.moveToPosition": "Verplaats naar positie",
+  "Admin.Featured.positionOption": "Positie {0}",
+  "Admin.Featured.remove": "Verwijder {0}",
+  "Admin.Featured.availableHeading": "Beschikbare Tournaments",
+  "Admin.Featured.noAvailable": "Alle geschikte Tournaments staan al uitgelicht.",
+  "Admin.Featured.save": "Wijzigingen opslaan",
+  "Admin.Featured.cancel": "Annuleren",
+  "Admin.Featured.saved": "Uitgelichte Tournaments opgeslagen.",
+  "Admin.Featured.minOne": "Kies minstens één Tournament voordat je opslaat.",
+  "Admin.Featured.noEligible": "Er zijn geen geschikte Tournaments beschikbaar om uit te lichten.",
+  "Admin.Featured.rejected": "De selectie werd geweigerd. Sla één tot vier verschillende, niet-geannuleerde Tournaments op.",
+  "Admin.Featured.forbidden": "Je hebt beheerdersrechten nodig om de uitgelichte Tournaments te wijzigen.",
+  "Admin.Featured.saveFailed": "De uitgelichte Tournaments konden niet worden opgeslagen."
 }

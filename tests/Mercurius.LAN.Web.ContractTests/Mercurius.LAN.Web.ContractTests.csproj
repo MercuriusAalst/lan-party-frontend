@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IncludeMockBackend)' != 'true'">
-    <Compile Remove="MockBackendParityTests.cs;MockMatchLifecycleTests.cs;MockLeaderboardParityTests.cs;MockRegistrationParityTests.cs" />
+    <Compile Remove="MockBackendParityTests.cs;MockMatchLifecycleTests.cs;MockLeaderboardParityTests.cs;MockRegistrationParityTests.cs;MockFeaturedTournamentTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

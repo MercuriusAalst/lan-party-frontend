@@ -34,6 +34,15 @@ public interface ILANClient
         Guid tournamentId,
         CancellationToken cancellationToken = default);
 
+    [Get("/v1/lan/featured-tournaments")]
+    Task<FeaturedTournamentsDTO> GetFeaturedTournamentsAsync(
+        CancellationToken cancellationToken = default);
+
+    [Put("/v1/lan/featured-tournaments")]
+    Task<FeaturedTournamentIdsDTO> UpdateFeaturedTournamentsAsync(
+        [Body] FeaturedTournamentIdsDTO request,
+        CancellationToken cancellationToken = default);
+
     [Get("/v1/lan/search")]
     Task<SearchResponseDTO> SearchAsync(
         [AliasAs("query")] string query,

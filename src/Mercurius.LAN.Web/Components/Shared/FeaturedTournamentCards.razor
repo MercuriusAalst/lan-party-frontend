@@ -1,0 +1,210 @@
+@inject IConfiguration Configuration
+@using Mercurius.LAN.Web.Extensions
+@using Mercurius.LAN.Web.Models.Tournaments
+
+@* One lead card plus up to three secondary cards. The public home page passes Tournaments and
+   navigates on click; the administrator editor passes the selected Slots and gets reorder/remove
+   callbacks, so both surfaces share the exact same arrangement and presentation. *@
+
+@if(Slots is { Count: > 0 })
+{
+    <div class="home-tournament-layout">
+        @Slot(0, isLead: true)
+        <div class="home-tournament-list home-tournament-list--editing">
+            @for(var index = 1; index < Slots.Count; index++)
+            {
+                @Slot(index, isLead: false)
+            }
+        </div>
+    </div>
+}
+else if(Tournaments.Count > 0)
+{
+    var lead = Tournaments[0];
+    var leadImageUrl = AssetUrlResolver.Resolve(Configuration, lead.ImageUrl);
+    <div class="home-tournament-layout">
+        @if(OnSelected.HasDelegate)
+        {
+            <button type="button" class="home-tournament-lead" @onclick="() => SelectAsync(lead.Id)">@LeadCard(lead, leadImageUrl)</button>
+        }
+        else
+        {
+            <div class="home-tournament-lead">@LeadCard(lead, leadImageUrl)</div>
+        }
+
+        <div class="home-tournament-list">
+            @foreach(var tournament in Tournaments.Skip(1))
+            {
+                var imageUrl = AssetUrlResolver.Resolve(Configuration, tournament.ImageUrl);
+                @if(OnSelected.HasDelegate)
+                {
+                    <button type="button" class="home-tournament-row" @onclick="() => SelectAsync(tournament.Id)">@RowCard(tournament, imageUrl)</button>
+                }
+                else
+                {
+                    <div class="home-tournament-row">@RowCard(tournament, imageUrl)</div>
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<Tournament> Tournaments { get; set; } = [];
+
+    /// <summary>Reports tournament clicks on the public cards; draft controls use Slots.</summary>
+    [Parameter] public EventCallback<Guid> OnSelected { get; set; }
+
+    /// <summary>
+    /// When set, the arrangement renders as the administrator's draft: the selected cards, which
+    /// can be dragged onto each other, removed, or moved with the compact position control. Sharing
+    /// the arrangement keeps one presentation and one set of styles instead of a second editor
+    /// layout.
+    /// </summary>
+    [Parameter] public IReadOnlyList<Tournament>? Slots { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public EventCallback<(int From, int To)> OnMoveTournament { get; set; }
+
+    [Parameter] public EventCallback<int> OnRemoveTournament { get; set; }
+
+    private int? _dragIndex;
+    private int? _dropIndex;
+
+    private Task SelectAsync(Guid tournamentId) => OnSelected.InvokeAsync(tournamentId);
+
+    private RenderFragment Slot(int index, bool isLead) => @<text>
+        @{
+            var tournament = Slots![index];
+            var position = index + 1;
+            // "draggable" is an enumerated attribute, so it needs the literal keywords.
+            var draggable = Disabled ? "false" : "true";
+            var classes = new List<string>
+            {
+                isLead ? "home-tournament-lead" : "home-tournament-row",
+                "home-tournament-slot"
+            };
+            if(_dragIndex == index)
+                classes.Add("is-dragging");
+            if(_dropIndex == index)
+                classes.Add("is-drop-target");
+        }
+        <div class="@string.Join(' ', classes)"
+             @key="tournament.Id"
+             role="group"
+             aria-label="@Localization.Get("Admin.Featured.slotLabel", position)"
+             draggable="@draggable"
+             @ondragstart="() => StartDrag(index)"
+             @ondragover:preventDefault="true"
+             @ondragover="() => HoverDrop(index)"
+             @ondragenter="() => HoverDrop(index)"
+             @ondrop="() => DropOn(index)"
+             @ondragend="ClearDrag">
+            <span class="home-tournament-slot-grip bi bi-grip-vertical" aria-hidden="true"></span>
+            @if(isLead)
+            {
+                @LeadCard(tournament, AssetUrlResolver.Resolve(Configuration, tournament.ImageUrl))
+            }
+            else
+            {
+                @RowCard(tournament, AssetUrlResolver.Resolve(Configuration, tournament.ImageUrl))
+            }
+            <span class="home-tournament-slot-controls">
+                <select class="home-tournament-slot-select"
+                        aria-label="@Localization["Admin.Featured.moveToPosition"]"
+                        disabled="@Disabled"
+                        value="@position"
+                        @onchange="args => MoveTo(index, args)">
+                    @for(var option = 1; option <= Slots!.Count; option++)
+                    {
+                        <option value="@option">@Localization.Get("Admin.Featured.positionOption", option)</option>
+                    }
+                </select>
+                <button type="button"
+                        class="home-tournament-slot-remove"
+                        disabled="@Disabled"
+                        aria-label="@Localization.Get("Admin.Featured.remove", tournament.Name)"
+                        @onclick="() => RemoveAtAsync(index)">
+                    <span class="bi bi-x-lg" aria-hidden="true"></span>
+                </button>
+            </span>
+        </div>
+    </text>;
+
+    private void StartDrag(int index)
+    {
+        if(Disabled || Slots is null || index < 0 || index >= Slots.Count)
+            return;
+
+        _dragIndex = index;
+    }
+
+    private void HoverDrop(int index)
+    {
+        if(Disabled || _dragIndex is null || _dropIndex == index)
+            return;
+
+        _dropIndex = index;
+    }
+
+    private void ClearDrag()
+    {
+        _dragIndex = null;
+        _dropIndex = null;
+    }
+
+    private void DropOn(int index)
+    {
+        var from = _dragIndex;
+        ClearDrag();
+
+        if(Disabled || from is null || from == index)
+            return;
+
+        OnMoveTournament.InvokeAsync((from.Value, index));
+    }
+
+    private void MoveTo(int from, ChangeEventArgs args)
+    {
+        if(Disabled
+            || !int.TryParse(args.Value?.ToString(), out var position)
+            || position < 1
+            || position > (Slots?.Count ?? 0))
+            return;
+
+        var to = position - 1;
+        if(to != from)
+            OnMoveTournament.InvokeAsync((from, to));
+    }
+
+    private Task RemoveAtAsync(int index) => Disabled ? Task.CompletedTask : OnRemoveTournament.InvokeAsync(index);
+
+    private RenderFragment LeadCard(Tournament tournament, string? imageUrl) => @<text>
+        <img src="@imageUrl" alt="@tournament.Name" class="home-tournament-image home-tournament-image--lead" />
+        <span class="home-tournament-body">
+            <span class="home-tournament-meta">
+                <strong>@tournament.Name</strong>
+                <span class="tournament-status @tournament.Status.GetStatusClass()">@tournament.Status.GetStatusLabel()</span>
+            </span>
+            @if(tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+            {
+                <span class="home-tournament-presented-by">@presentedBy</span>
+            }
+            <span class="home-tournament-detail">@tournament.GetFormatDetailLabel()</span>
+        </span>
+    </text>;
+
+    private RenderFragment RowCard(Tournament tournament, string? imageUrl) => @<text>
+        <img src="@imageUrl" alt="" class="home-tournament-image home-tournament-image--row" />
+        <span class="home-tournament-row-copy">
+            <strong>@tournament.Name</strong>
+            @if(tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+            {
+                <span class="home-tournament-presented-by">@presentedBy</span>
+            }
+            <span class="home-tournament-detail">@tournament.GetFormatDetailLabel()</span>
+        </span>
+        <span class="tournament-status @tournament.Status.GetStatusClass()">@tournament.Status.GetStatusLabel()</span>
+    </text>;
+}
