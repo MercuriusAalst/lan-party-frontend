@@ -84,8 +84,8 @@ public sealed class TeamDeleteTests : E2ETestBase
 
         var response = await memberApi.DeleteAsync($"/v1/lan/teams/{team.Id}");
 
-        // EnsureCaptain throws UnauthorizedAccessException, which the API exception handler maps to 401.
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        // EnsureCaptain throws ForbiddenException, which the API exception handler maps to 403.
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         var summary = await TeamE2E.GetSummaryAsync(captainApi);
         Assert.Single(summary.CaptainedTeams);
     }

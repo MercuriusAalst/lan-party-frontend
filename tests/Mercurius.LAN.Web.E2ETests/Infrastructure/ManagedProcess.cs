@@ -8,7 +8,7 @@ namespace Mercurius.LAN.Web.E2ETests.Infrastructure;
 
 internal sealed class ManagedProcess : IAsyncDisposable
 {
-    private static readonly Regex ListeningAddress = new("Now listening on:\\s*(https?://\\S+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    internal static readonly Regex ListeningAddress = new("Now listening on:\\s*(https?://[^\\s\"]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private readonly Process _process;
     private readonly TaskCompletionSource<Uri> _listening = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ConcurrentQueue<string> _output = new();

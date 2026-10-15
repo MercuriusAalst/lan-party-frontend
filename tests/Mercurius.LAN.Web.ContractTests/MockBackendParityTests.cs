@@ -30,6 +30,36 @@ public sealed class MockBackendParityTests
     }
 
     [Fact]
+    public void FeaturedSelection_KeepsTheSavedCountAndOnlyBackfillsToThatCount()
+    {
+        var store = CreateStore();
+        var eligible = store.GetTournaments().Where(tournament => tournament.Status != TournamentStatus.Canceled).ToList();
+        Assert.True(eligible.Count >= 4, "The local fixture must seed at least four eligible tournaments.");
+
+        // No saved selection yet, so the public read falls back to the default order, up to four.
+        var unconfigured = store.GetFeaturedTournaments();
+        Assert.Equal(4, unconfigured.TournamentIds.Count);
+
+        var three = unconfigured.TournamentIds.Take(3).ToList();
+        Assert.Equal(three, store.UpdateFeaturedTournaments(three, "admin").TournamentIds);
+        Assert.Equal(three, store.GetFeaturedTournaments().TournamentIds);
+
+        // A saved selection that lost a tournament is backfilled to its own count, never to four.
+        store.SetTournamentLifecycleState(three[0], TournamentStatus.Canceled);
+        var reduced = store.GetFeaturedTournaments();
+        Assert.Equal(3, reduced.TournamentIds.Count);
+        Assert.DoesNotContain(three[0], reduced.TournamentIds);
+
+        // Anything outside one to four distinct eligible ids stays rejected.
+        Assert.Throws<InvalidOperationException>(() => store.UpdateFeaturedTournaments([], "admin"));
+        Assert.Throws<InvalidOperationException>(() => store.UpdateFeaturedTournaments([three[0]], "admin"));
+        Assert.Throws<InvalidOperationException>(() =>
+            store.UpdateFeaturedTournaments(unconfigured.TournamentIds.Append(Guid.NewGuid()).ToList(), "admin"));
+        Assert.Throws<InvalidOperationException>(() =>
+            store.UpdateFeaturedTournaments([three[1], three[1]], "admin"));
+    }
+
+    [Fact]
     public void Lifecycle_StartCompleteAndResetMatchesLiveStateShape()
     {
         var store = CreateStore();

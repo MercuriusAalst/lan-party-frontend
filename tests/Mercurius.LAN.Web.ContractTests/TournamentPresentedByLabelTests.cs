@@ -58,7 +58,7 @@ public sealed class TournamentPresentedByLabelTests
     {
         var detail = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/TournamentDetail.razor");
         var overview = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/TournamentsOverview.razor");
-        var home = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Home.razor");
+        var featuredCards = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Shared/FeaturedTournamentCards.razor");
 
         // Hero h1 stays the tournament name; the attribution is a separate element.
         Assert.Contains("<h1>@_tournament.Name</h1>", detail);
@@ -69,9 +69,12 @@ public sealed class TournamentPresentedByLabelTests
         Assert.Contains("tournament.GetPresentedByLabel(Localization)", overview);
         Assert.DoesNotContain("GetPresentedByLabel", overview[..overview.IndexOf("<h3>@tournament.Name</h3>", StringComparison.Ordinal)]);
 
-        // The featured lead card and every compact row card carry the attribution.
-        Assert.Contains("leadTournament.GetPresentedByLabel(Localization)", home);
-        Assert.Contains("tournament.GetPresentedByLabel(Localization)", home);
+        // The shared featured cards component (home page and editor) renders the attribution on the
+        // lead card and on every compact row card.
+        var leadCard = featuredCards[featuredCards.IndexOf("RenderFragment LeadCard", StringComparison.Ordinal)..featuredCards.IndexOf("RenderFragment RowCard", StringComparison.Ordinal)];
+        var rowCard = featuredCards[featuredCards.IndexOf("RenderFragment RowCard", StringComparison.Ordinal)..];
+        Assert.Contains("tournament.GetPresentedByLabel(Localization)", leadCard);
+        Assert.Contains("tournament.GetPresentedByLabel(Localization)", rowCard);
     }
 
     private static Tournament Sponsored(string sponsorName) => new()
