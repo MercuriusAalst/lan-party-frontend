@@ -2,7 +2,7 @@
 
 Review of the direct match score submission found leftover wording after the backend removed the confirm-ended command. The awaiting-initial-report states show two different descriptions under one label, the score-confirmation description is only correct from the reporter's perspective ("The opponent has five minutes..."), and the live contract spec still lists `confirm-ended` as a supported lifecycle command.
 
-The backend (`Match.cs` `ReportScore` and `ApplyDeadline` on the direct-score branch) starts a five-minute window on the first report, and when that window passes with only one side having reported, that report becomes the final score. The copy must say so.
+The backend (`Match.cs` `SubmitScore` and `ApplyDeadline` on the direct-score branch) starts a five-minute window on the first report, and when that window passes with only one side having reported, that report becomes the final score. The copy must say so.
 
 ## What Changes
 

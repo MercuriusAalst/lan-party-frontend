@@ -201,4 +201,3 @@ retried, and MUST offer a retry.
 - **WHEN** the deadline refresh runs for an authenticated, forbidden, or anonymous viewer
 - **THEN** it MUST keep the existing protected-action projection, public fallback, loading, and
   private-report visibility behavior unchanged
-
