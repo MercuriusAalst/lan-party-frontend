@@ -137,9 +137,24 @@ public sealed class E2EPageExtensionsTests
                     }
                     return null;
                 }
-                return name.StartsWith("get_", StringComparison.Ordinal)
-                    ? Properties.GetValueOrDefault(name[4..])
-                    : null;
+                if (name.StartsWith("get_", StringComparison.Ordinal))
+                    return Properties.GetValueOrDefault(name[4..]);
+
+                // Awaited Playwright calls (for example the interactive-root readiness wait) must
+                // complete immediately on the fake instead of returning a null task.
+                var returnType = targetMethod!.ReturnType;
+                if (returnType == typeof(Task))
+                    return Task.CompletedTask;
+                if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+                {
+                    var resultType = returnType.GetGenericArguments()[0];
+                    var defaultResult = resultType.IsValueType ? Activator.CreateInstance(resultType) : null;
+                    return typeof(Task)
+                        .GetMethod(nameof(Task.FromResult))!
+                        .MakeGenericMethod(resultType)
+                        .Invoke(null, [defaultResult]);
+                }
+                return null;
             }
 
             public void Raise(string eventName, object? sender, object? eventArgs) =>
