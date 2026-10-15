@@ -49,14 +49,27 @@ HTTP client, or invent a presentation-specific endpoint.
 
 ### Requirement: Tournament administration mirrors current resource contracts
 The front-end MUST represent the current tournament create, update, sponsor, delete, and lifecycle
-resources, including multipart schedule fields and `TeamSize`, and MUST preserve admin-only
-authorization expectations.
+resources, including multipart schedule fields, `TeamSize`, the optional assigned contact
+administrator, and the optional top-three prizes, and MUST preserve admin-only authorization
+expectations.
 
 #### Scenario: Admin creates or updates a tournament
 - **WHEN** an authenticated admin submits a tournament form
 - **THEN** the live request targets `POST /v1/lan/tournaments` or `PATCH /v1/lan/tournaments/{tournamentId}`
 - **AND** multipart data contains `Name`, `BracketType`, `Format`, `FinalsFormat`, `ParticipationMode`, `Image` when selected, `TeamSize` when applicable, `PlannedStartTime`, `AverageGameDurationMinutes`, and `RoundBreakDurationMinutes`
+- **AND** multipart data carries `AssignedAdminUserId`, `FirstPlacePrize`, `SecondPlacePrize`, and `ThirdPlacePrize`, sending an explicit empty value for a cleared contact administrator or an empty prize so the backend can clear a previously set value
 - **AND** multipart data does not contain the removed `RegisterFormUrl` field
+
+#### Scenario: Admin selects a contact administrator
+- **WHEN** an authenticated admin opens the contact-administrator picker
+- **THEN** the front-end requests `GET /v1/lan/users/admins` with optional `query` and `pageSize` values
+- **AND** it lists only the returned validated administrators using the public-safe `{id, username, displayName}` projection
+- **AND** it does not fall back to the general user search resource to populate the picker
+
+#### Scenario: Administrator list is unavailable
+- **WHEN** the administrator list resource returns an authorization, configuration, or availability failure
+- **THEN** the picker MUST present a recoverable failure state instead of an empty selectable list
+- **AND** the form MUST remain editable and MUST surface the failure when the admin retries
 
 #### Scenario: Admin changes lifecycle state
 - **WHEN** an authenticated admin starts, resets, completes, or cancels a tournament
@@ -159,3 +172,32 @@ player, team, profile, tournament, sponsor, and organizer journeys.
 - **THEN** the mock service MUST receive the same logical operation and return
   the same success, blocked, unauthorized, conflict, or error semantics
 - **AND** the UI MUST not require live-only fields or endpoints
+
+### Requirement: Removed legacy match mutation route is not used
+
+The front end MUST NOT send the removed `PUT /v1/lan/matches/{matchId}` request. The Refit boundary
+MUST NOT declare that route or its update request DTO, and the tournament service MUST NOT expose a
+match-score update method backed by it. Match score changes MUST use the supported lifecycle commands
+(confirm-ended, submit score, forfeit, resolve, reverse). Mock mode MUST NOT expose the removed update
+path, and mock fixtures MUST continue to work through the supported lifecycle commands. No front-end
+page called the removed route, so removing it prevents stale boundary usage rather than fixing a
+live-user failure.
+
+#### Scenario: Live match score change uses a lifecycle command
+
+- **WHEN** the front end changes a match result in live mode
+- **THEN** it MUST send a supported lifecycle command
+- **AND** it MUST NOT send `PUT /v1/lan/matches/{matchId}`
+
+#### Scenario: Removed route is absent from the contract
+
+- **WHEN** the Refit client and tournament service are inspected
+- **THEN** the removed match-update route, method, and update DTO MUST NOT be present
+- **AND** the resolve command `POST /v1/lan/matches/{matchId}/resolve` MUST remain available
+
+#### Scenario: Mock mode has no removed update path
+
+- **WHEN** a user exercises match lifecycle actions in mock mode
+- **THEN** the mock MUST apply the supported lifecycle commands
+- **AND** it MUST NOT expose the removed match-update method
+

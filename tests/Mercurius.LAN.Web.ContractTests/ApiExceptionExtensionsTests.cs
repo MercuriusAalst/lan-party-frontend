@@ -78,12 +78,81 @@ public sealed class ApiExceptionExtensionsTests
         Assert.Equal("One or more validation errors occurred.", error.Message);
     }
 
-    private static async Task<ApiException> CreateApiException(string content)
+    [Fact]
+    public async Task GetApiError_ReadsTheRefitValidationExceptionFromProblemJson()
+    {
+        var exception = await CreateApiException(
+            """{"type":"about:blank","title":"One or more validation errors occurred.","status":409,"detail":"The team changed while you were working.","code":"team_changed"}""",
+            "application/problem+json");
+
+        Assert.IsType<ValidationApiException>(exception);
+
+        var error = exception.GetApiError();
+
+        Assert.NotNull(error);
+        Assert.Equal("team_changed", error.Code);
+        Assert.Equal("The team changed while you were working.", error.Message);
+    }
+
+    [Fact]
+    public async Task GetApiError_ReadsFirstValidationErrorFromProblemJson()
+    {
+        var exception = await CreateApiException(
+            """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Name":["The name is already in use."]}}""",
+            "application/problem+json");
+
+        var error = exception.GetApiError();
+
+        Assert.NotNull(error);
+        Assert.Null(error.Code);
+        Assert.Equal("The name is already in use.", error.Message);
+    }
+
+    [Fact]
+    public async Task GetApiError_FallsBackToTitleForDetailFreeProblemJson()
+    {
+        var exception = await CreateApiException(
+            """{"type":"about:blank","title":"One or more validation errors occurred.","status":400}""",
+            "application/problem+json");
+
+        var error = exception.GetApiError();
+
+        Assert.NotNull(error);
+        Assert.Equal("One or more validation errors occurred.", error.Message);
+    }
+
+    [Fact]
+    public async Task GetApiError_ReportsNoMessageForAProblemJsonBodyWithoutUserFacingCopy()
+    {
+        var exception = await CreateApiException(
+            """{"status":409,"traceId":"00-abc"}""",
+            "application/problem+json");
+
+        var error = exception.GetApiError();
+
+        Assert.NotNull(error);
+        Assert.Null(error.Code);
+        Assert.True(string.IsNullOrWhiteSpace(error.Message));
+    }
+
+    [Fact]
+    public async Task GetApiError_PreservesAPlainTextBodyWhenTheContentTypeIsPlainText()
+    {
+        var exception = await CreateApiException("The team changed while you were working.", "text/plain");
+
+        var error = exception.GetApiError();
+
+        Assert.NotNull(error);
+        Assert.Null(error.Code);
+        Assert.Equal("The team changed while you were working.", error.Message);
+    }
+
+    private static async Task<ApiException> CreateApiException(string content, string mediaType = "application/json")
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://example.test/matches");
         using var response = new HttpResponseMessage(HttpStatusCode.Conflict)
         {
-            Content = new StringContent(content, Encoding.UTF8, "application/json")
+            Content = new StringContent(content, Encoding.UTF8, mediaType)
         };
 
         return await ApiException.Create(

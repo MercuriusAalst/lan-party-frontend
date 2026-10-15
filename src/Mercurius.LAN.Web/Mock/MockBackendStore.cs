@@ -527,6 +527,37 @@ internal sealed class MockBackendStore
         }
     }
 
+    public List<PublicUserDTO> GetAdminUsers(string? query = null, int? pageSize = null, int page = 1)
+    {
+        lock(_syncRoot)
+        {
+            var adminUserIds = _document.Profiles
+                .Where(profile => string.Equals(profile.Persona, "admin", StringComparison.OrdinalIgnoreCase))
+                .Select(profile => profile.Profile.User?.Id)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToHashSet();
+            var trimmedQuery = query?.Trim();
+
+            var admins = _document.Users
+                .Where(user => !user.IsDeleted && adminUserIds.Contains(user.Id))
+                .Where(user =>
+                    string.IsNullOrWhiteSpace(trimmedQuery) ||
+                    (user.Username ?? string.Empty).Contains(trimmedQuery!, StringComparison.OrdinalIgnoreCase) ||
+                    user.DisplayName.Contains(trimmedQuery!, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(user => user.Username, StringComparer.OrdinalIgnoreCase)
+                .Select(ToContactAdminProjection);
+
+            if(pageSize is > 0)
+            {
+                var pageNumber = Math.Max(page, 1);
+                admins = admins.Skip((pageNumber - 1) * pageSize.Value).Take(pageSize.Value);
+            }
+
+            return admins.ToList();
+        }
+    }
+
     public TournamentExtended CreateTournament(CreateTournamentDTO dto)
     {
         lock(_syncRoot)
@@ -552,11 +583,15 @@ internal sealed class MockBackendStore
                 Format = dto.Format,
                 FinalsFormat = dto.FinalsFormat,
                 ParticipationMode = participationMode,
-                TeamSize = dto.TeamSize
+                TeamSize = dto.TeamSize,
+                AssignedAdminUserId = dto.AssignedAdminUserId,
+                FirstPlacePrize = NormalizePrize(dto.FirstPlacePrize),
+                SecondPlacePrize = NormalizePrize(dto.SecondPlacePrize),
+                ThirdPlacePrize = NormalizePrize(dto.ThirdPlacePrize)
             };
 
             _document.Tournaments.Add(tournament);
-            return Clone(tournament)!;
+            return WithContactAdminProjection(Clone(tournament)!);
         }
     }
 
@@ -583,11 +618,15 @@ internal sealed class MockBackendStore
             tournament.AverageGameDurationMinutes = NormalizeLeaderboardScheduleDuration(bracketType, dto.AverageGameDurationMinutes);
             tournament.RoundBreakDurationMinutes = NormalizeLeaderboardScheduleDuration(bracketType, dto.RoundBreakDurationMinutes);
             tournament.EstimatedEndTime = tournament.Matches.Any() ? tournament.Matches.Max(match => match.EstimatedEndTime) : null;
+            tournament.AssignedAdminUserId = dto.AssignedAdminUserId;
+            tournament.FirstPlacePrize = NormalizePrize(dto.FirstPlacePrize);
+            tournament.SecondPlacePrize = NormalizePrize(dto.SecondPlacePrize);
+            tournament.ThirdPlacePrize = NormalizePrize(dto.ThirdPlacePrize);
 
             if(dto.Image != null)
                 tournament.ImageUrl = "/mock-data-local/generated-tournament.svg";
 
-            return Clone(tournament)!;
+            return WithContactAdminProjection(Clone(tournament)!);
         }
     }
 
@@ -819,65 +858,6 @@ internal sealed class MockBackendStore
 
             foreach(var participant in GetLeaderboardParticipants(tournament.Id))
                 participant.Attempts.RemoveAll(candidate => candidate.Id == attemptId);
-        }
-    }
-
-    public Match UpdateMatch(string persona, Guid matchId, UpdateMatchDTO dto)
-    {
-        lock(_syncRoot)
-        {
-            var tournament = _document.Tournaments.FirstOrDefault(candidate => candidate.Matches.Any(match => match.Id == matchId))
-                ?? throw new InvalidOperationException($"Mock match '{matchId}' was not found.");
-
-            var match = tournament.Matches.First(existing => existing.Id == matchId);
-            EnsureMockTournamentInProgress(tournament);
-            if(!string.Equals(persona, "admin", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only a tournament administrator may resolve this match.");
-            ApplyMockDeadline(tournament, match);
-            if(match.LifecycleState is not (MatchLifecycleState.Disputed or MatchLifecycleState.AdminResolutionRequired))
-                throw new InvalidOperationException("This match does not require administrator resolution.");
-            if(!HasBothMockParticipants(match) || match.Participant1IsBYE || match.Participant2IsBYE)
-                throw new InvalidOperationException("Both non-BYE participants must be assigned before resolving this match.");
-            ValidateMockScore(match, dto.Participant1Score, dto.Participant2Score);
-            CompleteMockScore(tournament, match, dto.Participant1Score, dto.Participant2Score, MatchResultKind.AdminResolution);
-
-            return ClonePublicMatch(match);
-        }
-    }
-
-    public Match UpdateMatch(Guid matchId, UpdateMatchDTO dto)
-    {
-        lock(_syncRoot)
-        {
-            var tournament = _document.Tournaments.FirstOrDefault(candidate => candidate.Matches.Any(match => match.Id == matchId))
-                ?? throw new InvalidOperationException($"Mock match '{matchId}' was not found.");
-
-            var match = tournament.Matches.First(existing => existing.Id == matchId);
-            match.Participant1Score = dto.Participant1Score;
-            match.Participant2Score = dto.Participant2Score;
-
-            if(dto.Participant1Score == dto.Participant2Score)
-            {
-                match.UserWinnerId = null;
-                match.UserLoserId = null;
-                match.TeamWinnerId = null;
-                match.TeamLoserId = null;
-            }
-            else if(match.ParticipationMode == ParticipationMode.Team)
-            {
-                var participant1Won = dto.Participant1Score > dto.Participant2Score;
-                match.TeamWinnerId = participant1Won ? match.TeamParticipant1Id : match.TeamParticipant2Id;
-                match.TeamLoserId = participant1Won ? match.TeamParticipant2Id : match.TeamParticipant1Id;
-            }
-            else
-            {
-                var participant1Won = dto.Participant1Score > dto.Participant2Score;
-                match.UserWinnerId = participant1Won ? match.UserParticipant1Id : match.UserParticipant2Id;
-                match.UserLoserId = participant1Won ? match.UserParticipant2Id : match.UserParticipant1Id;
-            }
-
-            PropagateMatchResult(tournament, match);
-            return ClonePublicMatch(match);
         }
     }
 
@@ -1221,7 +1201,7 @@ internal sealed class MockBackendStore
         return clone;
     }
 
-    private static TournamentExtended? ClonePublicTournament(TournamentExtended? tournament)
+    private TournamentExtended? ClonePublicTournament(TournamentExtended? tournament)
     {
         if(tournament is not null)
         {
@@ -1233,10 +1213,37 @@ internal sealed class MockBackendStore
         if(clone == null)
             return null;
 
+        clone.ContactAdmin = ResolveContactAdmin(clone.AssignedAdminUserId);
         clone.AssignedAdminUserId = null;
         clone.Matches = clone.Matches.Select(ClonePublicMatch).ToList();
         return clone;
     }
+
+    // Contact admin is exposed as a public-safe projection only; raw assignment stays internal.
+    private TournamentExtended WithContactAdminProjection(TournamentExtended tournament)
+    {
+        tournament.ContactAdmin = ResolveContactAdmin(tournament.AssignedAdminUserId);
+        return tournament;
+    }
+
+    private PublicUserDTO? ResolveContactAdmin(Guid? userId)
+    {
+        if(!userId.HasValue)
+            return null;
+
+        var user = _document.Users.FirstOrDefault(candidate => candidate.Id == userId.Value && !candidate.IsDeleted);
+        return user is null ? null : ToContactAdminProjection(user);
+    }
+
+    private static PublicUserDTO ToContactAdminProjection(UserDTO user) => new()
+    {
+        Id = user.Id,
+        Username = user.Username,
+        DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Username ?? string.Empty : user.DisplayName
+    };
+
+    private static string? NormalizePrize(string? prize) =>
+        string.IsNullOrWhiteSpace(prize) ? null : prize.Trim();
 
     internal static bool CanViewPrivateReports(
         string persona,
@@ -2991,6 +2998,9 @@ internal sealed class MockBackendStore
         tournament.ParticipationMode = ParticipationMode.Team;
         tournament.TeamSize = 5;
         tournament.AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121");
+        tournament.FirstPlacePrize = "Gaming keyboard + 250 EUR";
+        tournament.SecondPlacePrize = "Gaming mouse";
+        tournament.ThirdPlacePrize = null;
         tournament.Placements = [];
         tournament.Users = [];
         tournament.Teams = Clone(teams)!;
@@ -3786,14 +3796,6 @@ internal sealed class MockBackendStore
         }
     }
 
-    private static void PropagateMatchResult(TournamentExtended tournament, Match match)
-    {
-        PropagateMatchResult(
-            tournament,
-            tournament.Matches.ToList(),
-            match);
-    }
-
     private static void PropagateMatchResult(
         TournamentExtended tournament,
         IReadOnlyList<Match> matches,
@@ -4535,7 +4537,7 @@ internal sealed class MockBackendStore
         return string.Equals(invite.Status, "Pending", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static Tournament ToTournament(TournamentExtended tournament)
+    private Tournament ToTournament(TournamentExtended tournament)
     {
         return new Tournament
         {
@@ -4554,6 +4556,10 @@ internal sealed class MockBackendStore
             FinalsFormat = tournament.FinalsFormat,
             ParticipationMode = tournament.ParticipationMode,
             TeamSize = tournament.TeamSize,
+            FirstPlacePrize = tournament.FirstPlacePrize,
+            SecondPlacePrize = tournament.SecondPlacePrize,
+            ThirdPlacePrize = tournament.ThirdPlacePrize,
+            ContactAdmin = ResolveContactAdmin(tournament.AssignedAdminUserId),
             SponsorPlacement = tournament.SponsorPlacement
         };
     }

@@ -2,6 +2,7 @@ using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.DTOs.Leaderboards;
 using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.DTOs.Registrations;
+using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Models.Tournaments;
 using Mercurius.LAN.Web.Models.Matches;
 using ModelTournamentStatus = Mercurius.LAN.Web.Models.Tournaments.TournamentStatus;
@@ -21,6 +22,15 @@ public interface ITournamentService
 
     Task<TournamentExtended?> GetTournamentDetailAsync(
         Guid id,
+        CancellationToken cancellationToken = default);
+
+    Task<List<PublicUserDTO>> GetAdminUsersAsync(
+        string? query = null,
+        int? pageSize = null,
+        CancellationToken cancellationToken = default,
+        int page = 1);
+
+    Task<List<PublicUserDTO>> GetAllAdminUsersAsync(
         CancellationToken cancellationToken = default);
 
     Task<TournamentExtended> CreateTournamentAsync(
@@ -65,11 +75,6 @@ public interface ITournamentService
     Task<Match> ResolveMatchAsync(Guid matchId, ResolveMatchDTO request, CancellationToken cancellationToken = default);
 
     Task<Match> ReverseMatchAsync(Guid matchId, CancellationToken cancellationToken = default);
-
-    Task<Match> UpdateMatchScoresAsync(
-        Guid matchId,
-        UpdateMatchDTO updateMatchDTO,
-        CancellationToken cancellationToken = default);
 
     Task<CurrentUserTournamentRegistrationStateDTO> GetCurrentUserTournamentRegistrationStateAsync(
         Guid tournamentId,

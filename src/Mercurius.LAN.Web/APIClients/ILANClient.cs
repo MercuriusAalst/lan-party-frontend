@@ -48,6 +48,13 @@ public interface ILANClient
         [AliasAs("pageSize")] int? pageSize = null,
         CancellationToken cancellationToken = default);
 
+    [Get("/v1/lan/users/admins")]
+    Task<List<PublicUserDTO>> GetAdminUsersAsync(
+        [AliasAs("query")] string? query = null,
+        [AliasAs("pageSize")] int? pageSize = null,
+        CancellationToken cancellationToken = default,
+        [AliasAs("page")] int page = 1);
+
     [Post("/v1/lan/tournaments")]
     Task<TournamentExtended> CreateTournamentAsync(
         [Body] MultipartFormDataContent content,
@@ -233,12 +240,6 @@ public interface ILANClient
     [Post("/v1/lan/matches/{matchId}/reverse")]
     Task<Match> ReverseMatchAsync(
         Guid matchId,
-        CancellationToken cancellationToken = default);
-
-    [Put("/v1/lan/matches/{matchId}")]
-    Task<Match> UpdateMatchAsync(
-        Guid matchId,
-        [Body] UpdateMatchDTO match,
         CancellationToken cancellationToken = default);
 
     [Get("/v1/lan/teams")]

@@ -351,9 +351,6 @@ internal discovery jobs, which no client calls.
   and **discovery rebuild jobs**
   (`B/Modules/Discovery/Mercurius.Modules.Discovery/Endpoints/DiscoveryEndpoints.cs:42-61`): no
   route, component or client caller reaches them; only `IUserClient` wrapper methods exist.
-- **`PUT /v1/lan/matches/{matchId}`** (`F/APIClients/ILANClient.cs:238-239`): wrapped by
-  `TournamentService.UpdateMatchScoresAsync` (`F/Services/TournamentService.cs:155-159`) but no
-  component calls it; score entry uses `PUT /v1/lan/matches/{matchId}/score` instead.
 
 ## Gap scan
 
