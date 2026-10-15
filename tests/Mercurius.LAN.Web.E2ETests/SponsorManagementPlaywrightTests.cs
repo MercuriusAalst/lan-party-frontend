@@ -30,10 +30,11 @@ public class SponsorManagementPlaywrightTests : TournamentE2ETestBase
         await page.Locator("#sponsorLogo").SetInputFilesAsync(TournamentE2E.TestImagePath());
         await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateSponsor }).ClickAsync();
 
-        await Expect(page.GetByText("sponsors currently listed")).ToBeVisibleAsync();
+        await Expect(page.GetByText("1 sponsor currently listed.")).ToBeVisibleAsync();
 
         // Reload proves the sponsor persisted server-side; the admin search finds it again.
         await TournamentE2E.ReloadInteractiveAsync(page);
+        await page.WaitForInteractiveAsync();
         await page.Locator(".custom-autocomplete-input").FillAsync(name);
         await Expect(page.Locator(".custom-autocomplete-dropdown li").Filter(new() { HasText = name }))
             .ToBeVisibleAsync();
