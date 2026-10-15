@@ -58,10 +58,15 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         var panel = MatchE2E.Section(adminDialog, MatchE2E.AdminPanel);
         await Expect(adminDialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AdminResolutionStatus })).ToBeVisibleAsync();
-        await MatchE2E.FillAdminScoreAsync(panel, players[0].Username, 2);
-        await MatchE2E.FillAdminScoreAsync(panel, players[1].Username, 0);
-        await Expect(panel.GetByText(MatchE2E.EnterScoresBeforeResolve)).ToHaveCountAsync(0);
+        await Expect(panel.Locator("#admin-score-guidance")).ToContainTextAsync("the winner has 2 wins; the other side has 0 or 1.");
         var resolve = panel.GetByRole(AriaRole.Button, new() { Name = "Resolve result" });
+        await Expect(resolve).ToBeDisabledAsync();
+        await MatchE2E.FillAdminScoreAsync(panel, players[0].Username, 2);
+        await MatchE2E.FillAdminScoreAsync(panel, players[1].Username, 2);
+        await Expect(panel.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(resolve).ToBeDisabledAsync();
+        await MatchE2E.FillAdminScoreAsync(panel, players[1].Username, 0);
+        await Expect(panel.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToHaveCountAsync(0);
         await Expect(resolve).ToBeEnabledAsync();
         await MatchE2E.ClickAsync(resolve);
 

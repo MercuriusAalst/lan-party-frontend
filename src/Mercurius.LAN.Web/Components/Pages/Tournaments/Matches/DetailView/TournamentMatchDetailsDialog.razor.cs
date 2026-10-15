@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using Blazored.Toast.Services;
 using Mercurius.LAN.Web.Components.Shared;
@@ -55,9 +56,15 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private MatchParticipantSide? _adminForfeitConfirmationSide;
     private bool _reverseConfirmationRequested;
     private string? _errorMessage;
-    private int? _participant1Score;
-    private int? _participant2Score;
-    private bool HasScoreInputs => _participant1Score.HasValue && _participant2Score.HasValue;
+    private string _participant1ScoreText = string.Empty;
+    private string _participant2ScoreText = string.Empty;
+    private int? ParsedParticipant1Score => ParseScoreText(_participant1ScoreText);
+    private int? ParsedParticipant2Score => ParseScoreText(_participant2ScoreText);
+    private bool ShowScoreValidationError => ShouldShowScoreValidationError(Match.Format, _participant1ScoreText, _participant2ScoreText);
+    // Blazor renders a bool true as aria-invalid="", which ARIA treats as false; emit "true" or omit the attribute.
+    private string? ScoreInvalidAriaValue => ShowScoreValidationError ? "true" : null;
+    private bool HasValidScoreInputs => IsValidSeriesScore(Match.Format, ParsedParticipant1Score, ParsedParticipant2Score);
+    private int WinsNeeded => GetWinsNeeded(Match.Format);
     private CancellationTokenSource? _deadlineRefreshCancellation;
     private DateTime? _deadlineRefreshTriggeredFor;
     private Task? _deadlineRefreshTask;
@@ -175,6 +182,58 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         TournamentFormat.BestOf5 => Localization["Feature.tournament.formatBestOf5"],
         _ => Match.Format.ToString()
     };
+
+    internal static int GetWinsNeeded(TournamentFormat format) => format switch
+    {
+        TournamentFormat.BestOf1 => 1,
+        TournamentFormat.BestOf3 => 2,
+        TournamentFormat.BestOf5 => 3,
+        _ => 0
+    };
+
+    internal static bool IsValidSeriesScore(TournamentFormat format, int? participant1Score, int? participant2Score)
+    {
+        var winsNeeded = GetWinsNeeded(format);
+        if(winsNeeded == 0 || participant1Score is not { } first || participant2Score is not { } second)
+            return false;
+
+        return first >= 0 && second >= 0 &&
+            ((first == winsNeeded && second < winsNeeded) ||
+             (second == winsNeeded && first < winsNeeded));
+    }
+
+    // Empty text means "not entered"; any other text that is not a plain nonnegative integer is entered but invalid (null).
+    internal static int? ParseScoreText(string? text) =>
+        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var score) ? score : null;
+
+    internal static string ScoreToText(int? score) => score?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+
+    internal static bool ShouldShowScoreValidationError(TournamentFormat format, string? participant1ScoreText, string? participant2ScoreText) =>
+        !string.IsNullOrEmpty(participant1ScoreText) &&
+        !string.IsNullOrEmpty(participant2ScoreText) &&
+        !IsValidSeriesScore(format, ParseScoreText(participant1ScoreText), ParseScoreText(participant2ScoreText));
+
+    internal static string? GetScoreGuidanceKey(TournamentFormat format) => format switch
+    {
+        TournamentFormat.BestOf1 => "Feature.match.scoreGuidanceBestOf1",
+        TournamentFormat.BestOf3 => "Feature.match.scoreGuidanceBestOf3",
+        TournamentFormat.BestOf5 => "Feature.match.scoreGuidanceBestOf5",
+        _ => null
+    };
+
+    internal static string GetScoreDescribedBy(TournamentFormat format, string idPrefix) =>
+        GetScoreGuidanceKey(format) is null
+            ? $"{idPrefix}-score-validation"
+            : $"{idPrefix}-score-guidance {idPrefix}-score-validation";
+
+    private string? GetScoreGuidance() =>
+        GetScoreGuidanceKey(Match.Format) is { } key ? Localization[key] : null;
+
+    private void SetScoreTexts(int? participant1Score, int? participant2Score)
+    {
+        _participant1ScoreText = ScoreToText(participant1Score);
+        _participant2ScoreText = ScoreToText(participant2Score);
+    }
 
     private string GetStatusLabel() => Match.LifecycleState switch
     {
@@ -397,7 +456,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
             _freshMatchProjection = Match;
             _actionState = state;
             _hasFreshActionState = true;
-            (_participant1Score, _participant2Score) = GetInitialScores(state);
+            var (initialParticipant1Score, initialParticipant2Score) = GetInitialScores(state);
+            SetScoreTexts(initialParticipant1Score, initialParticipant2Score);
             _hasLoaded = true;
             StartDeadlineRefresh();
             await NotifyMatchRefreshedAsync();
@@ -418,8 +478,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
                 _freshMatchProjection = Match;
                 _actionState = null;
                 _hasFreshActionState = false;
-                _participant1Score = publicMatch.Participant1Score;
-                _participant2Score = publicMatch.Participant2Score;
+                SetScoreTexts(publicMatch.Participant1Score, publicMatch.Participant2Score);
                 _requiresAuthentication = exception.StatusCode == HttpStatusCode.Unauthorized;
                 _hasLoaded = true;
                 StartDeadlineRefresh();
@@ -555,8 +614,9 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private async Task SubmitScoreAsync()
     {
         if(_actionState?.CanSubmitScore != true ||
-           _participant1Score is not { } participant1Score ||
-           _participant2Score is not { } participant2Score)
+           !HasValidScoreInputs ||
+           ParsedParticipant1Score is not { } participant1Score ||
+           ParsedParticipant2Score is not { } participant2Score)
             return;
 
         var matchId = Match.Id;
@@ -617,8 +677,9 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private async Task ResolveAsync()
     {
         if(_actionState?.CanResolve != true ||
-           _participant1Score is not { } participant1Score ||
-           _participant2Score is not { } participant2Score)
+           !HasValidScoreInputs ||
+           ParsedParticipant1Score is not { } participant1Score ||
+           ParsedParticipant2Score is not { } participant2Score)
             return;
 
         var matchId = Match.Id;
@@ -771,6 +832,9 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
             if(apiException.StatusCode == HttpStatusCode.Forbidden)
                 return Localization["Feature.match.notAuthorized"];
 
+            if(GetValidationErrorMessage(apiException) is { } validationMessage)
+                return validationMessage;
+
             if(apiException.StatusCode == HttpStatusCode.Conflict)
             {
                 var apiError = apiException.GetApiError();
@@ -787,7 +851,7 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         return Localization[fallbackKey];
     }
 
-    private static string GetErrorMessage(Exception exception, string fallback)
+    internal static string GetErrorMessage(Exception exception, string fallback)
     {
         if(exception is ApiException apiException)
         {
@@ -797,6 +861,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
             {
                 return "You are not authorized to perform this match action.";
             }
+            if(GetValidationErrorMessage(apiException) is { } validationMessage)
+                return validationMessage;
             if(apiException.StatusCode == HttpStatusCode.Conflict)
             {
                 var apiError = apiException.GetApiError();
@@ -811,6 +877,15 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         }
 
         return fallback;
+    }
+
+    private static string? GetValidationErrorMessage(ApiException exception)
+    {
+        if(exception.StatusCode != HttpStatusCode.BadRequest)
+            return null;
+
+        var message = exception.GetApiError()?.Message;
+        return string.IsNullOrWhiteSpace(message) ? null : message.Trim();
     }
 
     public async ValueTask DisposeAsync()
