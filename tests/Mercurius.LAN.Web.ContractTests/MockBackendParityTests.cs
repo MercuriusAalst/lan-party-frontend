@@ -418,6 +418,16 @@ public sealed class MockBackendParityTests
     }
 
     [Fact]
+    public void PendingMatchResolutions_AreAdminOnlyAndEmptyForTheSeededFixture()
+    {
+        var store = CreateStore();
+
+        Assert.Empty(store.GetPendingMatchResolutions("admin"));
+        Assert.Throws<UnauthorizedAccessException>(() => store.GetPendingMatchResolutions("user"));
+        Assert.Throws<UnauthorizedAccessException>(() => store.GetPendingMatchResolutions("anonymous"));
+    }
+
+    [Fact]
     public void SeededFixturePrizes_ProjectThroughThePublicTournamentDetail()
     {
         var store = CreateStore();

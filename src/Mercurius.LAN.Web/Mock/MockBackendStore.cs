@@ -45,6 +45,8 @@ internal sealed class MockBackendStore
     private const int MaxFeaturedTournaments = 4;
 
     private readonly object _syncRoot = new();
+    // When each match started waiting for its admin; only a dev-mock convenience, derived from the closed deadline.
+    private readonly Dictionary<Guid, DateTime> _resolutionRequiredSinceUtc = [];
     private readonly string _dataFilePath;
     private readonly Dictionary<Guid, List<TournamentRegistrationDTO>> _registrationDetails = [];
     private readonly Dictionary<Guid, Dictionary<Guid, MockRegistrationSnapshot>> _publicRegistrationSnapshots = [];
@@ -1172,6 +1174,77 @@ internal sealed class MockBackendStore
         }
     }
 
+    public IReadOnlyList<PendingMatchResolutionDTO> GetPendingMatchResolutions(string persona)
+    {
+        lock(_syncRoot)
+        {
+            if(!string.Equals(persona, "admin", StringComparison.OrdinalIgnoreCase))
+                throw new UnauthorizedAccessException("Only an administrator may list matches awaiting resolution.");
+
+            var pending = new List<PendingMatchResolutionDTO>();
+            foreach(var tournament in _document.Tournaments.Where(candidate => candidate.Status == TournamentStatus.InProgress))
+            {
+                foreach(var match in tournament.Matches)
+                {
+                    ApplyMockDeadline(tournament, match);
+                    if(match.LifecycleState != MatchLifecycleState.AdminResolutionRequired)
+                        continue;
+
+                    if(!_resolutionRequiredSinceUtc.TryGetValue(match.Id, out var since))
+                    {
+                        // Seeded or replayed data: the first time it is seen is the best available "since".
+                        since = DateTime.UtcNow;
+                        _resolutionRequiredSinceUtc[match.Id] = since;
+                    }
+
+                    var bothReported = match.Participant1ReportedScore1.HasValue && match.Participant2ReportedScore1.HasValue;
+                    var loneReport = !bothReported && (match.Participant1ReportedScore1.HasValue || match.Participant2ReportedScore1.HasValue);
+                    var reportedFirst = match.Participant1ReportedScore1.HasValue
+                        ? (match.Participant1ReportedScore1, match.Participant1ReportedScore2)
+                        : (match.Participant2ReportedScore1, match.Participant2ReportedScore2);
+
+                    pending.Add(new PendingMatchResolutionDTO
+                    {
+                        MatchId = match.Id,
+                        TournamentId = tournament.Id,
+                        TournamentName = tournament.Name,
+                        Participant1Name = GetMockParticipantName(tournament, match, MatchParticipantSide.Participant1),
+                        Participant2Name = GetMockParticipantName(tournament, match, MatchParticipantSide.Participant2),
+                        Participant1Score = loneReport ? reportedFirst.Item1 : null,
+                        Participant2Score = loneReport ? reportedFirst.Item2 : null,
+                        Reason = bothReported ? MatchResolutionReason.Disputed : MatchResolutionReason.MissingOpponentReport,
+                        RequiredSinceUtc = since
+                    });
+                }
+            }
+
+            return pending.OrderBy(item => item.RequiredSinceUtc).ThenBy(item => item.MatchId).ToList();
+        }
+    }
+
+    // Public-safe participant label: team name or username, never contact details.
+    private string GetMockParticipantName(TournamentExtended tournament, Match match, MatchParticipantSide side)
+    {
+        var teamId = side == MatchParticipantSide.Participant1 ? match.TeamParticipant1Id : match.TeamParticipant2Id;
+        var userId = side == MatchParticipantSide.Participant1 ? match.UserParticipant1Id : match.UserParticipant2Id;
+        if(teamId.HasValue)
+        {
+            var team = tournament.Teams.FirstOrDefault(candidate => candidate.Id == teamId.Value)
+                ?? _document.Teams.FirstOrDefault(candidate => candidate.Id == teamId.Value);
+            if(team is not null)
+                return team.Name;
+        }
+
+        if(userId.HasValue)
+        {
+            var user = _document.Users.FirstOrDefault(candidate => candidate.Id == userId.Value);
+            if(user is not null)
+                return !string.IsNullOrWhiteSpace(user.Username) ? user.Username! : user.DisplayName;
+        }
+
+        return string.Empty;
+    }
+
     public Match ResolveMatch(string persona, Guid matchId, ResolveMatchDTO request)
     {
         lock(_syncRoot)
@@ -1645,7 +1718,9 @@ internal sealed class MockBackendStore
         return result;
     }
 
-    private static void ApplyMockDeadline(TournamentExtended tournament, Match match)
+    // Mirrors the backend: a lone report is never auto-accepted. When the score window closes without the
+    // opponent's report, or the correction window closes on a conflict, the assigned admin must resolve the match.
+    private void ApplyMockDeadline(TournamentExtended tournament, Match match)
     {
         if(tournament.Status != TournamentStatus.InProgress)
             return;
@@ -1666,18 +1741,10 @@ internal sealed class MockBackendStore
                 match.LifecycleState = MatchLifecycleState.Disputed;
                 match.CorrectionDeadlineUtc = now.AddMinutes(5);
             }
-            else if(match.Participant1ReportedScore1.HasValue)
-            {
-                CompleteMockScore(tournament, match, match.Participant1ReportedScore1.Value, match.Participant1ReportedScore2!.Value);
-                return;
-            }
-            else if(match.Participant2ReportedScore1.HasValue)
-            {
-                CompleteMockScore(tournament, match, match.Participant2ReportedScore1!.Value, match.Participant2ReportedScore2!.Value);
-                return;
-            }
             else
             {
+                // At most one side reported: wait for the admin instead of accepting the lone report.
+                _resolutionRequiredSinceUtc[match.Id] = match.ScoreConfirmationDeadlineUtc.Value;
                 match.LifecycleState = MatchLifecycleState.AdminResolutionRequired;
                 match.ScoreConfirmationDeadlineUtc = null;
             }
@@ -1687,6 +1754,7 @@ internal sealed class MockBackendStore
         if(match.LifecycleState == MatchLifecycleState.Disputed &&
            match.CorrectionDeadlineUtc.HasValue && now >= match.CorrectionDeadlineUtc.Value)
         {
+            _resolutionRequiredSinceUtc[match.Id] = match.CorrectionDeadlineUtc.Value;
             match.LifecycleState = MatchLifecycleState.AdminResolutionRequired;
             match.CorrectionDeadlineUtc = null;
             match.ResultVersion++;

@@ -678,7 +678,76 @@ public sealed class MockMatchLifecycleTests
         }
     }
 
-    private static MockBackendStore CreateReplayStore(bool awaitingScoreWithStaleDeadline = false)
+    [Fact]
+    public void MockLoneReportAfterTheDeadlineWaitsForTheAdminInsteadOfAutoAccepting()
+    {
+        var store = CreateReplayStore(expiredState: ReplayExpiredState.LoneReport);
+
+        var match = store.GetMatch(ReplayMatchId);
+
+        Assert.Equal(MatchLifecycleState.AdminResolutionRequired, match.LifecycleState);
+        Assert.Null(match.TeamWinnerId);
+        Assert.Null(match.Participant1Score);
+        var pending = Assert.Single(store.GetPendingMatchResolutions("admin"));
+        Assert.Equal(ReplayMatchId, pending.MatchId);
+        Assert.Equal(ReplayTournamentId, pending.TournamentId);
+        Assert.Equal("Replay Tournament", pending.TournamentName);
+        Assert.Equal("Replay One", pending.Participant1Name);
+        Assert.Equal("Replay Two", pending.Participant2Name);
+        Assert.Equal(MatchResolutionReason.MissingOpponentReport, pending.Reason);
+        Assert.Equal(1, pending.Participant1Score);
+        Assert.Equal(0, pending.Participant2Score);
+        Assert.True(pending.RequiredSinceUtc <= DateTime.UtcNow);
+
+        var state = store.GetMatchActionState("admin", ReplayMatchId);
+        Assert.True(state.CanResolve);
+    }
+
+    [Fact]
+    public void MockConflictAfterTheCorrectionWindowIsListedAsDisputed()
+    {
+        var store = CreateReplayStore(expiredState: ReplayExpiredState.Conflict);
+
+        var pending = Assert.Single(store.GetPendingMatchResolutions("admin"));
+
+        Assert.Equal(ReplayMatchId, pending.MatchId);
+        Assert.Equal(MatchResolutionReason.Disputed, pending.Reason);
+        Assert.Null(pending.Participant1Score);
+        Assert.Null(pending.Participant2Score);
+    }
+
+    [Fact]
+    public void MockPendingResolutionsAreAdminOnlyAndLeaveTheListWhenResolved()
+    {
+        var store = CreateReplayStore(expiredState: ReplayExpiredState.LoneReport);
+
+        Assert.Throws<UnauthorizedAccessException>(() => store.GetPendingMatchResolutions("user"));
+        Assert.Throws<UnauthorizedAccessException>(() => store.GetPendingMatchResolutions("anonymous"));
+        Assert.Single(store.GetPendingMatchResolutions("admin"));
+
+        store.ResolveMatch("admin", ReplayMatchId, new ResolveMatchDTO { Participant1Score = 1, Participant2Score = 0 });
+
+        Assert.Empty(store.GetPendingMatchResolutions("admin"));
+    }
+
+    [Fact]
+    public void MockMatchesStillInProgressAreNotPending()
+    {
+        var store = CreateReplayStore();
+
+        Assert.Empty(store.GetPendingMatchResolutions("admin"));
+    }
+
+    private enum ReplayExpiredState
+    {
+        None,
+        LoneReport,
+        Conflict
+    }
+
+    private static MockBackendStore CreateReplayStore(
+        bool awaitingScoreWithStaleDeadline = false,
+        ReplayExpiredState expiredState = ReplayExpiredState.None)
     {
         var now = DateTime.UtcNow;
         var user = new UserProfileDTO
@@ -756,6 +825,32 @@ public sealed class MockMatchLifecycleTests
             match.Participant2Ended = false;
             match.EndTime = default;
             match.ScoreConfirmationDeadlineUtc = now.AddHours(-1);
+        }
+        else if(expiredState != ReplayExpiredState.None)
+        {
+            match.TeamWinnerId = null;
+            match.TeamLoserId = null;
+            match.Participant1Score = null;
+            match.Participant2Score = null;
+            match.ResultKind = null;
+            match.EndTime = default;
+            match.Participant1Ended = true;
+            match.Participant1ReportedScore1 = 1;
+            match.Participant1ReportedScore2 = 0;
+            if(expiredState == ReplayExpiredState.LoneReport)
+            {
+                match.LifecycleState = MatchLifecycleState.ScoreConfirmation;
+                match.Participant2Ended = false;
+                match.ScoreConfirmationDeadlineUtc = now.AddHours(-1);
+            }
+            else
+            {
+                match.LifecycleState = MatchLifecycleState.Disputed;
+                match.Participant2Ended = true;
+                match.Participant2ReportedScore1 = 0;
+                match.Participant2ReportedScore2 = 1;
+                match.CorrectionDeadlineUtc = now.AddHours(-1);
+            }
         }
 
         var tournament = new TournamentExtended

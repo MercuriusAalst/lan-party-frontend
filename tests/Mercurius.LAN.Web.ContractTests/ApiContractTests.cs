@@ -433,6 +433,37 @@ public sealed class ApiContractTests
     }
 
     [Fact]
+    public async Task PendingMatchResolutions_GetTheAdminListAndMapTheReason()
+    {
+        var matchId = Guid.Parse("61111111-1111-1111-1111-111111111111");
+        var tournamentId = Guid.Parse("61111111-1111-1111-1111-111111111112");
+        var handler = new RecordingHandler($$"""
+            [{"matchId":"{{matchId}}","tournamentId":"{{tournamentId}}","tournamentName":"Cup",
+              "participant1Name":"Alpha","participant2Name":"Beta","participant1Score":2,"participant2Score":1,
+              "reason":"MissingOpponentReport","requiredSinceUtc":"2026-10-15T20:00:00Z"},
+             {"matchId":"{{Guid.NewGuid()}}","tournamentId":"{{tournamentId}}","tournamentName":"Cup",
+              "participant1Name":"Gamma","participant2Name":"Delta","reason":"Disputed",
+              "requiredSinceUtc":"2026-10-15T19:00:00Z"}]
+            """);
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        var pending = await service.GetPendingMatchResolutionsAsync();
+
+        Assert.Equal(HttpMethod.Get, handler.Request!.Method);
+        Assert.Equal("/v1/lan/matches/pending-resolution", handler.Request.RequestUri!.AbsolutePath);
+        Assert.Equal(2, pending.Count);
+        Assert.Equal(matchId, pending[0].MatchId);
+        Assert.Equal("Alpha", pending[0].Participant1Name);
+        Assert.Equal(MatchResolutionReason.MissingOpponentReport, pending[0].Reason);
+        Assert.Equal(2, pending[0].Participant1Score);
+        Assert.Equal(1, pending[0].Participant2Score);
+        Assert.Equal(MatchResolutionReason.Disputed, pending[1].Reason);
+        Assert.Null(pending[1].Participant1Score);
+    }
+
+    [Fact]
     public void TournamentDtos_RequireAnAssignedAdmin()
     {
         var create = new CreateTournamentDTO { ParticipationMode = ParticipationMode.Individual };
