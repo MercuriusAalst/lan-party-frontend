@@ -695,8 +695,9 @@ public sealed class MockMatchLifecycleTests
         Assert.Equal("Replay One", pending.Participant1Name);
         Assert.Equal("Replay Two", pending.Participant2Name);
         Assert.Equal(MatchResolutionReason.MissingOpponentReport, pending.Reason);
-        Assert.Equal(1, pending.Participant1Score);
-        Assert.Equal(0, pending.Participant2Score);
+        Assert.Equal(1, pending.Participant1ReportedScore1);
+        Assert.Equal(0, pending.Participant1ReportedScore2);
+        Assert.Null(pending.Participant2ReportedScore1);
         Assert.True(pending.RequiredSinceUtc <= DateTime.UtcNow);
 
         var state = store.GetMatchActionState("admin", ReplayMatchId);
@@ -712,8 +713,9 @@ public sealed class MockMatchLifecycleTests
 
         Assert.Equal(ReplayMatchId, pending.MatchId);
         Assert.Equal(MatchResolutionReason.Disputed, pending.Reason);
-        Assert.Null(pending.Participant1Score);
-        Assert.Null(pending.Participant2Score);
+        Assert.Equal(1, pending.Participant1ReportedScore1);
+        Assert.Equal(0, pending.Participant2ReportedScore1);
+        Assert.Equal(1, pending.Participant2ReportedScore2);
     }
 
     [Fact]

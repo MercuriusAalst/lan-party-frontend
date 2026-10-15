@@ -439,11 +439,12 @@ public sealed class ApiContractTests
         var tournamentId = Guid.Parse("61111111-1111-1111-1111-111111111112");
         var handler = new RecordingHandler($$"""
             [{"matchId":"{{matchId}}","tournamentId":"{{tournamentId}}","tournamentName":"Cup",
-              "participant1Name":"Alpha","participant2Name":"Beta","participant1Score":2,"participant2Score":1,
+              "participant1Name":"Alpha","participant2Name":"Beta","participant1ReportedScore1":2,"participant1ReportedScore2":1,
               "reason":"MissingOpponentReport","requiredSinceUtc":"2026-10-15T20:00:00Z"},
              {"matchId":"{{Guid.NewGuid()}}","tournamentId":"{{tournamentId}}","tournamentName":"Cup",
               "participant1Name":"Gamma","participant2Name":"Delta","reason":"Disputed",
-              "requiredSinceUtc":"2026-10-15T19:00:00Z"}]
+              "participant1ReportedScore1":1,"participant1ReportedScore2":0,
+              "participant2ReportedScore1":0,"participant2ReportedScore2":1,"requiredSinceUtc":null}]
             """);
         using var httpClient = CreateHttpClient(handler);
         var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
@@ -457,10 +458,13 @@ public sealed class ApiContractTests
         Assert.Equal(matchId, pending[0].MatchId);
         Assert.Equal("Alpha", pending[0].Participant1Name);
         Assert.Equal(MatchResolutionReason.MissingOpponentReport, pending[0].Reason);
-        Assert.Equal(2, pending[0].Participant1Score);
-        Assert.Equal(1, pending[0].Participant2Score);
+        Assert.Equal(2, pending[0].Participant1ReportedScore1);
+        Assert.Equal(1, pending[0].Participant1ReportedScore2);
+        Assert.Null(pending[0].Participant2ReportedScore1);
+        Assert.NotNull(pending[0].RequiredSinceUtc);
         Assert.Equal(MatchResolutionReason.Disputed, pending[1].Reason);
-        Assert.Null(pending[1].Participant1Score);
+        Assert.Equal(1, pending[1].Participant2ReportedScore2);
+        Assert.Null(pending[1].RequiredSinceUtc);
     }
 
     [Fact]

@@ -1181,8 +1181,13 @@ internal sealed class MockBackendStore
             if(!string.Equals(persona, "admin", StringComparison.OrdinalIgnoreCase))
                 throw new UnauthorizedAccessException("Only an administrator may list matches awaiting resolution.");
 
+            var currentUserId = GetCurrentProfile(persona).User?.Id;
             var pending = new List<PendingMatchResolutionDTO>();
-            foreach(var tournament in _document.Tournaments.Where(candidate => candidate.Status == TournamentStatus.InProgress))
+            // Like the backend: only in-progress tournaments, and only the assigned admin (any admin for legacy
+            // tournaments without one).
+            foreach(var tournament in _document.Tournaments.Where(candidate =>
+                candidate.Status == TournamentStatus.InProgress &&
+                (!candidate.AssignedAdminUserId.HasValue || candidate.AssignedAdminUserId == currentUserId)))
             {
                 foreach(var match in tournament.Matches)
                 {
@@ -1198,10 +1203,6 @@ internal sealed class MockBackendStore
                     }
 
                     var bothReported = match.Participant1ReportedScore1.HasValue && match.Participant2ReportedScore1.HasValue;
-                    var loneReport = !bothReported && (match.Participant1ReportedScore1.HasValue || match.Participant2ReportedScore1.HasValue);
-                    var reportedFirst = match.Participant1ReportedScore1.HasValue
-                        ? (match.Participant1ReportedScore1, match.Participant1ReportedScore2)
-                        : (match.Participant2ReportedScore1, match.Participant2ReportedScore2);
 
                     pending.Add(new PendingMatchResolutionDTO
                     {
@@ -1210,15 +1211,21 @@ internal sealed class MockBackendStore
                         TournamentName = tournament.Name,
                         Participant1Name = GetMockParticipantName(tournament, match, MatchParticipantSide.Participant1),
                         Participant2Name = GetMockParticipantName(tournament, match, MatchParticipantSide.Participant2),
-                        Participant1Score = loneReport ? reportedFirst.Item1 : null,
-                        Participant2Score = loneReport ? reportedFirst.Item2 : null,
+                        Participant1ReportedScore1 = match.Participant1ReportedScore1,
+                        Participant1ReportedScore2 = match.Participant1ReportedScore2,
+                        Participant2ReportedScore1 = match.Participant2ReportedScore1,
+                        Participant2ReportedScore2 = match.Participant2ReportedScore2,
                         Reason = bothReported ? MatchResolutionReason.Disputed : MatchResolutionReason.MissingOpponentReport,
                         RequiredSinceUtc = since
                     });
                 }
             }
 
-            return pending.OrderBy(item => item.RequiredSinceUtc).ThenBy(item => item.MatchId).ToList();
+            return pending
+                .OrderBy(item => item.RequiredSinceUtc is null)
+                .ThenBy(item => item.RequiredSinceUtc)
+                .ThenBy(item => item.MatchId)
+                .ToList();
         }
     }
 

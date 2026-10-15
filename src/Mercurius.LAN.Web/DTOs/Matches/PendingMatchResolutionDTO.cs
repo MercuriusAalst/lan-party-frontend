@@ -9,12 +9,15 @@ public sealed class PendingMatchResolutionDTO
     public string Participant1Name { get; init; } = string.Empty;
     public string Participant2Name { get; init; } = string.Empty;
 
-    /// <summary>Participant 1's score in the reported result, when the backend exposes one.</summary>
-    public int? Participant1Score { get; init; }
-
-    /// <summary>Participant 2's score in the reported result, when the backend exposes one.</summary>
-    public int? Participant2Score { get; init; }
+    // Unconfirmed claims, named like MatchActionStateDTO: Participant{N}ReportedScore1/2 is what side N reported
+    // as (participant 1 score, participant 2 score). Never a final result.
+    public int? Participant1ReportedScore1 { get; init; }
+    public int? Participant1ReportedScore2 { get; init; }
+    public int? Participant2ReportedScore1 { get; init; }
+    public int? Participant2ReportedScore2 { get; init; }
 
     public MatchResolutionReason Reason { get; init; }
-    public DateTime RequiredSinceUtc { get; init; }
+
+    /// <summary>Null while the backend has not recorded when the match started waiting (or for older matches).</summary>
+    public DateTime? RequiredSinceUtc { get; init; }
 }
