@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 using Xunit;
@@ -30,7 +31,10 @@ public class SponsorManagementPlaywrightTests : TournamentE2ETestBase
         await page.Locator("#sponsorLogo").SetInputFilesAsync(TournamentE2E.TestImagePath());
         await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateSponsor }).ClickAsync();
 
-        await Expect(page.GetByText("sponsors currently listed")).ToBeVisibleAsync();
+        // The shared E2E database may hold any number of sponsors, so the count wording (singular or
+        // plural) depends on test order; assert the created toast and a count of either form.
+        await Expect(page.GetByText("Sponsor created successfully.")).ToBeVisibleAsync();
+        await Expect(page.GetByText(new Regex(@"^\d+ sponsors? currently listed\.$"))).ToBeVisibleAsync();
 
         // Reload proves the sponsor persisted server-side; the admin search finds it again.
         await TournamentE2E.ReloadInteractiveAsync(page);
