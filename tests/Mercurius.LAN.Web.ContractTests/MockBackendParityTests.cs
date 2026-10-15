@@ -152,6 +152,19 @@ public sealed class MockBackendParityTests
     public static IEnumerable<object[]> LocalTournamentIds() =>
         CreateStore().GetTournaments().Select(tournament => new object[] { tournament.Id.ToString() });
 
+    [Fact]
+    public void TournamentListProjectionCarriesTheSameSponsorPlacementAsDetail()
+    {
+        var store = CreateStore();
+
+        var list = store.GetTournaments().ToDictionary(tournament => tournament.Id);
+        var detail = store.GetTournament(FeaturedTournamentId)!;
+
+        Assert.Equal(detail.SponsorPlacement?.SponsorName, list[FeaturedTournamentId].SponsorPlacement?.SponsorName);
+        Assert.Contains(list.Values, tournament => tournament.SponsorPlacement is not null);
+        Assert.Contains(list.Values, tournament => tournament.SponsorPlacement is null);
+    }
+
     [Theory]
     [MemberData(nameof(LocalTournamentIds))]
     public void LocalTournamentFixtureHasValidRegistrationsStateAndMatchGraph(string id)

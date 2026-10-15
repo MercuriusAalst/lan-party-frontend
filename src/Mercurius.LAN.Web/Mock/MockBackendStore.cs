@@ -4559,7 +4559,8 @@ internal sealed class MockBackendStore
             FirstPlacePrize = tournament.FirstPlacePrize,
             SecondPlacePrize = tournament.SecondPlacePrize,
             ThirdPlacePrize = tournament.ThirdPlacePrize,
-            ContactAdmin = ResolveContactAdmin(tournament.AssignedAdminUserId)
+            ContactAdmin = ResolveContactAdmin(tournament.AssignedAdminUserId),
+            SponsorPlacement = tournament.SponsorPlacement
         };
     }
 
