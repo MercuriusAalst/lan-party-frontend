@@ -42,6 +42,17 @@ public sealed class TournamentService : ITournamentService
         CancellationToken cancellationToken = default) =>
         GetTournamentByIdAsync(id, cancellationToken);
 
+    public Task<FeaturedTournamentsDTO> GetFeaturedTournamentsAsync(
+        CancellationToken cancellationToken = default) =>
+        _lanClient.GetFeaturedTournamentsAsync(cancellationToken);
+
+    public Task<FeaturedTournamentIdsDTO> UpdateFeaturedTournamentsAsync(
+        IReadOnlyList<Guid> tournamentIds,
+        CancellationToken cancellationToken = default) =>
+        _lanClient.UpdateFeaturedTournamentsAsync(
+            new FeaturedTournamentIdsDTO { TournamentIds = tournamentIds.ToList() },
+            cancellationToken);
+
     public Task<List<PublicUserDTO>> GetAdminUsersAsync(
         string? query = null,
         int? pageSize = null,
