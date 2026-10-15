@@ -77,14 +77,13 @@ public class MatchAdminActionTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var resolve = panel.GetByRole(AriaRole.Button, new() { Name = "Resolve result" });
         await Expect(resolve).ToBeDisabledAsync();
 
-        await MatchE2E.FillAdminScoreAsync(panel, players[0].Username, 2);
-        await MatchE2E.FillAdminScoreAsync(panel, players[1].Username, 2);
-        await Expect(panel.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(resolve).ToBeDisabledAsync();
+        // Only the picker's complete selections are possible: no winner yet keeps resolve disabled.
+        await Expect(panel.Locator("#admin-winner-1")).Not.ToBeCheckedAsync();
+        await Expect(panel.Locator("#admin-winner-2")).Not.ToBeCheckedAsync();
+        await Expect(panel.Locator("input[name='admin-loser']")).ToHaveCountAsync(0);
 
-        await MatchE2E.FillAdminScoreAsync(panel, players[0].Username, 2);
-        await MatchE2E.FillAdminScoreAsync(panel, players[1].Username, 0);
-        await Expect(panel.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToHaveCountAsync(0);
+        await MatchE2E.PickAdminScoreAsync(panel, 2, 0);
+        await Expect(panel.Locator("#admin-score-summary")).ToContainTextAsync("2 – 0");
         await Expect(resolve).ToBeEnabledAsync();
         await MatchE2E.ClickAsync(resolve);
 

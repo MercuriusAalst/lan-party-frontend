@@ -71,7 +71,7 @@ public class MatchLifecycleTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
 
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
-        await Expect(dialog.Locator("#participant1-score")).ToBeVisibleAsync();
+        await Expect(dialog.Locator("#player-winner-1")).ToBeVisibleAsync();
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeVisibleAsync();
         // The removed ended-confirmation action and per-side status display are gone.
         await Expect(dialog.GetByText("Confirmed", new() { Exact = true })).ToHaveCountAsync(0);

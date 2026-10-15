@@ -30,7 +30,6 @@ internal static class MatchE2E
     internal const string AdminPanel = "Administrator match actions";
     internal const string DeadlineLabel = "Score window deadline";
 
-    internal const string ScoreMustBeDecisive = "Enter a decisive score for this match format.";
     internal const string ScoreReportSaved = "Your score report was saved.";
     internal const string TournamentNotInProgress = "This tournament is no longer in progress.";
     internal const string MatchNotDisputed = "This match does not currently require administrator resolution.";
@@ -210,24 +209,35 @@ internal static class MatchE2E
         await Expect(dialog).ToBeHiddenAsync();
     }
 
-    internal static async Task SubmitScoreAsync(
-        ILocator dialog,
-        int participant1Score,
-        int participant2Score,
-        bool expectValidScore = true)
+    /// <summary>
+    /// Picks a decisive score through the winner and loser-games-won radios. Scores use the match's
+    /// participant slots (which may not match registration order); the higher score is the winner.
+    /// </summary>
+    internal static async Task PickScoreAsync(ILocator scope, string idPrefix, int participant1Score, int participant2Score)
     {
-        // Scores use the match's participant slots, which may not match registration order.
-        await dialog.Locator("#participant1-score").FillAsync(participant1Score.ToString());
-        var lastScore = dialog.Locator("#participant2-score");
-        await lastScore.FillAsync(participant2Score.ToString());
-        var submit = dialog.GetByRole(AriaRole.Button, new() { Name = SubmitScoreButton });
-        if(!expectValidScore)
-        {
-            await Expect(submit).ToBeDisabledAsync();
-            return;
-        }
+        var winnerSlot = participant1Score > participant2Score ? 1 : 2;
+        var loserScore = Math.Min(participant1Score, participant2Score);
 
-        // Wait for the input-bound values to reach the component before clicking.
+        var winner = scope.Locator($"#{idPrefix}-winner-{winnerSlot}");
+        await MatchE2E.ClickAsync(winner);
+        await Expect(winner).ToBeCheckedAsync();
+
+        // Best of 1 completes with the winner (the summary appears); longer formats reveal the loser step.
+        await Expect(scope.Locator($"#{idPrefix}-loser-0, #{idPrefix}-score-summary:not(:empty)").First).ToBeVisibleAsync();
+        var loser = scope.Locator($"#{idPrefix}-loser-{loserScore}");
+        if(await scope.Locator($"input[name='{idPrefix}-loser']").CountAsync() > 0)
+        {
+            await MatchE2E.ClickAsync(loser);
+            await Expect(loser).ToBeCheckedAsync();
+        }
+    }
+
+    internal static async Task SubmitScoreAsync(ILocator dialog, int participant1Score, int participant2Score)
+    {
+        await PickScoreAsync(dialog, "player", participant1Score, participant2Score);
+        var submit = dialog.GetByRole(AriaRole.Button, new() { Name = SubmitScoreButton });
+
+        // Wait for the picked values to reach the component before clicking.
         await Expect(submit).ToBeEnabledAsync();
         await MatchE2E.ClickAsync(submit);
         // Different valid reports immediately enter the correction state, where the editor stays open.
@@ -235,12 +245,9 @@ internal static class MatchE2E
             .ToHaveTextAsync(ScoreReportSaved);
     }
 
-    /// <summary>Fills one of the administrator resolve score fields, by participant name.</summary>
-    internal static async Task FillAdminScoreAsync(ILocator adminPanel, string participantName, int score)
-    {
-        var field = adminPanel.GetByRole(AriaRole.Spinbutton, new() { Name = participantName });
-        await field.FillAsync(score.ToString());
-    }
+    /// <summary>Picks the administrator resolve score through the same winner and loser radios.</summary>
+    internal static Task PickAdminScoreAsync(ILocator adminPanel, int participant1Score, int participant2Score) =>
+        PickScoreAsync(adminPanel, "admin", participant1Score, participant2Score);
 
     internal sealed record MatchView(
         Guid Id,

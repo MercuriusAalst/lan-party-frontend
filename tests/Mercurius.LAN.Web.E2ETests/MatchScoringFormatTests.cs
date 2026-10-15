@@ -35,19 +35,23 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
     }
 
     [Fact]
-    public async Task BestOfOneRejectsADrawReportAndKeepsTheMatchUnresolved()
+    public async Task BestOfOneNeedsOnlyTheWinnerAndShowsNoLoserStep()
     {
         var setup = await StartReadyToScoreAsync("BestOf1");
 
         var context = await app.NewAuthenticatedContextAsync(setup.First);
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await MatchE2E.SubmitScoreAsync(dialog, 1, 1, expectValidScore: false);
+        var submit = dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton });
 
-        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
-        await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(dialog.Locator("#participant1-score")).ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(dialog.Locator("#participant2-score")).ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(dialog.GetByRole(AriaRole.Group, new() { Name = "Who won?" })).ToBeVisibleAsync();
+        await Expect(submit).ToBeDisabledAsync();
+
+        await MatchE2E.ClickAsync(dialog.Locator("#player-winner-1"));
+        await Expect(dialog.Locator("#player-winner-1")).ToBeCheckedAsync();
+        await Expect(submit).ToBeEnabledAsync();
+        await Expect(dialog.Locator("input[name='player-loser']")).ToHaveCountAsync(0);
+        await Expect(dialog.Locator("#player-score-summary")).ToContainTextAsync("1 – 0");
 
         await page.ReloadAsync();
         await page.WaitForInteractiveAsync();
@@ -58,48 +62,60 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         await MatchE2E.CloseContextsAsync(app, context);
     }
 
-    [Fact]
-    public async Task BestOfThreeRejectsAnIncompleteReport()
+    [Theory]
+    [InlineData("BestOf3", new[] { 0, 1 })]
+    [InlineData("BestOf5", new[] { 0, 1, 2 })]
+    public async Task LoserStepOffersExactlyTheScoresBelowTheRequiredWins(string format, int[] expectedLoserScores)
     {
-        var setup = await StartReadyToScoreAsync("BestOf3");
+        var setup = await StartReadyToScoreAsync(format);
 
         var context = await app.NewAuthenticatedContextAsync(setup.First);
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await MatchE2E.SubmitScoreAsync(dialog, 1, 0, expectValidScore: false);
+        var submit = dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton });
+        var loserOptions = dialog.Locator("input[name='player-loser']");
 
-        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
-        await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(dialog.Locator("#participant1-score")).ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(dialog.Locator("#participant2-score")).ToHaveAttributeAsync("aria-invalid", "true");
+        // Nothing is selected and the loser step stays hidden until a winner is chosen.
+        await Expect(submit).ToBeDisabledAsync();
+        await Expect(loserOptions).ToHaveCountAsync(0);
 
-        await page.ReloadAsync();
-        await page.WaitForInteractiveAsync();
-        var reopened = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await Expect(reopened.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
+        await MatchE2E.ClickAsync(dialog.Locator("#player-winner-2"));
+        await Expect(loserOptions).ToHaveCountAsync(expectedLoserScores.Length);
+        for(var index = 0; index < expectedLoserScores.Length; index++)
+            await Expect(loserOptions.Nth(index)).ToHaveAttributeAsync("value", expectedLoserScores[index].ToString());
+        await Expect(submit).ToBeDisabledAsync();
+
+        var loserScore = expectedLoserScores[^1];
+        await MatchE2E.ClickAsync(dialog.Locator($"#player-loser-{loserScore}"));
+        await Expect(submit).ToBeEnabledAsync();
+        await Expect(dialog.Locator("#player-score-summary")).ToContainTextAsync($"{loserScore} – {expectedLoserScores.Length}");
+
+        // Switching the winner clears the loser choice, so the selection must be completed again.
+        await MatchE2E.ClickAsync(dialog.Locator("#player-winner-1"));
+        await Expect(loserOptions.First).Not.ToBeCheckedAsync();
+        await Expect(submit).ToBeDisabledAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
 
     [Fact]
-    public async Task BestOfThreeRejectsAScoreBeyondTheDecisiveWin()
+    public async Task FeedbackToastAppearsAboveTheOpenDialog()
     {
         var setup = await StartReadyToScoreAsync("BestOf3");
 
         var context = await app.NewAuthenticatedContextAsync(setup.First);
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await MatchE2E.SubmitScoreAsync(dialog, 3, 0, expectValidScore: false);
 
-        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
-        await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(dialog.Locator("#participant1-score")).ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(dialog.Locator("#participant2-score")).ToHaveAttributeAsync("aria-invalid", "true");
+        await MatchE2E.SubmitScoreAsync(dialog, 2, 1);
 
-        await page.ReloadAsync();
-        await page.WaitForInteractiveAsync();
-        var reopened = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        await Expect(reopened.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
+        // The dialog stays open while the confirmation window runs; the toast must be what the user sees on top of it.
+        await Expect(dialog).ToBeVisibleAsync();
+        var toast = page.Locator(".blazored-toast-message").Last;
+        await Expect(toast).ToBeVisibleAsync();
+        var toastIsOnTop = await toast.EvaluateAsync<bool>(
+            "element => { const box = element.getBoundingClientRect(); const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2); return hit !== null && element.contains(hit); }");
+        Assert.True(toastIsOnTop, "Expected the toast to be the topmost element at its own centre, above the match dialog overlay.");
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
@@ -119,53 +135,6 @@ public class MatchScoringFormatTests(PlaywrightE2EFixture app) : E2ETestBase(app
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.CompletedStatus })).ToBeVisibleAsync();
         await Expect(dialog).ToContainTextAsync("[3]");
         await Expect(dialog).ToContainTextAsync("[1]");
-
-        await MatchE2E.CloseContextsAsync(app, context);
-    }
-
-    [Fact]
-    public async Task BestOfThreeRejectsAScoreThatIsLevelAtTheDecisiveWin()
-    {
-        var setup = await StartReadyToScoreAsync("BestOf3");
-
-        var context = await app.NewAuthenticatedContextAsync(setup.Second);
-        var page = await OpenTournamentAsync(context, setup.TournamentId);
-        var dialog = await MatchE2E.OpenMatchAsync(page, setup.Second.Username);
-        await MatchE2E.SubmitScoreAsync(dialog, 2, 2, expectValidScore: false);
-
-        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeDisabledAsync();
-        await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(dialog.Locator("#participant1-score")).ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(dialog.Locator("#participant2-score")).ToHaveAttributeAsync("aria-invalid", "true");
-
-        await MatchE2E.CloseContextsAsync(app, context);
-    }
-
-    [Fact]
-    public async Task ScoreFormShowsNoErrorUntilBothScoresAreEnteredAndClearsItWhenValid()
-    {
-        var setup = await StartReadyToScoreAsync("BestOf3");
-
-        var context = await app.NewAuthenticatedContextAsync(setup.First);
-        var page = await OpenTournamentAsync(context, setup.TournamentId);
-        var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
-        var first = dialog.Locator("#participant1-score");
-        var second = dialog.Locator("#participant2-score");
-
-        await first.FillAsync("1");
-        await Expect(first).Not.ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToHaveCountAsync(0);
-
-        await second.FillAsync("1");
-        await Expect(first).ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(second).ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(dialog.GetByText(MatchE2E.ScoreMustBeDecisive, new() { Exact = true })).ToBeVisibleAsync();
-
-        await second.FillAsync("0");
-        await first.FillAsync("2");
-        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToBeEnabledAsync();
-        await Expect(first).Not.ToHaveAttributeAsync("aria-invalid", "true");
-        await Expect(second).Not.ToHaveAttributeAsync("aria-invalid", "true");
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
