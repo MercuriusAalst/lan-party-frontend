@@ -1035,11 +1035,11 @@ internal sealed class MockBackendStore
 
             if(match.LifecycleState is MatchLifecycleState.AwaitingEndedConfirmation
                or MatchLifecycleState.AwaitingScore
-               or MatchLifecycleState.Reversed
-               or MatchLifecycleState.ScoreConfirmation)
+               or MatchLifecycleState.Reversed)
             {
+                // The first report opens a fresh window, like the backend; any stale deadline is replaced.
                 match.LifecycleState = MatchLifecycleState.ScoreConfirmation;
-                match.ScoreConfirmationDeadlineUtc ??= DateTime.UtcNow.AddMinutes(5);
+                match.ScoreConfirmationDeadlineUtc = DateTime.UtcNow.AddMinutes(5);
             }
             else if(match.LifecycleState == MatchLifecycleState.Disputed)
             {
