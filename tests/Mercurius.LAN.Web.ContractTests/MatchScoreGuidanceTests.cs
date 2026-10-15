@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Mercurius.LAN.Web.Components.Pages.Tournaments.Matches.DetailView;
+using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.Models.Tournaments;
 using Xunit;
 
@@ -65,6 +66,47 @@ public sealed class MatchScoreGuidanceTests
         Assert.Contains("@if(GetScoreGuidance() is { } adminScoreGuidance)", markup);
         Assert.DoesNotContain("aria-describedby=\"player-score-guidance", markup);
         Assert.DoesNotContain("aria-describedby=\"admin-score-guidance", markup);
+    }
+
+    [Theory]
+    [InlineData(TournamentFormat.BestOf1, true)]
+    [InlineData(TournamentFormat.BestOf3, true)]
+    [InlineData(TournamentFormat.BestOf5, true)]
+    [InlineData((TournamentFormat)99, false)]
+    public void ScoreFormatSupport_RequiresAKnownNumberOfWins(TournamentFormat format, bool expected)
+    {
+        Assert.Equal(expected, TournamentMatchDetailsDialog.IsSupportedScoreFormat(format));
+    }
+
+    [Fact]
+    public void UnsupportedFormat_OffersNoScoreSelectionAndNoDescribedBy()
+    {
+        var format = (TournamentFormat)99;
+
+        Assert.False(TournamentMatchDetailsDialog.IsSupportedScoreFormat(format));
+        Assert.Empty(TournamentMatchDetailsDialog.GetLoserScoreOptions(format));
+        Assert.Null(TournamentMatchDetailsDialog.GetScoreDescribedBy(format, "player"));
+        Assert.Null(TournamentMatchDetailsDialog.MapSelectionToScores(format, MatchParticipantSide.Participant1, 0));
+        Assert.False(TournamentMatchDetailsDialog.IsValidSeriesScore(format, 1, 0));
+    }
+
+    [Fact]
+    public void ScoreMarkup_RendersPickerAndSubmitButtonsOnlyForSupportedFormats()
+    {
+        var markup = File.ReadAllText(FindRepositoryFile(Path.Combine(
+            "src", "Mercurius.LAN.Web", "Components", "Pages", "Tournaments", "Matches", "DetailView", "TournamentMatchDetailsDialog.razor")));
+
+        Assert.Equal(4, CountOccurrences(markup, "@if(IsSupportedFormat)"));
+        Assert.Equal(2, CountOccurrences(markup, "Feature.match.scoreFormatUnsupported"));
+        Assert.Contains("private RenderFragment ScorePicker(string idPrefix) => !IsSupportedFormat", markup);
+    }
+
+    [Theory]
+    [InlineData("translations.en-US.json")]
+    [InlineData("translations.nl-BE.json")]
+    public void UnsupportedFormatExplanation_IsLocalized(string fileName)
+    {
+        Assert.False(string.IsNullOrWhiteSpace(ReadLocale(fileName)["Feature.match.scoreFormatUnsupported"]));
     }
 
     [Theory]
