@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.6.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.5.0...frontend-v0.6.0) (2026-10-15)
+
+
+### Features
+
+* Add Tournament Prizes and Contact Administrator ([#95](https://github.com/MercuriusAalst/lan-party-frontend/issues/95)) ([1e0fb25](https://github.com/MercuriusAalst/lan-party-frontend/commit/1e0fb25782af41e840585a83cedfb137635137fe)), closes [#46](https://github.com/MercuriusAalst/lan-party-frontend/issues/46)
+* Curate Featured Homepage Tournaments ([#99](https://github.com/MercuriusAalst/lan-party-frontend/issues/99)) ([cbd710a](https://github.com/MercuriusAalst/lan-party-frontend/commit/cbd710abae654aa7cd46489530a9fc0d7a6cb252))
+* Show Tournament Sponsor Attribution ([#96](https://github.com/MercuriusAalst/lan-party-frontend/issues/96)) ([8f0134d](https://github.com/MercuriusAalst/lan-party-frontend/commit/8f0134deb27e4c9b7501002f379a3d3b5e52fb8d)), closes [#93](https://github.com/MercuriusAalst/lan-party-frontend/issues/93)
+* Standardize Full-Page Error And Failed-Load States ([#98](https://github.com/MercuriusAalst/lan-party-frontend/issues/98)) ([3d827c5](https://github.com/MercuriusAalst/lan-party-frontend/commit/3d827c5348021211209e9b0781b3937c42cfe65b)), closes [#97](https://github.com/MercuriusAalst/lan-party-frontend/issues/97)
+
+
+### Bug Fixes
+
+* Align Frontend With Backend Contract Hardening ([#102](https://github.com/MercuriusAalst/lan-party-frontend/issues/102)) ([085e266](https://github.com/MercuriusAalst/lan-party-frontend/commit/085e266ea187db21b0800aa9971d73d323826afb))
+* persist data protection keys so restarts don't sign users out ([#100](https://github.com/MercuriusAalst/lan-party-frontend/issues/100)) ([b59d6ae](https://github.com/MercuriusAalst/lan-party-frontend/commit/b59d6aee66b0633623e1cdad38cf8e02cac80a9e))
+* Pick Match Winner Instead Of Typing Scores ([#108](https://github.com/MercuriusAalst/lan-party-frontend/issues/108)) ([0f61adf](https://github.com/MercuriusAalst/lan-party-frontend/commit/0f61adfddf801580a604c4193c15c647061c6f20))
+* Prevent Registration Dialog State Flashes ([#103](https://github.com/MercuriusAalst/lan-party-frontend/issues/103)) ([ae2293f](https://github.com/MercuriusAalst/lan-party-frontend/commit/ae2293f4fdac343818a3d029db3968af4ada44c9))
+* Restore Button and Status Pill Borders ([#104](https://github.com/MercuriusAalst/lan-party-frontend/issues/104)) ([dc79cce](https://github.com/MercuriusAalst/lan-party-frontend/commit/dc79cce6dc6d21e03b85e76072cddd4269c6dac6))
+* Simplify Match Score Submission ([#105](https://github.com/MercuriusAalst/lan-party-frontend/issues/105)) ([d6d37b9](https://github.com/MercuriusAalst/lan-party-frontend/commit/d6d37b95346efea2e222d37a2cbc09e56d66aa04))
+* Validate Match Series Scores Before Submission ([#106](https://github.com/MercuriusAalst/lan-party-frontend/issues/106)) ([87d6cd7](https://github.com/MercuriusAalst/lan-party-frontend/commit/87d6cd718a916160baae4c3c67928328d2d73028))
+
 ## [0.5.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.4.0...frontend-v0.5.0) (2026-10-06)
 
 
