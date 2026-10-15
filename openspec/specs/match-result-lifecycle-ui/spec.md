@@ -204,7 +204,7 @@ retried, and MUST offer a retry.
 
 ### Requirement: Match score entry follows the configured series format
 
-The match details UI MUST explain the required wins for the configured Best-of format and the valid losing-score range using wording specific to that format. Player score submissions and administrator resolutions MUST be entered by choosing the winning participant and then the number of games the losing participant won, limited to the whole numbers from 0 up to one less than the required wins. The UI MUST set the winner's score to the required wins automatically and MUST NOT offer a free-text score entry. For a Best of 1 match the UI MUST require only the winner choice, MUST treat the loser's score as 0 and MUST NOT show the losing-score step. The UI MUST NOT preselect a winner unless the viewer's own earlier report or the official result is being shown. Score submission and resolution MUST stay disabled until the selection is complete, and the UI MUST show a live summary of the resulting score in the displayed participant order. The UI MUST still check the resulting score against the configured format before invoking the backend, while the backend remains authoritative. When the match format is unknown, the UI MUST NOT show score guidance, MUST NOT offer a score selection, and MUST NOT reference guidance from `aria-describedby`. The selection controls MUST be operable with the keyboard, MUST expose their checked state to assistive technology and MUST NOT rely on colour alone to show the selected option.
+The match details UI MUST explain the required wins for the configured Best-of format and the valid losing-score range using wording specific to that format. Player score submissions and administrator resolutions MUST be entered by choosing the winning participant and then the number of games the losing participant won, limited to the whole numbers from 0 up to one less than the required wins. The UI MUST set the winner's score to the required wins automatically and MUST NOT offer a free-text score entry. For a Best of 1 match the UI MUST require only the winner choice, MUST treat the loser's score as 0 and MUST NOT show the losing-score step. The UI MUST NOT preselect a winner unless the viewer's own earlier report or the official result is being shown. Score submission and resolution MUST stay disabled until the selection is complete, and the UI MUST show a live summary of the resulting score in the displayed participant order. The UI MUST still check the resulting score against the configured format before invoking the backend, while the backend remains authoritative. When the match format is unknown or unsupported, the UI MUST NOT show score guidance, MUST NOT render any score-selection control, result summary, submit button or resolve button, and MUST NOT reference guidance from `aria-describedby`. The selection controls MUST be operable with the keyboard, MUST expose their checked state to assistive technology and MUST NOT rely on colour alone to show the selected option.
 
 #### Scenario: Player picks a decisive score
 
@@ -252,6 +252,12 @@ The match details UI MUST explain the required wins for the configured Best-of f
 - **THEN** the UI MUST NOT render score guidance or a score selection
 - **AND** the score controls MUST NOT reference a missing guidance element through `aria-describedby`
 
+#### Scenario: Unsupported format explains why no score can be reported
+
+- **WHEN** the match format is not a supported Best-of format and the viewer could otherwise submit or resolve a score
+- **THEN** the UI MUST NOT render any winner or losing-score control, result summary, or submit or resolve button
+- **AND** it SHOULD show a short localized explanation that the score cannot be reported for this format and that an administrator should be contacted
+
 ### Requirement: Score validation errors are actionable and safe
 
 The match details UI MUST display a nonempty backend validation message for HTTP 400 score-action responses when one is available. It MUST preserve the existing unauthorized, forbidden, and conflict mappings. For other failures, including HTTP 500, it MUST use the generic localized fallback and MUST NOT expose the response body.
@@ -284,4 +290,13 @@ The action buttons in the match details dialog, such as submit, resolve and forf
 
 - **WHEN** the match details dialog shows an action button
 - **THEN** the button MUST NOT span the full width of the dialog panel at any viewport width
+
+### Requirement: Match dialog action sections are centred
+
+The player and administrator action sections of the match details dialog MUST centre their titles, score selection groups and option rows, result summary, guidance text and action buttons within the full-width section. Action buttons MUST stay sized to their content and MUST wrap onto further lines when the available width is too small.
+
+#### Scenario: Action sections are centred
+
+- **WHEN** the match details dialog shows the "Your player actions" section or the administrator actions section
+- **THEN** their content MUST be horizontally centred at desktop and at narrow viewport widths
 
