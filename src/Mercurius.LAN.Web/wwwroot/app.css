@@ -742,7 +742,7 @@ main {
 .btn-outline-secondary {
     background: var(--brand-button-secondary-background, var(--color-surface-raised));
     border-color: var(--brand-button-secondary-border, var(--color-border-strong));
-    color: var(--brand-button-secondary-color, var(--color-link));
+    color: var(--brand-button-secondary-color, var(--color-ink));
     box-shadow: var(--brand-button-secondary-shadow, var(--shadow-brand));
 }
 
@@ -751,7 +751,7 @@ main {
 .btn-outline-primary:hover,
 .btn-outline-secondary:hover {
     background: var(--brand-button-secondary-hover-background, var(--color-surface-muted));
-    border-color: var(--brand-button-secondary-hover-border, var(--color-border-strong));
+    border-color: var(--brand-button-secondary-hover-border, var(--color-primary-green));
     color: var(--brand-button-secondary-hover-color, var(--color-ink));
     box-shadow: var(--brand-button-secondary-hover-shadow, var(--shadow-brand-hover));
     transform: translateY(-1px);
@@ -820,12 +820,23 @@ main {
     gap: 0.35rem;
     padding: 0.28rem 0.68rem;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--color-success) 42%, transparent);
-    background: var(--color-success-soft);
-    color: var(--color-success);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.02em;
+}
+
+/* Informational badges are neutral; green is reserved for status and primary actions. */
+.badge {
+    border: 1px solid var(--color-border);
+    background: var(--color-neutral-soft);
+    color: var(--color-ink);
+}
+
+/* Status pills keep the success palette unless a .status-* modifier overrides it. */
+.tournament-status {
+    border: 1px solid color-mix(in srgb, var(--color-success) 42%, transparent);
+    background: var(--color-success-soft);
+    color: var(--color-success);
 }
 
 .status-scheduled {
