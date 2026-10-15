@@ -127,6 +127,7 @@ public sealed class MockBackendParityTests
 
         var emptyTournament = store.CreateTournament(new CreateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Needs Participants",
             BracketType = BracketType.SingleElimination,
             Format = TournamentFormat.BestOf1,
@@ -360,6 +361,7 @@ public sealed class MockBackendParityTests
 
         var update = new UpdateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Prize Parity",
             BracketType = BracketType.SingleElimination,
             Format = TournamentFormat.BestOf1,
@@ -372,9 +374,47 @@ public sealed class MockBackendParityTests
         store.UpdateTournament(created.Id, update);
 
         var cleared = store.GetTournament(created.Id)!;
-        Assert.Null(cleared.ContactAdmin);
+        // The assigned admin is mandatory: an update keeps a contact, only prizes can be cleared.
+        Assert.Equal(admin.Id, cleared.ContactAdmin!.Id);
         Assert.Null(cleared.FirstPlacePrize);
         Assert.Null(cleared.SecondPlacePrize);
+    }
+
+    [Fact]
+    public void TournamentWrites_RequireAnExistingAssignedAdmin()
+    {
+        var store = CreateStore();
+        var admin = Assert.Single(store.GetAdminUsers());
+        CreateTournamentDTO NewCreate(Guid adminId) => new()
+        {
+            Name = "Admin Required",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10,
+            AssignedAdminUserId = adminId
+        };
+
+        Assert.Throws<InvalidOperationException>(() => store.CreateTournament(NewCreate(Guid.Empty)));
+        Assert.Throws<InvalidOperationException>(() => store.CreateTournament(NewCreate(Guid.NewGuid())));
+
+        var created = store.CreateTournament(NewCreate(admin.Id));
+        Assert.Throws<InvalidOperationException>(() => store.UpdateTournament(created.Id, new UpdateTournamentDTO
+        {
+            Name = "Admin Required",
+            BracketType = BracketType.SingleElimination,
+            Format = TournamentFormat.BestOf1,
+            FinalsFormat = TournamentFormat.BestOf1,
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1),
+            AverageGameDurationMinutes = 30,
+            RoundBreakDurationMinutes = 10,
+            AssignedAdminUserId = Guid.Empty
+        }));
+        Assert.Equal(admin.Id, store.GetTournament(created.Id)!.ContactAdmin!.Id);
     }
 
     [Fact]

@@ -375,7 +375,7 @@ public sealed class ApiContractTests
     }
 
     [Fact]
-    public async Task TournamentWrites_SendContactAdminAndPrizesWithExplicitClearValues()
+    public async Task TournamentWrites_SendTheMandatoryAdminAndPrizesWithExplicitClearValues()
     {
         var adminId = Guid.Parse("41111111-1111-1111-1111-111111111121");
         var handler = new RecordingHandler("{\"id\":\"11111111-1111-1111-1111-111111111112\",\"name\":\"Prize Cup\"}");
@@ -417,19 +417,47 @@ public sealed class ApiContractTests
             PlannedStartTime = DateTime.UtcNow.AddDays(1),
             AverageGameDurationMinutes = 30,
             RoundBreakDurationMinutes = 10,
-            AssignedAdminUserId = null,
+            AssignedAdminUserId = adminId,
             FirstPlacePrize = null,
             SecondPlacePrize = null,
             ThirdPlacePrize = null
         }, null, null, null);
 
         Assert.Equal(HttpMethod.Patch, handler.Request!.Method);
-        // The update contract clears a previously set value only through an explicit empty field.
+        // The admin is mandatory and always sent; prizes clear only through an explicit empty field.
         Assert.Contains("AssignedAdminUserId", handler.RequestBody!);
+        Assert.Contains(adminId.ToString(), handler.RequestBody!);
         Assert.Contains("FirstPlacePrize", handler.RequestBody!);
         Assert.Contains("SecondPlacePrize", handler.RequestBody!);
         Assert.Contains("ThirdPlacePrize", handler.RequestBody!);
-        Assert.DoesNotContain(adminId.ToString(), handler.RequestBody!);
+    }
+
+    [Fact]
+    public void TournamentDtos_RequireAnAssignedAdmin()
+    {
+        var create = new CreateTournamentDTO { ParticipationMode = ParticipationMode.Individual };
+        var update = new UpdateTournamentDTO
+        {
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1)
+        };
+
+        Assert.Contains(
+            create.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(create)),
+            result => result.MemberNames.Contains(nameof(CreateTournamentDTO.AssignedAdminUserId)));
+        Assert.Contains(
+            update.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(update)),
+            result => result.MemberNames.Contains(nameof(UpdateTournamentDTO.AssignedAdminUserId)));
+
+        create.AssignedAdminUserId = Guid.NewGuid();
+        update.AssignedAdminUserId = Guid.NewGuid();
+
+        Assert.DoesNotContain(
+            create.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(create)),
+            result => result.MemberNames.Contains(nameof(CreateTournamentDTO.AssignedAdminUserId)));
+        Assert.DoesNotContain(
+            update.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(update)),
+            result => result.MemberNames.Contains(nameof(UpdateTournamentDTO.AssignedAdminUserId)));
     }
 
     private static HttpClient CreateHttpClient(HttpMessageHandler handler)

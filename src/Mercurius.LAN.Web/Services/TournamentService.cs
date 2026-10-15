@@ -390,15 +390,15 @@ public sealed class TournamentService : ITournamentService
 
     private static void AddContactAdminAndPrizes(
         MultipartFormDataContent formData,
-        Guid? assignedAdminUserId,
+        Guid assignedAdminUserId,
         string? firstPlacePrize,
         string? secondPlacePrize,
         string? thirdPlacePrize)
     {
-        // Empty values are sent deliberately: the update contract clears a previously set
-        // contact or prize only when the field is present and empty, not when it is omitted.
+        // The assigned admin is mandatory and never cleared. Prizes are cleared only when the
+        // field is present and empty, not when it is omitted, so empty prizes are sent deliberately.
         formData.Add(
-            new StringContent(assignedAdminUserId?.ToString() ?? string.Empty),
+            new StringContent(assignedAdminUserId.ToString()),
             "AssignedAdminUserId");
         AddPrize(formData, "FirstPlacePrize", firstPlacePrize);
         AddPrize(formData, "SecondPlacePrize", secondPlacePrize);

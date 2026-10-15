@@ -875,6 +875,8 @@
   "Feature.tournaments.contactAdminLoading": "Beheerders worden geladen",
   "Feature.tournaments.contactAdminNoResults": "Geen beheerders beschikbaar.",
   "Feature.tournaments.contactAdminNone": "Geen contactbeheerder",
+  "Feature.tournaments.contactAdminSelect": "Kies een beheerder",
+  "Feature.tournaments.contactAdminAssignPrompt": "Dit toernooi heeft nog geen toegewezen beheerder. Wijs een beheerder toe voordat je opslaat: de beheerder lost betwiste wedstrijden op.",
   "Feature.tournaments.created": "tournament {0} aangemaakt.",
   "Feature.tournaments.createFailed": "Het tournament kon niet worden aangemaakt.",
   "Feature.tournaments.createFailedNow": "Het tournament kan momenteel niet worden aangemaakt.",
@@ -1173,6 +1175,7 @@
   "form.minValueField": "{0} moet minstens {1} zijn.",
   "form.teamSizeRange": "Voor teamTournaments zijn teams van 1 tot 50 spelers vereist.",
   "form.plannedStartTimeRequired": "Een geplande starttijd is verplicht.",
+  "form.assignedAdminRequired": "Kies een toegewezen beheerder.",
   "form.leaderboardMetricRequired": "Kies hoe de ranking voor dit leaderboardtournament wordt bepaald.",
   "form.leaderboardIndividualOnly": "LeaderboardTournaments zijn voor individuele spelers.",
 

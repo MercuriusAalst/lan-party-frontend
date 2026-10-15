@@ -27,7 +27,8 @@ public class UpdateTournamentDTO : IValidatableObject
     [Range(1, int.MaxValue)]
     public int RoundBreakDurationMinutes { get; set; }
 
-    public Guid? AssignedAdminUserId { get; set; }
+    /// <summary>The assigned tournament admin is mandatory; <see cref="Guid.Empty"/> means not chosen yet.</summary>
+    public Guid AssignedAdminUserId { get; set; }
 
     [StringLength(200)]
     public string? FirstPlacePrize { get; set; }
@@ -40,6 +41,13 @@ public class UpdateTournamentDTO : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        if(AssignedAdminUserId == Guid.Empty)
+        {
+            yield return new ValidationResult(
+                "An assigned admin is required.",
+                [nameof(AssignedAdminUserId)]);
+        }
+
         if(PlannedStartTime == default)
         {
             yield return new ValidationResult(

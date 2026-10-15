@@ -875,6 +875,8 @@
   "Feature.tournaments.contactAdminLoading": "Loading administrators",
   "Feature.tournaments.contactAdminNoResults": "No administrators available.",
   "Feature.tournaments.contactAdminNone": "No contact admin",
+  "Feature.tournaments.contactAdminSelect": "Select an administrator",
+  "Feature.tournaments.contactAdminAssignPrompt": "This tournament has no assigned admin yet. Assign an admin before saving: the admin resolves disputed matches.",
   "Feature.tournaments.created": "Tournament {0} created.",
   "Feature.tournaments.createFailed": "The tournament could not be created.",
   "Feature.tournaments.createFailedNow": "The tournament could not be created right now.",
@@ -1173,6 +1175,7 @@
   "form.minValueField": "{0} must be at least {1}.",
   "form.teamSizeRange": "Team tournaments require a team size between 1 and 50.",
   "form.plannedStartTimeRequired": "Planned start time is required.",
+  "form.assignedAdminRequired": "Select an assigned admin.",
   "form.leaderboardMetricRequired": "Leaderboard tournaments require a ranking metric.",
   "form.leaderboardIndividualOnly": "Leaderboard tournaments are individual competitions.",
 

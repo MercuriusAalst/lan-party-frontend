@@ -638,6 +638,7 @@ internal sealed class MockBackendStore
             var bracketType = dto.BracketType;
             var participationMode = dto.ParticipationMode.GetValueOrDefault();
             var leaderboardRankingMetric = ValidateLeaderboardConfiguration(bracketType, dto.LeaderboardRankingMetric, participationMode);
+            EnsureAssignedAdmin(dto.AssignedAdminUserId);
 
             var tournament = new TournamentExtended
             {
@@ -679,6 +680,7 @@ internal sealed class MockBackendStore
             if(tournament.LeaderboardRankingMetric != leaderboardRankingMetric &&
                tournament.Status != TournamentStatus.Scheduled)
                 throw new InvalidOperationException("Leaderboard ranking metric cannot be changed after the tournament has started.");
+            EnsureAssignedAdmin(dto.AssignedAdminUserId);
 
             tournament.Name = dto.Name;
             tournament.Format = dto.Format;
@@ -4137,6 +4139,15 @@ internal sealed class MockBackendStore
     {
         if(tournament.Status != TournamentStatus.InProgress)
             throw new InvalidOperationException("Leaderboard results can only be changed while the tournament is in progress.");
+    }
+
+    // Mirrors the backend: the assigned admin is mandatory on create and update and must be an existing administrator.
+    private void EnsureAssignedAdmin(Guid assignedAdminUserId)
+    {
+        if(assignedAdminUserId == Guid.Empty)
+            throw new InvalidOperationException("AssignedAdminUserId is required.");
+        if(GetAdminUsers().All(admin => admin.Id != assignedAdminUserId))
+            throw new InvalidOperationException("Assigned contact must be an existing administrator.");
     }
 
     private static LeaderboardRankingMetric? ValidateLeaderboardConfiguration(
