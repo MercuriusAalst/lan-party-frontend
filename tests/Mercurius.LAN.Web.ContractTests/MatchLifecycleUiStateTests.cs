@@ -44,31 +44,6 @@ public sealed class MatchLifecycleUiStateTests
     }
 
     [Theory]
-    [InlineData(TournamentFormat.BestOf3, "2", "2", true)]
-    [InlineData(TournamentFormat.BestOf3, "1", "0", true)]
-    [InlineData(TournamentFormat.BestOf3, "3", "0", true)]
-    [InlineData(TournamentFormat.BestOf1, "1", "1", true)]
-    [InlineData(TournamentFormat.BestOf3, "2", "0", false)]
-    [InlineData(TournamentFormat.BestOf3, "1", "2", false)]
-    [InlineData(TournamentFormat.BestOf3, "2", "", false)]
-    [InlineData(TournamentFormat.BestOf3, "", "2", false)]
-    [InlineData(TournamentFormat.BestOf3, "", "", false)]
-    [InlineData(TournamentFormat.BestOf3, null, null, false)]
-    [InlineData(TournamentFormat.BestOf3, "2.5", "0", true)]
-    [InlineData(TournamentFormat.BestOf3, "2", "0.5", true)]
-    [InlineData(TournamentFormat.BestOf3, "-1", "0", true)]
-    [InlineData(TournamentFormat.BestOf3, "2", "abc", true)]
-    [InlineData(TournamentFormat.BestOf3, "2.5", "", false)]
-    public void ScoreValidationError_IsShownOnlyWhenBothScoresAreEnteredAndInvalid(
-        TournamentFormat format,
-        string? participant1ScoreText,
-        string? participant2ScoreText,
-        bool expected)
-    {
-        Assert.Equal(expected, TournamentMatchDetailsDialog.ShouldShowScoreValidationError(format, participant1ScoreText, participant2ScoreText));
-    }
-
-    [Theory]
     [InlineData(HttpStatusCode.BadRequest, "{\"message\":\"The reported score is not decisive.\"}", "The reported score is not decisive.")]
     [InlineData(HttpStatusCode.BadRequest, "{}", "Try again.")]
     [InlineData(HttpStatusCode.InternalServerError, "{\"message\":\"database password leaked\"}", "Try again.")]

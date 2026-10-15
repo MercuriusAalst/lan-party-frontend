@@ -157,24 +157,24 @@
                         <div class="match-score-editor">
                             <div class="match-score-editor-copy">
                                 <h3>@Localization["Feature.match.reportFinalScore"]</h3>
-                                <p>@Localization["Feature.match.reportFinalScoreHelp"]</p>
+                                @if(IsSupportedFormat)
+                                {
+                                    <p>@Localization["Feature.match.reportFinalScoreHelp"]</p>
+                                }
                             </div>
-                            @if(GetScoreGuidance() is { } playerScoreGuidance)
+                            @if(IsSupportedFormat)
                             {
-                                <p id="player-score-guidance" class="match-score-guidance">@playerScoreGuidance</p>
+                                @if(GetScoreGuidance() is { } playerScoreGuidance)
+                                {
+                                    <p id="player-score-guidance" class="match-score-guidance">@playerScoreGuidance</p>
+                                }
+                                @ScorePicker("player")
+                                <button type="button" class="button-primary" aria-describedby="@GetScoreDescribedBy(Match.Format, "player")" disabled="@(_isSubmitting || _isLoading || !HasValidScoreInputs)" @onclick="SubmitScoreAsync">@Localization["Feature.match.submitScore"]</button>
                             }
-                            <div class="score-inputs">
-                                <div class="match-score-field">
-                                    <label for="participant1-score">@Participant1Name</label>
-                                    <input id="participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="@GetScoreDescribedBy(Match.Format, "player")" aria-invalid="@ScoreInvalidAriaValue" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1ScoreText" @bind:event="oninput" />
-                                </div>
-                                <div class="match-score-field">
-                                    <label for="participant2-score">@Participant2Name</label>
-                                    <input id="participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="@GetScoreDescribedBy(Match.Format, "player")" aria-invalid="@ScoreInvalidAriaValue" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2ScoreText" @bind:event="oninput" />
-                                </div>
-                            </div>
-                            <p id="player-score-validation" class="match-score-validation" role="status">@(ShowScoreValidationError ? Localization["Feature.match.scoreMustBeDecisive"] : string.Empty)</p>
-                            <button type="button" class="button-primary" aria-describedby="@GetScoreDescribedBy(Match.Format, "player")" disabled="@(_isSubmitting || _isLoading || !HasValidScoreInputs)" @onclick="SubmitScoreAsync">@Localization["Feature.match.submitScore"]</button>
+                            else
+                            {
+                                <p class="match-score-unsupported" role="note">@Localization["Feature.match.scoreFormatUnsupported"]</p>
+                            }
                         </div>
                     }
                     @if(_actionState.CanForfeit)
@@ -214,7 +214,10 @@
                             }
                             @if(_actionState.CanResolve)
                             {
-                                <p>@Localization["Feature.match.resolveHelp"]</p>
+                                @if(IsSupportedFormat)
+                                {
+                                    <p>@Localization["Feature.match.resolveHelp"]</p>
+                                }
                             }
                             else
                             {
@@ -222,22 +225,19 @@
                             }
                             @if(_actionState.CanResolve)
                             {
-                            @if(GetScoreGuidance() is { } adminScoreGuidance)
+                            @if(IsSupportedFormat)
                             {
-                                <p id="admin-score-guidance" class="match-score-guidance">@adminScoreGuidance</p>
+                                @if(GetScoreGuidance() is { } adminScoreGuidance)
+                                {
+                                    <p id="admin-score-guidance" class="match-score-guidance">@adminScoreGuidance</p>
+                                }
+                                @ScorePicker("admin")
+                                <button type="button" class="button-primary" aria-describedby="@GetScoreDescribedBy(Match.Format, "admin")" disabled="@(_isSubmitting || _isLoading || !_actionState.CanResolve || !HasValidScoreInputs)" @onclick="ResolveAsync">@Localization["Feature.match.resolveResult"]</button>
                             }
-                            <div class="score-inputs">
-                                <div class="match-score-field">
-                                    <label for="admin-participant1-score">@Participant1Name</label>
-                                    <input id="admin-participant1-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="@GetScoreDescribedBy(Match.Format, "admin")" aria-invalid="@ScoreInvalidAriaValue" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant1ScoreText" @bind:event="oninput" />
-                                </div>
-                                <div class="match-score-field">
-                                    <label for="admin-participant2-score">@Participant2Name</label>
-                                    <input id="admin-participant2-score" type="number" min="0" max="@WinsNeeded" step="1" aria-describedby="@GetScoreDescribedBy(Match.Format, "admin")" aria-invalid="@ScoreInvalidAriaValue" class="form-control score-input" disabled="@(_isSubmitting || _isLoading)" @bind="_participant2ScoreText" @bind:event="oninput" />
-                                </div>
-                            </div>
-                            <p id="admin-score-validation" class="match-score-validation" role="status">@(ShowScoreValidationError ? Localization["Feature.match.scoreMustBeDecisive"] : string.Empty)</p>
-                            <button type="button" class="button-primary" aria-describedby="@GetScoreDescribedBy(Match.Format, "admin")" disabled="@(_isSubmitting || _isLoading || !_actionState.CanResolve || !HasValidScoreInputs)" @onclick="ResolveAsync">@Localization["Feature.match.resolveResult"]</button>
+                            else
+                            {
+                                <p class="match-score-unsupported" role="note">@Localization["Feature.match.scoreFormatUnsupported"]</p>
+                            }
                             }
                         }
                         @if(_actionState.CanForceForfeit)
@@ -298,3 +298,40 @@
     </div>
     <UserInfoDialog User="_selectedUser" OnClose="HideUserInfoPopup" />
 </CascadingValue>
+
+@code {
+    private RenderFragment ScorePicker(string idPrefix) => !IsSupportedFormat ? (builder => { }) : @<div class="score-picker">
+        <fieldset class="score-picker-group" aria-describedby="@GetScoreDescribedBy(Match.Format, idPrefix)">
+            <legend>@Localization["Feature.match.scoreWinnerLegend"]</legend>
+            <div class="score-picker-options">
+                @foreach(var side in new[] { MatchParticipantSide.Participant1, MatchParticipantSide.Participant2 })
+                {
+                    var optionSide = side;
+                    var winnerId = $"{idPrefix}-winner-{(optionSide == MatchParticipantSide.Participant1 ? 1 : 2)}";
+                    <div class="score-picker-option">
+                        <input id="@winnerId" type="radio" name="@($"{idPrefix}-winner")" value="@((int)optionSide)" checked="@(_winner == optionSide)" disabled="@(_isSubmitting || _isLoading)" @onchange="@(() => SelectWinner(optionSide))" />
+                        <label for="@winnerId">@GetParticipantName(optionSide)</label>
+                    </div>
+                }
+            </div>
+        </fieldset>
+        @if(_winner is not null && WinsNeeded > 1)
+        {
+            <fieldset class="score-picker-group">
+                <legend>@Localization.Get("Feature.match.scoreLoserLegend", LoserName, GetFormatLabel())</legend>
+                <div class="score-picker-options">
+                    @foreach(var games in LoserScoreOptions)
+                    {
+                        var loserGames = games;
+                        var loserId = $"{idPrefix}-loser-{loserGames}";
+                        <div class="score-picker-option">
+                            <input id="@loserId" type="radio" name="@($"{idPrefix}-loser")" value="@loserGames" checked="@(_loserScore == loserGames)" disabled="@(_isSubmitting || _isLoading)" @onchange="@(() => _loserScore = loserGames)" />
+                            <label for="@loserId">@loserGames</label>
+                        </div>
+                    }
+                </div>
+            </fieldset>
+        }
+        <p id="@($"{idPrefix}-score-summary")" class="match-score-summary" aria-live="polite">@ScoreSummary</p>
+    </div>;
+}
