@@ -204,7 +204,7 @@
                                 <p>@Localization["Feature.match.forfeitWarning"]</p>
                                 <div class="match-modal-actions">
                                     <button type="button" class="button-secondary" disabled="@_isSubmitting" @onclick="(() => _forfeitConfirmationRequested = false)">@Localization["Feature.match.keepPlaying"]</button>
-                                    <button type="button" class="button-danger" disabled="@_isSubmitting" @onclick="ForfeitOwnSideAsync">@Localization["Feature.match.confirmForfeit"]</button>
+                                    <button type="button" class="button-secondary button-danger" disabled="@_isSubmitting" @onclick="ForfeitOwnSideAsync">@Localization["Feature.match.confirmForfeit"]</button>
                                 </div>
                             </div>
                         }
@@ -268,7 +268,7 @@
                                 <p>@Localization["Feature.match.adminForfeitWarning"]</p>
                                 <div class="match-modal-actions">
                                     <button type="button" class="button-secondary" disabled="@_isSubmitting" @onclick="(() => _adminForfeitConfirmationSide = null)">@Localization["common.cancel"]</button>
-                                    <button type="button" class="button-danger" disabled="@_isSubmitting" @onclick="(() => ForfeitSideAsAdminAsync(adminForfeitSide))">@Localization["Feature.match.confirmForfeit"]</button>
+                                    <button type="button" class="button-secondary button-danger" disabled="@_isSubmitting" @onclick="(() => ForfeitSideAsAdminAsync(adminForfeitSide))">@Localization["Feature.match.confirmForfeit"]</button>
                                 </div>
                             </div>
                         }
@@ -289,7 +289,7 @@
                                     <p>@Localization["Feature.match.reverseWarning"]</p>
                                     <div class="match-modal-actions">
                                         <button type="button" class="button-secondary" disabled="@_isSubmitting" @onclick="(() => _reverseConfirmationRequested = false)">@Localization["common.cancel"]</button>
-                                        <button type="button" class="button-danger" disabled="@_isSubmitting" @onclick="ReverseAsync">@Localization["Feature.match.confirmReversal"]</button>
+                                        <button type="button" class="button-secondary button-danger" disabled="@_isSubmitting" @onclick="ReverseAsync">@Localization["Feature.match.confirmReversal"]</button>
                                     </div>
                                 </div>
                             }

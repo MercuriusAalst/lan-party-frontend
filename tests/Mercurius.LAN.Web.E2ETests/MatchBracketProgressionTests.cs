@@ -162,7 +162,7 @@ public class MatchBracketProgressionTests(PlaywrightE2EFixture app) : E2ETestBas
         var adminPage = await OpenTournamentAsync(adminContext, tournamentId);
         var adminActions = adminPage.Locator(".Tournament-admin-actions");
         await MatchE2E.ClickAsync(adminActions.GetByRole(AriaRole.Button, new() { Name = "Finish" }));
-        await Expect(adminPage.Locator(".Tournament-status").First).ToHaveTextAsync("Finished");
+        await Expect(adminPage.Locator(".tournament-status").First).ToHaveTextAsync("Finished");
 
         var results = adminPage.Locator("#tournament-results");
         await Expect(results.GetByText(winner.Username, new() { Exact = true })).ToBeVisibleAsync();
@@ -190,17 +190,17 @@ public class MatchBracketProgressionTests(PlaywrightE2EFixture app) : E2ETestBas
         try
         {
             var page = await OpenTournamentAsync(context, tournamentId);
-            await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync("Ongoing");
+            await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync("Ongoing");
 
             await MatchE2E.ClickAsync(page.Locator(".Tournament-admin-actions")
                 .GetByRole(AriaRole.Button, new() { Name = "Finish" }));
 
             // The refusal comes from the domain (a final without a winner cannot be completed),
             // so the tournament stays ongoing and stays that way across a reload.
-            await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync("Ongoing");
+            await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync("Ongoing");
             await page.ReloadAsync();
             await page.WaitForInteractiveAsync();
-            await Expect(page.Locator(".Tournament-status").First).ToHaveTextAsync("Ongoing");
+            await Expect(page.Locator(".tournament-status").First).ToHaveTextAsync("Ongoing");
             await Expect(page.Locator("#tournament-results").GetByText("No results found.")).ToBeVisibleAsync();
         }
         finally

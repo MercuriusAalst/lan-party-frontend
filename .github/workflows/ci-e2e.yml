@@ -45,9 +45,9 @@ jobs:
     env:
       TEST_POSTGRES_CONNECTION: "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=postgres"
       MERCURIUS_BACKEND_ROOT: ${{ github.workspace }}/backend-playwright-e2e
-      # Pins backend PR #145 (featured homepage tournaments, lan-party-backend#141) at its
-      # current head. It contains backend main #146-#149. Return this to `main` once #145 merges.
-      E2E_BACKEND_REF: ac4a3fbf9cdbb5c6f4d55f821aa9da5c79ed602a
+      # Backend main at backend PR #145's squash merge (featured homepage tournaments), which the
+      # featured homepage UI on main needs. Moves forward together with backend main.
+      E2E_BACKEND_REF: e7121a2901ef4e8872983b78045f226412dc6237
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
