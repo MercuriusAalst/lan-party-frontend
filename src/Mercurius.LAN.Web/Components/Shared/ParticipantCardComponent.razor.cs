@@ -34,8 +34,4 @@ public partial class ParticipantCardComponent
             ? ShowParticipantPopup(Participant)
             : Task.CompletedTask;
 
-    private string GetParticipantInitial() =>
-        string.IsNullOrWhiteSpace(ParticipantLabel)
-            ? "?"
-            : ParticipantLabel[0].ToString().ToUpperInvariant();
 }

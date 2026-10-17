@@ -25,9 +25,7 @@
     }
     else
     {
-        <div class="participant-avatar player-avatar">
-            @GetParticipantInitial()
-        </div>
+        <UserAvatar Name="@ParticipantLabel" PictureUrl="@Participant.User?.ProfilePictureUrl" Size="prominent" />
         <div class="participant-overview-name">@ParticipantLabel</div>
     }
 </div>

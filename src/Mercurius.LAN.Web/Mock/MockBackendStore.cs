@@ -4321,7 +4321,7 @@ internal sealed class MockBackendStore
             .FirstOrDefault(attempt => attempt.Id == attemptId)
         ?? throw new InvalidOperationException("The leaderboard attempt was not found for this tournament.");
 
-    private static List<LeaderboardRowDTO> BuildLeaderboardRows(
+    private List<LeaderboardRowDTO> BuildLeaderboardRows(
         TournamentExtended tournament,
         IReadOnlyList<MockLeaderboardParticipant> participants)
     {
@@ -4356,6 +4356,7 @@ internal sealed class MockBackendStore
                 DisplayName = entry.Participant.DisplayName,
                 ParticipantKind = entry.Participant.Kind,
                 LinkedUserId = entry.Participant.LinkedUserId,
+                ProfilePictureUrl = ResolveLinkedUserPictureUrl(entry.Participant.LinkedUserId),
                 Score = metric == LeaderboardRankingMetric.HighestScore ? entry.Best.Score : null,
                 DurationMilliseconds = metric == LeaderboardRankingMetric.FastestTime
                     ? entry.Best.DurationMilliseconds
@@ -4398,7 +4399,7 @@ internal sealed class MockBackendStore
         };
     }
 
-    private static AdminLeaderboardParticipantDTO ToAdminLeaderboardParticipantDTO(
+    private AdminLeaderboardParticipantDTO ToAdminLeaderboardParticipantDTO(
         MockLeaderboardParticipant participant) =>
         new()
         {
@@ -4406,12 +4407,18 @@ internal sealed class MockBackendStore
             DisplayName = participant.DisplayName,
             ParticipantKind = participant.Kind,
             LinkedUserId = participant.LinkedUserId,
+            ProfilePictureUrl = ResolveLinkedUserPictureUrl(participant.LinkedUserId),
             Attempts = participant.Attempts
                 .OrderByDescending(attempt => attempt.CreatedAtUtc)
                 .ThenBy(attempt => attempt.Id)
                 .Select(ToLeaderboardAttemptDTO)
                 .ToList()
         };
+
+    private string? ResolveLinkedUserPictureUrl(Guid? linkedUserId) =>
+        linkedUserId.HasValue
+            ? _document.Users.FirstOrDefault(user => user.Id == linkedUserId.Value)?.ProfilePictureUrl
+            : null;
 
     private static LeaderboardAttemptDTO ToLeaderboardAttemptDTO(MockLeaderboardAttempt attempt) =>
         new()

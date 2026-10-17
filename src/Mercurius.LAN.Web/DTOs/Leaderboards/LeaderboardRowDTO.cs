@@ -9,6 +9,7 @@ public class LeaderboardRowDTO
     public string DisplayName { get; set; } = string.Empty;
     public LeaderboardParticipantKind ParticipantKind { get; set; }
     public Guid? LinkedUserId { get; set; }
+    public string? ProfilePictureUrl { get; set; }
     public decimal? Score { get; set; }
     public long? DurationMilliseconds { get; set; }
 }

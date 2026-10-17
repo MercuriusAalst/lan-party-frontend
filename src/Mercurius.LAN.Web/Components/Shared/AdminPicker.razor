@@ -20,6 +20,14 @@
         }
     </select>
 
+    @if(SelectedChoice is { } selectedChoice)
+    {
+        <div class="admin-picker-selected">
+            <UserAvatar Name="@GetAdminLabel(selectedChoice)" PictureUrl="@selectedChoice.ProfilePictureUrl" Size="compact" />
+            <span>@GetAdminLabel(selectedChoice)</span>
+        </div>
+    }
+
     @if(_isLoading)
     {
         <div class="admin-picker-state" role="status">
@@ -100,6 +108,12 @@
         !string.IsNullOrWhiteSpace(admin.Username) ? admin.Username!
         : !string.IsNullOrWhiteSpace(admin.DisplayName) ? admin.DisplayName
         : admin.Id.ToString();
+
+    private PublicUserDTO? SelectedChoice =>
+        Value.HasValue
+            ? _choices.FirstOrDefault(admin => admin.Id == Value.Value)
+                ?? (SelectedAdmin?.Id == Value.Value ? SelectedAdmin : null)
+            : null;
 
     public void Dispose()
     {

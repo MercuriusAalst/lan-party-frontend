@@ -22,6 +22,67 @@
     margin-top: 0.1rem;
 }
 
+.profile-picture-editor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.profile-picture-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.profile-picture-picker {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.6rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px dashed color-mix(in srgb, var(--color-success) 42%, transparent);
+    border-radius: 14px;
+    background: var(--color-success-soft);
+    color: var(--color-success);
+    cursor: pointer;
+    font-weight: 800;
+}
+
+.profile-picture-picker:hover {
+    border-color: color-mix(in srgb, var(--color-success) 58%, transparent);
+    background: color-mix(in srgb, var(--color-success) 18%, var(--color-surface-raised));
+}
+
+.profile-picture-picker:focus-within {
+    border-color: var(--color-electric-lime);
+    box-shadow: 0 0 0 4px var(--color-focus);
+    outline: none;
+}
+
+.profile-picture-picker--busy {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.profile-picture-native {
+    position: fixed;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.profile-picture-status {
+    width: 100%;
+    margin: 0;
+}
+
 .profile-email-row .form-control:disabled {
     background-color: var(--color-field);
     border-color: var(--color-border);

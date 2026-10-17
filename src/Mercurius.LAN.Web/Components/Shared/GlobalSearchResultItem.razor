@@ -7,7 +7,14 @@
         disabled="@Disabled"
         @onclick="SelectAsync"
         @onmouseover="HoverAsync">
-    <span class="@GetSearchResultIconClass(Result.Type)" aria-hidden="true"></span>
+    @if(Result.Type == GlobalSearchResultType.User)
+    {
+        <UserAvatar Name="@GetDisplayLabel()" PictureUrl="@Result.ProfilePictureUrl" Size="compact" />
+    }
+    else
+    {
+        <span class="@GetSearchResultIconClass(Result.Type)" aria-hidden="true"></span>
+    }
     <span class="nav-search-result-copy">
         <span class="nav-search-result-label">@GetDisplayLabel()</span>
         @if(Result.Type != GlobalSearchResultType.User && !string.IsNullOrWhiteSpace(Result.SupportingText))

@@ -51,6 +51,31 @@ public sealed class ProfilePictureContractTests
         Assert.Null(response.User!.ProfilePictureUrl);
     }
 
+    [Fact]
+    public async Task LeaderboardProjections_CarryThePlayerPictureUrl()
+    {
+        var tournamentId = Guid.Parse("11111111-1111-1111-1111-111111111112");
+        var participantId = Guid.Parse("1b111111-1111-1111-1111-111111111111");
+        var linkedUserId = Guid.Parse("41111111-1111-1111-1111-111111111111");
+        var handler = new RecordingHandler(
+            $"{{\"tournamentId\":\"{tournamentId}\",\"rankingMetric\":\"FastestTime\",\"rows\":[{{\"rank\":1,\"participantId\":\"{participantId}\",\"displayName\":\"track1\",\"participantKind\":\"LinkedUser\",\"linkedUserId\":\"{linkedUserId}\",\"profilePictureUrl\":\"images/users/abc.webp\",\"durationMilliseconds\":39480}}]}}");
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+
+        var leaderboard = await client.GetLeaderboardAsync(tournamentId);
+
+        Assert.Equal(
+            "images/users/abc.webp",
+            Assert.Single(leaderboard.Rows).ProfilePictureUrl);
+
+        handler.ResponseBody =
+            $"{{\"tournamentId\":\"{tournamentId}\",\"rankingMetric\":\"FastestTime\",\"participants\":[{{\"id\":\"{participantId}\",\"displayName\":\"track1\",\"participantKind\":\"Guest\",\"profilePictureUrl\":null,\"attempts\":[]}}]}}";
+
+        var adminLeaderboard = await client.GetAdminLeaderboardAsync(tournamentId);
+
+        Assert.Null(Assert.Single(adminLeaderboard.Participants).ProfilePictureUrl);
+    }
+
     private static HttpClient CreateHttpClient(HttpMessageHandler handler) =>
         new(handler) { BaseAddress = new Uri("https://api.example.test/") };
 
@@ -67,6 +92,8 @@ public sealed class ProfilePictureContractTests
 
         public string? RequestBody { get; private set; }
 
+        public string ResponseBody { get; set; } = responseBody;
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Request = request;
@@ -77,7 +104,7 @@ public sealed class ProfilePictureContractTests
             return new HttpResponseMessage(responseStatus)
             {
                 RequestMessage = request,
-                Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
+                Content = new StringContent(ResponseBody, Encoding.UTF8, "application/json")
             };
         }
     }

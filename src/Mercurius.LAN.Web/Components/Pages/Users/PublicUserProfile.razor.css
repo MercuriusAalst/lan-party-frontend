@@ -38,20 +38,6 @@
     gap: 1rem;
 }
 
-.public-user-avatar {
-    width: clamp(3rem, 7vw, 3.8rem);
-    height: clamp(3rem, 7vw, 3.8rem);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 16px;
-    background: rgba(57, 201, 101, 0.18);
-    color: var(--color-ink);
-    font-size: clamp(1rem, 2vw, 1.2rem);
-    font-weight: 800;
-    letter-spacing: 0.04em;
-}
-
 .public-user-hero-identity h1 {
     margin: 0.2rem 0 0.45rem;
     line-height: 1.05;
@@ -195,11 +181,6 @@
 
 .public-user-linked-card .bi {
     color: var(--color-info);
-}
-
-.public-user-avatar {
-    background: var(--color-success-soft);
-    color: var(--color-success);
 }
 
 @media (max-width: 760px) {

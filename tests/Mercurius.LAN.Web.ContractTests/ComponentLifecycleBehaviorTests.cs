@@ -226,6 +226,7 @@ public sealed class ComponentLifecycleBehaviorTests
         SetProperty(component, "UserClient", userClient);
         SetProperty(component, "NotificationService", notificationService);
         SetProperty(component, "TeamRealtimeService", realtimeService);
+        SetProperty(component, "CurrentUserProfileNotifier", new CurrentUserProfileNotifier());
         SetProperty(component, "AuthenticationStateTask", Task.FromResult(new AuthenticationState(principal)));
 
         component.StartInitialization();

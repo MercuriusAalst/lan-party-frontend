@@ -42,7 +42,7 @@ else
 
             <header class="brand-card public-user-hero">
                 <div class="public-user-hero-identity">
-                    <span class="public-user-avatar" aria-hidden="true">@GetInitials(_profile)</span>
+                    <UserAvatar Name="@FullName" PictureUrl="@_profile.ProfilePictureUrl" Size="prominent" />
                     <div>
                         <span class="section-eyebrow">@Localization["General.PublicUser.ParticipantProfile"]</span>
                         <h1>@FullName</h1>

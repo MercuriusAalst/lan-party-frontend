@@ -12,8 +12,12 @@ using System.Reflection;
 
 namespace Mercurius.LAN.Web.Components.Pages.Users;
 
-public partial class Profile
+public partial class Profile : IDisposable
 {
+    private const string ProfilePictureAccept = "image/png,image/jpeg,image/webp,image/gif";
+    private static readonly string[] ProfilePictureContentTypes =
+        ["image/png", "image/jpeg", "image/webp", "image/gif"];
+
     private static readonly string[] ProfileFields = [
         nameof(UpdateUserProfileRequest.Username),
         nameof(UpdateUserProfileRequest.Firstname),
@@ -23,6 +27,7 @@ public partial class Profile
         nameof(UpdateUserProfileRequest.RiotId)];
 
     private readonly UpdateUserProfileRequest _model = new();
+    private readonly CancellationTokenSource _profilePictureReadCancellation = new();
     private EditContext? _editContext;
     private ValidationMessageStore? _validationMessageStore;
     private string _emailDisplay = string.Empty;
@@ -41,10 +46,22 @@ public partial class Profile
         !string.IsNullOrWhiteSpace(_originalUsername) &&
         string.Equals(_deleteConfirmation?.Trim(), _originalUsername, StringComparison.OrdinalIgnoreCase);
     private string? _loadError;
+    private string? _savedPictureUrl;
+    private ProfilePictureSelection? _pendingPicture;
+    private bool _isPictureBusy;
+    private string _pictureStatusText = string.Empty;
+    private long _maxPictureBytes;
 
     [Inject] private IUserClient UserClient { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject] private IConfiguration Configuration { get; set; } = null!;
+    [Inject] private ICurrentUserProfileNotifier CurrentUserProfileNotifier { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        _maxPictureBytes = Configuration.GetValue<int>("FileSettings:MaxFileSizeInMB") * 1024L * 1024L;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -154,6 +171,126 @@ public partial class Profile
         }
     }
 
+    private async Task SelectPictureAsync(InputFileChangeEventArgs args)
+    {
+        if(_isPictureBusy)
+            return;
+
+        var file = args.File;
+        if(!ProfilePictureContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            _pictureStatusText = Localization["profile.pictureTypeNotAllowed"];
+            return;
+        }
+
+        if(file.Size > _maxPictureBytes)
+        {
+            _pictureStatusText = Localization.Get("shared.fileSizeLimit", _maxPictureBytes / (1024 * 1024));
+            return;
+        }
+
+        try
+        {
+            var content = new byte[file.Size];
+            await using var stream = file.OpenReadStream(_maxPictureBytes, _profilePictureReadCancellation.Token);
+            await stream.ReadExactlyAsync(content, _profilePictureReadCancellation.Token);
+
+            _pendingPicture = new ProfilePictureSelection(file.Name, file.ContentType, content);
+            _pictureStatusText = Localization.Get("profile.pictureSelected", file.Name);
+        }
+        catch(IOException)
+        {
+            _pendingPicture = null;
+            _pictureStatusText = Localization.Get("shared.fileSizeLimit", _maxPictureBytes / (1024 * 1024));
+        }
+        catch(OperationCanceledException) when(_profilePictureReadCancellation.IsCancellationRequested)
+        {
+        }
+    }
+
+    private void ClearPendingPicture()
+    {
+        if(_isPictureBusy)
+            return;
+
+        _pendingPicture = null;
+        _pictureStatusText = string.Empty;
+    }
+
+    private Task UploadPictureAsync()
+    {
+        if(_pendingPicture is not { } picture)
+            return Task.CompletedTask;
+
+        return RunPictureActionAsync(async () =>
+        {
+            await using var stream = new MemoryStream(picture.Content);
+            var response = await UserClient.UploadCurrentUserProfilePictureAsync(
+                new StreamPart(stream, picture.FileName, picture.ContentType));
+
+            _pendingPicture = null;
+            _savedPictureUrl = response.User?.ProfilePictureUrl;
+        }, Localization["profile.pictureUploaded"]);
+    }
+
+    private Task RemovePictureAsync() => RunPictureActionAsync(async () =>
+    {
+        var response = await UserClient.RemoveCurrentUserProfilePictureAsync();
+
+        _pendingPicture = null;
+        _savedPictureUrl = response.User?.ProfilePictureUrl;
+    }, Localization["profile.pictureRemoved"]);
+
+    private async Task RunPictureActionAsync(Func<Task> pictureAction, string successMessage)
+    {
+        if(_isPictureBusy)
+            return;
+
+        _isPictureBusy = true;
+        try
+        {
+            await pictureAction();
+            _pictureStatusText = successMessage;
+            ToastService.ShowSuccess(successMessage);
+            await CurrentUserProfileNotifier.NotifyChangedAsync();
+        }
+        catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.BadRequest)
+        {
+            FailPicture(GetApiError(exception, Localization["profile.pictureFailed"]));
+        }
+        catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            NavigationManager.NavigateTo("/account/login?returnUrl=/profile", true);
+        }
+        catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.Gone)
+        {
+            NavigationManager.NavigateTo("/account/logout", true);
+        }
+        catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            NavigationManager.NavigateTo("/complete-profile?returnUrl=/profile");
+        }
+        catch(ApiException exception)
+        {
+            FailPicture(GetApiError(exception, Localization["profile.pictureFailed"]));
+        }
+        catch(Exception exception) when(exception is HttpRequestException or TaskCanceledException)
+        {
+            FailPicture(Localization["profile.pictureFailed"]);
+        }
+        finally
+        {
+            _isPictureBusy = false;
+        }
+    }
+
+    private void FailPicture(string message)
+    {
+        // The saved reference is only replaced after a confirmed response, so a failure keeps the previous picture.
+        _pictureStatusText = message;
+        ToastService.ShowError(message);
+    }
+
     private async Task CheckUsernameAvailabilityAsync()
     {
         _usernameAvailabilityMessage = null;
@@ -258,6 +395,9 @@ public partial class Profile
         _model.SteamId = profile?.SteamId;
         _model.RiotId = profile?.RiotId;
         _originalUsername = _model.Username.Trim();
+        _savedPictureUrl = profile?.ProfilePictureUrl;
+        _pendingPicture = null;
+        _pictureStatusText = string.Empty;
 
         _emailDisplay = response.Email ?? profile?.Email ?? string.Empty;
         _emailVerified = response.EmailVerified || profile?.EmailVerified == true;
@@ -357,5 +497,16 @@ public partial class Profile
         fallback ??= Localization["General.Profile.RequestFailed"];
         var message = exception.GetApiError()?.Message;
         return string.IsNullOrWhiteSpace(message) ? fallback : message;
+    }
+
+    private sealed record ProfilePictureSelection(string FileName, string ContentType, byte[] Content)
+    {
+        public string PreviewDataUrl => $"data:{ContentType};base64,{Convert.ToBase64String(Content)}";
+    }
+
+    public void Dispose()
+    {
+        _profilePictureReadCancellation.Cancel();
+        _profilePictureReadCancellation.Dispose();
     }
 }
