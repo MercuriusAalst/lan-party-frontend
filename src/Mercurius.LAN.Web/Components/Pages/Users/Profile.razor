@@ -117,7 +117,7 @@ else
                     </div>
 
                     <div class="form-actions-section">
-                        <button type="submit" class="btn btn-primary" disabled="@IsProfileMutationBusy || _isPictureSelecting">@Localization["profile.save"]</button>
+                        <button type="submit" class="btn btn-primary" disabled="@(IsProfileMutationBusy || _isPictureSelecting)">@Localization["profile.save"]</button>
                     </div>
                 </EditForm>
             </section>
