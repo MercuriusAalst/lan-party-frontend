@@ -128,8 +128,17 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await Expect(shell.Locator(".bracket-root")).ToBeVisibleAsync();
 
-        await MatchE2E.ClickAsync(tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Lower bracket") }));
+        var upperTab = tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Upper bracket") });
+        var lowerTab = tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Lower bracket") });
+        await Expect(upperTab).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(upperTab).ToHaveClassAsync(new Regex("double-elimination-tab--active"));
+        await Expect(lowerTab).ToHaveAttributeAsync("aria-selected", "false");
+
+        await MatchE2E.ClickAsync(lowerTab);
         await Expect(shell.Locator("#double-elimination-bracket-root")).ToBeVisibleAsync();
+        await Expect(lowerTab).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(lowerTab).ToHaveClassAsync(new Regex("double-elimination-tab--active"));
+        await Expect(upperTab).ToHaveAttributeAsync("aria-selected", "false");
 
         await MatchE2E.ClickAsync(tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Grand final") }));
         await Expect(shell.Locator(".double-elimination-finals-card .bracket-match")).ToBeVisibleAsync();

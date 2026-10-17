@@ -43,6 +43,56 @@
     border-radius: var(--radius-card);
     background: var(--color-surface);
     box-shadow: none;
+
+    /* Light theme: soft greys against the off-white container; ink is kept for text; green is only the active bar and focus ring. */
+    --de-tab-bg: var(--color-surface-muted);
+    --de-tab-border: var(--color-border-strong);
+    --de-tab-hover-bg: color-mix(in srgb, var(--color-surface-muted) 95%, var(--color-ink) 5%);
+    --de-tab-hover-border: var(--color-border-strong);
+    --de-tab-active-bg: color-mix(in srgb, var(--color-surface-muted) 85%, var(--color-ink) 15%);
+    --de-tab-active-border: var(--color-border-strong);
+    --de-tab-active-outline: none;
+    --de-tab-bar: var(--color-deep-green);
+    --de-tab-active-weight: 700;
+    --de-chip-bg: color-mix(in srgb, var(--color-ink) 10%, transparent);
+    --de-chip-color: var(--color-ink);
+    --de-chip-active-bg: color-mix(in srgb, var(--color-ink) 16%, transparent);
+    --de-chip-active-color: var(--color-ink);
+}
+
+/* Dark theme keeps the light-on-dark treatment. */
+html[data-theme="dark"] .double-elimination-tabs {
+    --de-tab-bg: var(--color-surface-raised);
+    --de-tab-border: transparent;
+    --de-tab-hover-bg: var(--color-surface-muted);
+    --de-tab-hover-border: var(--color-border-strong);
+    --de-tab-active-bg: var(--color-surface-muted);
+    --de-tab-active-border: var(--color-ink);
+    --de-tab-active-outline: 2px solid var(--color-ink);
+    --de-tab-bar: var(--color-primary-green);
+    --de-tab-active-weight: inherit;
+    --de-chip-bg: var(--color-surface-muted);
+    --de-chip-color: var(--color-muted-text);
+    --de-chip-active-bg: var(--color-ink);
+    --de-chip-active-color: var(--color-surface-raised);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .double-elimination-tabs {
+        --de-tab-bg: var(--color-surface-raised);
+        --de-tab-border: transparent;
+        --de-tab-hover-bg: var(--color-surface-muted);
+        --de-tab-hover-border: var(--color-border-strong);
+        --de-tab-active-bg: var(--color-surface-muted);
+        --de-tab-active-border: var(--color-ink);
+        --de-tab-active-outline: 2px solid var(--color-ink);
+        --de-tab-bar: var(--color-primary-green);
+        --de-tab-active-weight: inherit;
+        --de-chip-bg: var(--color-surface-muted);
+        --de-chip-color: var(--color-muted-text);
+        --de-chip-active-bg: var(--color-ink);
+        --de-chip-active-color: var(--color-surface-raised);
+    }
 }
 
 .double-elimination-tab {
@@ -54,17 +104,17 @@
     justify-items: start;
     min-height: 5.25rem;
     padding: 0.85rem 1rem;
-    border: 1px solid transparent;
+    border: 1px solid var(--de-tab-border);
     border-radius: var(--radius-control);
-    background: var(--color-surface-raised);
+    background: var(--de-tab-bg);
     color: var(--color-ink);
     text-align: left;
     transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, color 160ms ease;
 }
 
 .double-elimination-tab:hover {
-    border-color: var(--color-primary-green);
-    background: var(--color-surface-muted);
+    border-color: var(--de-tab-hover-border);
+    background: var(--de-tab-hover-bg);
     box-shadow: none;
     transform: translateY(-1px);
 }
@@ -75,9 +125,9 @@
 }
 
 .double-elimination-tab--active {
-    border-color: var(--color-primary-green);
-    background: rgba(9, 158, 51, 0.12);
-    outline: 2px solid var(--color-primary-green);
+    border-color: var(--de-tab-active-border);
+    background: var(--de-tab-active-bg);
+    outline: var(--de-tab-active-outline);
     outline-offset: -2px;
     box-shadow: none;
 }
@@ -87,11 +137,12 @@
     position: absolute;
     inset: 0 auto 0 0;
     width: 0.38rem;
-    background: var(--color-primary-green);
+    background: var(--de-tab-bar);
 }
 
 .double-elimination-tab--active .double-elimination-tab-label {
-    color: var(--color-link);
+    color: var(--color-ink);
+    font-weight: var(--de-tab-active-weight);
 }
 
 .double-elimination-tab-label {
@@ -108,16 +159,16 @@
     min-height: 1.8rem;
     padding: 0.22rem 0.6rem;
     border-radius: 999px;
-    background: var(--color-surface-muted);
-    color: var(--color-muted-text);
+    background: var(--de-chip-bg);
+    color: var(--de-chip-color);
     font-size: 0.82rem;
     font-weight: 700;
     letter-spacing: 0.01em;
 }
 
 .double-elimination-tab--active .double-elimination-tab-meta {
-    background: var(--color-primary-green);
-    color: var(--color-ink);
+    background: var(--de-chip-active-bg);
+    color: var(--de-chip-active-color);
 }
 
 .double-elimination-panel {
