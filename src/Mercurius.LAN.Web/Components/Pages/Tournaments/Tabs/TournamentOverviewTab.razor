@@ -23,6 +23,17 @@
 
     @if(!_isEditMode)
     {
+        @* Admin-only: the public view and non-admins never render this block or call the admin list. *@
+        <AuthorizeView Roles="admin">
+            <Authorized Context="assignedAdminContext">
+                @if(ShowAssignedAdminRevokedWarning)
+                {
+                    <div class="admin-picker-state" role="alert" id="assignedAdminRevokedWarning">
+                        @Localization["Feature.tournaments.assignedAdminRevokedWarning"]
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
         <div class="overview-grid">
             <section class="brand-card overview-card">
                 <h3>@Localization["Feature.tournamentsOverview.competitionSetup"]</h3>
