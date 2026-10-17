@@ -166,6 +166,7 @@ public static class DependencyExtensions
     {
         services.AddScoped<ILocalizationService, LocalizationService>();
         services.AddScoped<IContactEmailService, SmtpContactEmailService>();
+        services.AddScoped<ICurrentUserProfileNotifier, CurrentUserProfileNotifier>();
 
 #if INCLUDE_MOCK_BACKEND
         if(mockModeEnabled)

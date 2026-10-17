@@ -203,28 +203,4 @@ public partial class PublicUserProfile
         return string.IsNullOrWhiteSpace(fullName) ? profile.Username ?? string.Empty : fullName;
     }
 
-    private static string GetInitials(UserDTO profile)
-    {
-        var firstInitial = GetFirstCharacter(profile.Firstname);
-        var lastInitial = GetFirstCharacter(profile.Lastname);
-
-        if(!string.IsNullOrWhiteSpace(firstInitial + lastInitial))
-            return $"{firstInitial}{lastInitial}".ToUpperInvariant();
-
-        var username = profile.Username;
-        if(string.IsNullOrWhiteSpace(username))
-            return "?";
-
-        var trimmed = username.Trim();
-        if(trimmed.Length == 1)
-            return trimmed.ToUpperInvariant();
-
-        return trimmed[..2].ToUpperInvariant();
-    }
-
-    private static string GetFirstCharacter(string? value)
-    {
-        var trimmed = value?.Trim() ?? string.Empty;
-        return trimmed.Length == 0 ? string.Empty : trimmed[..1];
-    }
 }

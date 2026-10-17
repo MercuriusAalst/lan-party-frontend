@@ -6,6 +6,7 @@
         @if(ShowIdentityHeader)
         {
             <header class="participant-header-row">
+                <UserAvatar Name="@GetUserLabel(user)" PictureUrl="@user.ProfilePictureUrl" Size="regular" Decorative="true" />
                 <span class="participant-type">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4" /><path d="M5.5 21a7.5 7.5 0 0 1 13 0" /></svg>
                     @Localization["shared.user"]
@@ -82,6 +83,7 @@ else if(Participant?.Team is Models.Participants.Team team)
                                     class="participant-member-chip participant-member-link @(isCaptain ? "participant-member-chip--captain" : null)"
                                     aria-label='@Localization.Get("shared.viewDetails", GetUserLabel(member))'
                                     @onclick="() => SelectUserAsync(member)">
+                                <UserAvatar Name="@GetUserLabel(member)" PictureUrl="@member.ProfilePictureUrl" Size="compact" Decorative="true" />
                                 <span>@GetUserLabel(member)</span>
                                 @if(isCaptain)
                                 {
@@ -92,6 +94,7 @@ else if(Participant?.Team is Models.Participants.Team team)
                         else
                         {
                             <span class="participant-member-chip @(isCaptain ? "participant-member-chip--captain" : null)">
+                                <UserAvatar Name="@GetUserLabel(member)" PictureUrl="@member.ProfilePictureUrl" Size="compact" Decorative="true" />
                                 <span>@GetUserLabel(member)</span>
                                 @if(isCaptain)
                                 {

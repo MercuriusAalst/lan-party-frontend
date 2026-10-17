@@ -253,7 +253,7 @@ internal static class TeamE2E
 
     // ---------- DTOs (mirror the API JSON contract) ----------
 
-    internal sealed record TeamPublicUser(Guid Id, string? Username, string? DisplayName);
+    internal sealed record TeamPublicUser(Guid Id, string? Username, string? DisplayName, string? ProfilePictureUrl = null);
 
     internal sealed record TeamManagementSummary(
         Guid Id,
