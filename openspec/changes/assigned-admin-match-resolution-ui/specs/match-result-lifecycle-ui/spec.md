@@ -73,6 +73,20 @@ The UI MUST give administrators an in-app list of matches that wait for an admin
 - **AND** it MUST omit the since-when text when the backend does not provide `RequiredSinceUtc`
 - **AND** each item MUST offer a button that opens the existing match details dialog to resolve it
 
+#### Scenario: Row states the assignment
+
+- **WHEN** the backend provides an `Assignment` for a waiting match
+- **THEN** the row MUST show a localized label: assigned to the signed-in admin, no assigned admin, the assigned admin is no longer an administrator, or escalated (waiting more than about ten minutes and shown to all admins)
+- **AND** the escalated and assigned-admin-unavailable labels MAY use the existing warning styling, while the other labels MUST use neutral styling
+- **AND** WHEN the backend omits `Assignment` or sends an unknown value THEN the row MUST show no assignment label and MUST still be listed
+
+#### Scenario: Queue is ordered by urgency
+
+- **WHEN** the list contains escalated or assigned-admin-unavailable matches
+- **THEN** those matches MUST be listed before the others
+- **AND** within each group the matches MUST be ordered by `RequiredSinceUtc`, oldest first, with matches without a known time last
+- **AND** the navigation count MUST remain the number of all listed matches
+
 #### Scenario: List states are visible
 
 - **WHEN** the list loads, is empty, fails to load, or is rejected as unauthorized or forbidden
@@ -97,3 +111,9 @@ The mock backend MUST NOT accept a lone score report automatically when the conf
 
 - **WHEN** the mock correction window closes on conflicting reports
 - **THEN** the mock match MUST appear in the admin persona's pending-resolution list with the disputed reason
+
+#### Scenario: Mock states the assignment
+
+- **WHEN** the mock lists a waiting match
+- **THEN** it MUST return assigned or unassigned like the live resource, and escalated once the recorded required-since time is older than ten minutes
+- **AND** it MUST show a match assigned to another admin only once it is escalated

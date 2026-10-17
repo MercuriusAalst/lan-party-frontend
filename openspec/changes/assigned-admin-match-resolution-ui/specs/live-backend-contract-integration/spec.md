@@ -39,13 +39,13 @@ expectations.
 
 ### Requirement: Pending match resolutions resource
 
-The front-end MUST read the admin-only list of matches awaiting resolution from `GET /v1/lan/matches/pending-resolution` through `ILANClient` and the tournament service. Each item MUST be modelled as `PendingMatchResolutionDTO` with `MatchId`, `TournamentId`, `TournamentName`, `Participant1Name`, `Participant2Name`, the nullable reported scores `Participant1ReportedScore1`, `Participant1ReportedScore2`, `Participant2ReportedScore1` and `Participant2ReportedScore2`, `Reason` (`Disputed` or `MissingOpponentReport`, serialized as a string) and the nullable `RequiredSinceUtc`. The reported scores are unconfirmed claims and MUST NOT be presented as a final result.
+The front-end MUST read the admin-only list of matches awaiting resolution from `GET /v1/lan/matches/pending-resolution` through `ILANClient` and the tournament service. Each item MUST be modelled as `PendingMatchResolutionDTO` with `MatchId`, `TournamentId`, `TournamentName`, `Participant1Name`, `Participant2Name`, the nullable reported scores `Participant1ReportedScore1`, `Participant1ReportedScore2`, `Participant2ReportedScore1` and `Participant2ReportedScore2`, `Reason` (`Disputed` or `MissingOpponentReport`, serialized as a string), the optional `Assignment` (`Assigned`, `Unassigned`, `AssignedAdminUnavailable` or `Escalated`, serialized as a string) and the nullable `RequiredSinceUtc`. A missing or unknown `Assignment` MUST be read as absent without failing the list. The reported scores are unconfirmed claims and MUST NOT be presented as a final result.
 
 #### Scenario: Admin requests the pending list
 
 - **WHEN** an administrator opens the queue or the navigation refreshes its badge
 - **THEN** the front-end sends `GET /v1/lan/matches/pending-resolution`
-- **AND** it maps the string `Reason` and a null `RequiredSinceUtc` without failing
+- **AND** it maps the string `Reason`, a missing or unknown `Assignment` and a null `RequiredSinceUtc` without failing
 
 #### Scenario: Backend no longer auto-accepts a lone report
 

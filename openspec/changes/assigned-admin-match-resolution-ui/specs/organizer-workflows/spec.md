@@ -57,3 +57,30 @@ for administrator validity, prize limits, and validation failures.
 - **WHEN** an authorized administrator opens the edit form for a tournament that has no assigned administrator
 - **THEN** the form MUST prompt the administrator to assign one
 - **AND** saving MUST stay blocked until an administrator is selected
+
+## ADDED Requirements
+
+### Requirement: Admins are warned when the assigned admin is no longer an administrator
+
+The tournament overview MUST show a warning to administrators, and only to administrators, when the tournament's assigned admin is no longer an administrator, prompting them to pick a replacement. The check MUST compare the identity of the tournament's contact administrator with the administrator list used by the admin picker, MUST NOT require a new endpoint, and MUST apply only to scheduled and in-progress tournaments. The public view, anonymous visitors and non-administrators MUST NOT see the warning or any hint of it and MUST NOT trigger the administrator list request. While the list is loading, when it fails to load, when it is empty, or when the tournament has no contact administrator, the overview MUST NOT show the warning.
+
+#### Scenario: Assigned admin was revoked
+
+- **WHEN** an administrator opens the overview of a scheduled or in-progress tournament whose contact administrator is not in the administrator list
+- **THEN** the overview MUST show the warning that asks for a replacement
+
+#### Scenario: Assigned admin is still valid
+
+- **WHEN** an administrator opens the overview and the contact administrator is in the administrator list
+- **THEN** the overview MUST NOT show the warning
+
+#### Scenario: Non-administrators never see the warning
+
+- **WHEN** a non-administrator or anonymous visitor opens the overview
+- **THEN** the warning MUST NOT be rendered
+- **AND** the administrator list MUST NOT be requested
+
+#### Scenario: Unverifiable state shows no false alarm
+
+- **WHEN** the administrator list is loading, failed or empty
+- **THEN** the overview MUST NOT show the warning
