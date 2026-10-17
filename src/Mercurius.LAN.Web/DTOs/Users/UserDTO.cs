@@ -12,6 +12,7 @@ public class UserDTO
     public string? SteamId { get; set; }
     public string? RiotId { get; set; }
     public string DisplayName { get; set; } = string.Empty;
+    public string? ProfilePictureUrl { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }

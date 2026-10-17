@@ -10,6 +10,7 @@ public class PublicUserDTO
     public string? DiscordId { get; set; }
     public string? SteamId { get; set; }
     public string? RiotId { get; set; }
+    public string? ProfilePictureUrl { get; set; }
 
     public static PublicUserDTO FromUser(UserDTO user)
     {
@@ -24,7 +25,8 @@ public class PublicUserDTO
             Lastname = user.Lastname,
             DiscordId = user.DiscordId,
             SteamId = user.SteamId,
-            RiotId = user.RiotId
+            RiotId = user.RiotId,
+            ProfilePictureUrl = user.ProfilePictureUrl
         };
     }
 
@@ -41,7 +43,8 @@ public class PublicUserDTO
             Lastname = user.Lastname,
             DiscordId = user.DiscordId,
             SteamId = user.SteamId,
-            RiotId = user.RiotId
+            RiotId = user.RiotId,
+            ProfilePictureUrl = user.ProfilePictureUrl
         };
     }
 

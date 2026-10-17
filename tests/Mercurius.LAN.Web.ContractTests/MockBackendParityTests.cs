@@ -1,12 +1,15 @@
 using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.DTOs.Registrations;
+using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Mock;
 using Mercurius.LAN.Web.Models.Tournaments;
 using Mercurius.LAN.Web.Options;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Refit;
 using Xunit;
 
 namespace Mercurius.LAN.Web.ContractTests;
@@ -394,6 +397,38 @@ public sealed class MockBackendParityTests
 
         var withoutPrizes = store.GetTournament(Guid.Parse("11111111-1111-1111-1111-111111111113"))!;
         Assert.Null(withoutPrizes.FirstPlacePrize);
+    }
+
+    [Fact]
+    public async Task ProfilePictureMutations_RoundTripThroughTheCurrentProfileAndPlayerProjections()
+    {
+        var store = CreateStore();
+        var context = new DefaultHttpContext { User = DependencyExtensions.BuildMockPrincipal("user", store) };
+        var client = new MockUserClient(store, new HttpContextAccessor { HttpContext = context });
+        var mockUserId = Guid.Parse("41111111-1111-1111-1111-111111111120");
+
+        using(var stream = new MemoryStream([1, 2, 3, 4]))
+        {
+            var uploaded = await client.UploadCurrentUserProfilePictureAsync(
+                new StreamPart(stream, "avatar.png", "image/png"));
+
+            Assert.StartsWith("/mock-data-local/users/", uploaded.User!.ProfilePictureUrl);
+            Assert.EndsWith(".png", uploaded.User.ProfilePictureUrl);
+        }
+
+        var pictureUrl = store.GetCurrentProfile("user").User!.ProfilePictureUrl;
+        Assert.NotNull(pictureUrl);
+        Assert.Equal(pictureUrl, store.GetUserById(mockUserId).ProfilePictureUrl);
+        Assert.Equal(pictureUrl, store.GetPublicUserByUsername("mockuser")!.ProfilePictureUrl);
+        Assert.Equal(
+            pictureUrl,
+            store.SearchGlobal("mockuser").Single(result => result.UserId == mockUserId).ProfilePictureUrl);
+
+        var removed = await client.RemoveCurrentUserProfilePictureAsync();
+
+        Assert.Null(removed.User!.ProfilePictureUrl);
+        Assert.Null(store.GetCurrentProfile("user").User!.ProfilePictureUrl);
+        Assert.Null(store.GetPublicUserByUsername("mockuser")!.ProfilePictureUrl);
     }
 
     private static MockBackendStore CreateStore()

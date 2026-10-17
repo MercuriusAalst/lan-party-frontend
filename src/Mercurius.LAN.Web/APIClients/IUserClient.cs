@@ -19,6 +19,16 @@ public interface IUserClient
     [Patch("/v1/lan/users/me")]
     Task<UserProfileDTO> UpdateCurrentUserProfileAsync([Body] UpdateUserProfileRequest request);
 
+    [Multipart]
+    [Put("/v1/lan/users/me/picture")]
+    Task<CurrentUserProfileResponse> UploadCurrentUserProfilePictureAsync(
+        [AliasAs("picture")] StreamPart picture,
+        CancellationToken cancellationToken = default);
+
+    [Delete("/v1/lan/users/me/picture")]
+    Task<CurrentUserProfileResponse> RemoveCurrentUserProfilePictureAsync(
+        CancellationToken cancellationToken = default);
+
     [Get("/v1/lan/users/me/username-availability")]
     Task<UsernameAvailabilityResponse> CheckUsernameAvailabilityAsync([AliasAs("username")] string username);
 

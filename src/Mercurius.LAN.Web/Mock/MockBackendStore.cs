@@ -175,7 +175,8 @@ internal sealed class MockBackendStore
                     DisplayLabel = user.Username!,
                     SupportingText = "User",
                     UserId = user.Id,
-                    Username = user.Username
+                    Username = user.Username,
+                    ProfilePictureUrl = user.ProfilePictureUrl
                 });
 
             var teamResults = _document.Teams
@@ -230,7 +231,8 @@ internal sealed class MockBackendStore
 
             return new PublicUserProfileDTO
             {
-                Username = user.Username!
+                Username = user.Username!,
+                ProfilePictureUrl = user.ProfilePictureUrl
             };
         }
     }
@@ -255,7 +257,8 @@ internal sealed class MockBackendStore
                 .GroupBy(member => member.Username!, StringComparer.OrdinalIgnoreCase)
                 .Select(group => new PublicTeamMemberDTO
                 {
-                    Username = group.First().Username!
+                    Username = group.First().Username!,
+                    ProfilePictureUrl = group.First().ProfilePictureUrl
                 })
                 .OrderBy(member => member.Username, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -1071,7 +1074,8 @@ internal sealed class MockBackendStore
                 Lastname = user.Lastname,
                 DiscordId = user.DiscordId,
                 SteamId = user.SteamId,
-                RiotId = user.RiotId
+                RiotId = user.RiotId,
+                ProfilePictureUrl = user.ProfilePictureUrl
             };
         }
     }
@@ -2841,6 +2845,54 @@ internal sealed class MockBackendStore
         {
             return UpdateCurrentProfileCore(persona, request.Username, request.Firstname, request.Lastname, request.DiscordId, request.SteamId, request.RiotId, isComplete: true);
         }
+    }
+
+    public CurrentUserProfileResponse SetCurrentProfilePicture(string persona, string fileName)
+    {
+        lock(_syncRoot)
+        {
+            var (profileRecord, userId) = GetCurrentProfileRecord(persona);
+            var pictureUrl = $"/mock-data-local/users/{userId:N}{Path.GetExtension(fileName)}";
+
+            ApplyProfilePicture(userId, pictureUrl);
+            return Clone(profileRecord.Profile)!;
+        }
+    }
+
+    public CurrentUserProfileResponse ClearCurrentProfilePicture(string persona)
+    {
+        lock(_syncRoot)
+        {
+            var (profileRecord, userId) = GetCurrentProfileRecord(persona);
+
+            ApplyProfilePicture(userId, null);
+            return Clone(profileRecord.Profile)!;
+        }
+    }
+
+    private void ApplyProfilePicture(Guid userId, string? pictureUrl)
+    {
+        foreach(var profileRecord in _document.Profiles)
+        {
+            if(profileRecord.Profile.User?.Id == userId)
+                profileRecord.Profile.User.ProfilePictureUrl = pictureUrl;
+        }
+
+        foreach(var user in _document.Users.Where(user => user.Id == userId))
+            user.ProfilePictureUrl = pictureUrl;
+    }
+
+    private (MockProfileRecord Record, Guid UserId) GetCurrentProfileRecord(string persona)
+    {
+        var normalizedPersona = NormalizePersona(persona);
+        var profileRecord = _document.Profiles.FirstOrDefault(candidate =>
+            string.Equals(candidate.Persona, normalizedPersona, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException($"Mock profile for persona '{normalizedPersona}' was not found.");
+
+        if(profileRecord.Profile.User is null)
+            throw new InvalidOperationException("Mock profile does not have a user.");
+
+        return (profileRecord, profileRecord.Profile.User.Id);
     }
 
     public UserProfileDTO UpdateCurrentProfile(string persona, UpdateUserProfileRequest request)
