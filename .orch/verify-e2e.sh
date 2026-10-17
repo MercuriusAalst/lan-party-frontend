@@ -28,7 +28,7 @@ for line in lines[headers[0] + 1:]:
 if not tests or len({name for _, name in tests}) != len(tests):
     raise SystemExit("discovery is empty or contains duplicate cases")
 counts = collections.Counter(cls for cls, _ in tests)
-with open(sys.argv[2], "w", encoding="utf-8") as output:
+with open(sys.argv[2], "w", encoding="utf-8", newline="\n") as output:
     for cls, count in sorted(counts.items()): output.write(f"{cls}\t{count}\n")
 print(f"Discovered {len(tests)} unique cases in {len(counts)} classes")
 PY
@@ -36,6 +36,12 @@ PY
 discovered=$(awk -F '\t' '{sum += $2} END {print sum + 0}' "$run_dir/classes.tsv")
 classes=$(wc -l < "$run_dir/classes.tsv" | tr -d ' ')
 (( discovered > 0 && classes > 0 )) || { echo "discovery produced no tests/classes" >&2; exit 1; }
+partition_total=0
+while IFS=$'\t' read -r class expected; do
+  [[ "$expected" =~ ^[0-9]+$ ]] || { echo "invalid class count for $class: $expected" >&2; exit 1; }
+  partition_total=$((partition_total + expected))
+done < "$run_dir/classes.tsv"
+(( partition_total == discovered )) || { echo "manifest partition mismatch: $partition_total != $discovered" >&2; exit 1; }
 executed=0; passed=0
 while IFS=$'\t' read -r class expected; do
   log="$run_dir/$class.log"; trx="$run_dir/$class.trx"
