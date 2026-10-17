@@ -783,6 +783,45 @@ main {
     box-shadow: var(--shadow-brand);
 }
 
+/*
+ * Bootstrap's .btn:hover, .btn:focus-visible and .btn:disabled read the --bs-btn-* variables,
+ * so controls that combine .btn with an app variant must map those variables to the same
+ * app tokens; otherwise keyboard focus and disabled states fall back to Bootstrap blue/grey.
+ */
+.btn-primary {
+    --bs-btn-color: var(--brand-button-primary-color, var(--color-dark-navy));
+    --bs-btn-bg: var(--brand-button-primary-background, var(--color-primary-green));
+    --bs-btn-border-color: var(--brand-button-primary-border, var(--color-primary-green));
+    --bs-btn-hover-color: var(--brand-button-primary-hover-color, var(--color-white));
+    --bs-btn-hover-bg: var(--brand-button-primary-hover-background, var(--color-deep-green));
+    --bs-btn-hover-border-color: var(--brand-button-primary-hover-border, var(--color-deep-green));
+    --bs-btn-active-color: var(--brand-button-primary-hover-color, var(--color-white));
+    --bs-btn-active-bg: var(--brand-button-primary-hover-background, var(--color-deep-green));
+    --bs-btn-active-border-color: var(--brand-button-primary-hover-border, var(--color-deep-green));
+    --bs-btn-disabled-color: var(--brand-button-primary-color, var(--color-dark-navy));
+    --bs-btn-disabled-bg: var(--brand-button-primary-background, var(--color-primary-green));
+    --bs-btn-disabled-border-color: var(--brand-button-primary-border, var(--color-primary-green));
+    --bs-btn-focus-box-shadow: 0 0 0 3px var(--color-focus), var(--brand-button-primary-hover-shadow, 0 16px 28px rgba(15, 23, 42, 0.2));
+}
+
+.btn-secondary,
+.btn-outline-primary,
+.btn-outline-secondary {
+    --bs-btn-color: var(--brand-button-secondary-color, var(--color-ink));
+    --bs-btn-bg: var(--brand-button-secondary-background, var(--color-surface-raised));
+    --bs-btn-border-color: var(--brand-button-secondary-border, var(--color-border-strong));
+    --bs-btn-hover-color: var(--brand-button-secondary-hover-color, var(--color-ink));
+    --bs-btn-hover-bg: var(--brand-button-secondary-hover-background, var(--color-surface-muted));
+    --bs-btn-hover-border-color: var(--brand-button-secondary-hover-border, var(--color-primary-green));
+    --bs-btn-active-color: var(--color-ink);
+    --bs-btn-active-bg: var(--color-surface-muted);
+    --bs-btn-active-border-color: var(--color-border-strong);
+    --bs-btn-disabled-color: var(--brand-button-secondary-color, var(--color-ink));
+    --bs-btn-disabled-bg: var(--brand-button-secondary-background, var(--color-surface-raised));
+    --bs-btn-disabled-border-color: var(--brand-button-secondary-border, var(--color-border-strong));
+    --bs-btn-focus-box-shadow: 0 0 0 3px var(--color-focus), var(--shadow-brand-hover);
+}
+
 /* Destructive action variant; global so every dialog (CSS isolation) shares one definition. */
 .button-secondary.button-danger {
     background: var(--color-danger-soft);
