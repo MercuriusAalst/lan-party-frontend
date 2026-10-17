@@ -7,8 +7,16 @@
             class="form-select"
             value="@(Value?.ToString() ?? string.Empty)"
             @onchange="OnChangeAsync"
+            aria-required="@(Required ? "true" : "false")"
             aria-busy="@(_isLoading ? "true" : "false")">
-        <option value="">@Localization["Feature.tournaments.contactAdminNone"]</option>
+        @if(Required)
+        {
+            <option value="" disabled>@Localization["Feature.tournaments.contactAdminSelect"]</option>
+        }
+        else
+        {
+            <option value="">@Localization["Feature.tournaments.contactAdminNone"]</option>
+        }
         @if(SelectedAdmin is { } selectedAdmin && Value == selectedAdmin.Id && !_choices.Any(admin => admin.Id == selectedAdmin.Id))
         {
             // Keep the assigned contact selectable while the list loads, fails, or omits it.
@@ -47,6 +55,9 @@
     [Parameter] public EventCallback<Guid?> ValueChanged { get; set; }
     [Parameter] public PublicUserDTO? SelectedAdmin { get; set; }
     [Parameter] public string Id { get; set; } = "adminPicker";
+
+    /// <summary>When true the picker offers no "none" choice: an administrator must be selected.</summary>
+    [Parameter] public bool Required { get; set; }
 
     private readonly List<PublicUserDTO> _choices = [];
     private bool _isLoading;

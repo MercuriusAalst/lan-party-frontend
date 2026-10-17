@@ -27,6 +27,7 @@ internal sealed class LocalOidcServer : IAsyncDisposable
     public const string ClientSecret = "mercurius-e2e-client-secret";
     public const string ApiAudience = "https://api.mercurius-e2e.test";
     public const string RoleClaimType = "https://mercurius-aalst.be/roles";
+    private const string AdminRoleId = "rol_e2e_admin";
     public const string ManagementClientId = "mercurius-e2e-management";
     public const string ManagementClientSecret = "mercurius-e2e-management-secret";
     public const string DatabaseConnection = "e2e-users";
@@ -96,6 +97,8 @@ internal sealed class LocalOidcServer : IAsyncDisposable
         app.MapPost("/oauth/token", (HttpRequest request) => server!.IssueTokensAsync(request));
         app.MapGet("/userinfo", (HttpRequest request) => server!.GetUserInfo(request));
         app.MapGet("/api/v2/users/{**subject}", (string? subject) => server!.GetManagementProfile(subject));
+        app.MapGet("/api/v2/roles", () => Results.Json(new[] { new { id = AdminRoleId, name = "admin" } }));
+        app.MapGet("/api/v2/roles/{roleId}/users", (string roleId) => server!.GetRoleUsers(roleId));
         app.MapPost("/api/v2/jobs/verification-email", () => Results.Json(new { id = $"job_{Guid.NewGuid():N}" }, statusCode: StatusCodes.Status201Created));
         app.MapPost("/dbconnections/change_password", () => Results.Text("We've just sent you an email to reset your password."));
         app.MapGet("/v2/logout", (HttpRequest request) => server!.EndSession(request));
@@ -249,9 +252,29 @@ internal sealed class LocalOidcServer : IAsyncDisposable
         });
     }
 
+    // Mirrors Auth0's role endpoints: the backend asks whether a user holds the admin role and which users do.
+    private IResult GetRoleUsers(string roleId) =>
+        roleId != AdminRoleId
+            ? Results.NotFound()
+            : Results.Json(new
+            {
+                users = _personas.Values
+                    .Where(persona => persona.Roles.Contains("admin", StringComparer.Ordinal))
+                    .Select(persona => new { user_id = persona.Subject })
+                    .ToArray()
+            });
+
     private IResult GetManagementProfile(string? subject)
     {
         var unescapedSubject = Uri.UnescapeDataString(subject ?? string.Empty);
+        const string rolesSuffix = "/roles";
+        if (unescapedSubject.EndsWith(rolesSuffix, StringComparison.Ordinal))
+        {
+            return _personas.TryGetValue(unescapedSubject[..^rolesSuffix.Length], out var rolePersona)
+                ? Results.Json(rolePersona.Roles.Select(role => new { id = role == "admin" ? AdminRoleId : $"rol_{role}", name = role }).ToArray())
+                : Results.NotFound();
+        }
+
         if (!_personas.TryGetValue(unescapedSubject, out var persona))
             return Results.NotFound();
 

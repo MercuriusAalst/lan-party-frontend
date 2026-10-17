@@ -42,6 +42,8 @@ public partial class NavMenu : IAsyncDisposable
     private ITeamRealtimeService TeamRealtimeService { get; set; } = null!;
     [Inject]
     private ITeamService TeamService { get; set; } = null!;
+    [Inject]
+    private ITournamentService TournamentService { get; set; } = null!;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
@@ -74,6 +76,8 @@ public partial class NavMenu : IAsyncDisposable
     private long _authenticatedNavigationVersion;
     private string? _pendingAuthenticatedNavigationIdentityKey;
     private bool _disposed;
+    private CancellationTokenSource? _pendingResolutionsCancellationTokenSource;
+    private Task? _pendingResolutionsTask;
     private readonly HashSet<string> _pendingNotificationActionIds = [];
     private string? _notificationActionError;
 
@@ -90,6 +94,15 @@ public partial class NavMenu : IAsyncDisposable
     private bool ShouldShowInteractionOverlay => _isUserMenuVisible || _isDropdownVisible || _isInfoMenuVisible || _isNotificationMenuVisible;
     private bool HasSearchResults => _searchResults.Count > 0;
     private int NotificationCount => NotificationService.UnreadCount;
+
+    /// <summary>Matches waiting for the admin; stays at the last known value when a refresh fails.</summary>
+    protected int PendingResolutionCount { get; private set; }
+
+    /// <summary>How often the admin badge refreshes while this circuit is alive.</summary>
+    protected TimeSpan PendingResolutionPollInterval { get; set; } = TimeSpan.FromSeconds(30);
+
+    private string GetPendingResolutionAriaLabel() =>
+        Localization.Get("nav.matchResolutionsCount", PendingResolutionCount);
 
     protected override void OnInitialized()
     {
@@ -117,6 +130,9 @@ public partial class NavMenu : IAsyncDisposable
 
         var user = authState.User;
         _isAdmin = user.IsInRole("admin");
+        if(!_isAdmin)
+            StopPendingResolutionPolling();
+
         if(user.Identity?.IsAuthenticated != true)
         {
             CancelAuthenticatedNavigation();
@@ -199,6 +215,69 @@ public partial class NavMenu : IAsyncDisposable
         navigationVersion == _authenticatedNavigationVersion &&
         string.Equals(identityKey, _loadedIdentityKey, StringComparison.Ordinal);
 
+    private void StartPendingResolutionPolling()
+    {
+        if(_disposed || _pendingResolutionsTask is not null)
+            return;
+
+        var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCancellationTokenSource.Token);
+        _pendingResolutionsCancellationTokenSource = cancellationTokenSource;
+        _pendingResolutionsTask = PollPendingResolutionsAsync(cancellationTokenSource.Token);
+    }
+
+    private void StopPendingResolutionPolling()
+    {
+        var cancellationTokenSource = _pendingResolutionsCancellationTokenSource;
+        _pendingResolutionsCancellationTokenSource = null;
+        _pendingResolutionsTask = null;
+        PendingResolutionCount = 0;
+        if(cancellationTokenSource is null)
+            return;
+
+        cancellationTokenSource.Cancel();
+        cancellationTokenSource.Dispose();
+    }
+
+    private async Task PollPendingResolutionsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(PendingResolutionPollInterval);
+            do
+            {
+                await RefreshPendingResolutionCountAsync(cancellationToken);
+            }
+            while(await timer.WaitForNextTickAsync(cancellationToken));
+        }
+        catch(OperationCanceledException) when(cancellationToken.IsCancellationRequested || _disposed)
+        {
+        }
+    }
+
+    private async Task RefreshPendingResolutionCountAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var pending = await TournamentService.GetPendingMatchResolutionsAsync(cancellationToken);
+            if(_disposed || cancellationToken.IsCancellationRequested)
+                return;
+
+            var count = pending.Count;
+            if(count == PendingResolutionCount)
+                return;
+
+            PendingResolutionCount = count;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch(OperationCanceledException) when(cancellationToken.IsCancellationRequested || _disposed)
+        {
+        }
+        catch(Exception)
+        {
+            // The badge is a convenience: a failed refresh keeps the last count and shows no error.
+        }
+    }
+
     private void CancelAuthenticatedNavigation()
     {
         _authenticatedNavigationVersion++;
@@ -220,6 +299,10 @@ public partial class NavMenu : IAsyncDisposable
         _pendingAuthenticatedNavigationIdentityKey = null;
         if(pendingIdentityKey is not null)
             StartAuthenticatedNavigation(pendingIdentityKey);
+
+        // Polling starts only once the circuit is interactive, so prerendering never calls the API.
+        if(_isAdmin)
+            StartPendingResolutionPolling();
 
         if(_isSearchDropdownVisible && _searchOutsideClickListener == null)
         {
@@ -706,6 +789,7 @@ public partial class NavMenu : IAsyncDisposable
     {
         _disposed = true;
         CancelAuthenticatedNavigation();
+        StopPendingResolutionPolling();
         _lifetimeCancellationTokenSource.Cancel();
         NotificationService.Changed -= HandleNotificationsChangedAsync;
         TeamRealtimeService.TeamStateInvalidated -= RefreshNotificationsFromSignalAsync;

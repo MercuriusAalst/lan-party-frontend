@@ -24,6 +24,7 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
         var dialog = page.Locator("[role=\"dialog\"]");
         await dialog.Locator("#name").FillAsync(name);
         await dialog.Locator("#tournamentImage").SetInputFilesAsync(TournamentE2E.TestImagePath());
+        await SelectAssignedAdminAsync(dialog, admin);
         await dialog.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateTournament }).ClickAsync();
 
         await Expect(page.Locator("[role=\"dialog\"]")).ToHaveCountAsync(0);
@@ -58,6 +59,7 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
         await dialog.Locator("#name").FillAsync(name);
         await dialog.Locator("#leaderboardRankingMetric").SelectOptionAsync("HighestScore");
         await dialog.Locator("#tournamentImage").SetInputFilesAsync(TournamentE2E.TestImagePath());
+        await SelectAssignedAdminAsync(dialog, admin);
         await dialog.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateTournament }).ClickAsync();
 
         await Expect(page.Locator("[role=\"dialog\"]")).ToHaveCountAsync(0);
@@ -81,6 +83,33 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
 
         await Expect(dialog).ToBeVisibleAsync();
         await Expect(dialog.Locator(".validation-message").First).ToBeVisibleAsync();
+        // The assigned admin is mandatory: the picker offers no "none" choice.
+        await Expect(dialog.Locator("#contactAdmin option[value=\"\"]")).ToBeDisabledAsync();
+    }
+
+    [Fact]
+    public async Task AssignedAdminIsRequiredEvenWhenEveryOtherFieldIsValid()
+    {
+        var admin = await App.CreatePersonaAsync("dialog-noadmin-admin", isAdmin: true);
+        var name = TournamentE2E.Unique("E2E Dialog NoAdmin");
+
+        var context = await App.NewAuthenticatedContextAsync(admin);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, "/tournaments");
+
+        await OpenDialogAsync(page);
+        var dialog = page.Locator("[role=\"dialog\"]");
+        await dialog.Locator("#name").FillAsync(name);
+        await dialog.Locator("#tournamentImage").SetInputFilesAsync(TournamentE2E.TestImagePath());
+        await dialog.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateTournament }).ClickAsync();
+
+        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("Select an assigned admin.")).ToBeVisibleAsync();
+
+        await SelectAssignedAdminAsync(dialog, admin);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateTournament }).ClickAsync();
+        await Expect(page.Locator("[role=\"dialog\"]")).ToHaveCountAsync(0);
+        await Expect(page.Locator("article.tournaments-card").Filter(new() { HasText = name })).ToBeVisibleAsync();
     }
 
     [Fact]
@@ -100,6 +129,7 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
         await dialog.Locator("#participationMode").SelectOptionAsync("Team");
         await Expect(dialog.Locator("#teamSize")).ToBeVisibleAsync();
         await dialog.Locator("#tournamentImage").SetInputFilesAsync(TournamentE2E.TestImagePath());
+        await SelectAssignedAdminAsync(dialog, admin);
 
         await dialog.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateTournament }).ClickAsync();
         await Expect(dialog).ToBeVisibleAsync();
@@ -111,6 +141,9 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
         await Expect(page.Locator("[role=\"dialog\"]")).ToHaveCountAsync(0);
         await Expect(page.Locator("article.tournaments-card").Filter(new() { HasText = name })).ToBeVisibleAsync();
     }
+
+    private static async Task SelectAssignedAdminAsync(ILocator dialog, E2EPersona admin) =>
+        await dialog.Locator("#contactAdmin").SelectOptionAsync(admin.UserId!.Value.ToString());
 
     private static async Task OpenDialogAsync(IPage page)
     {

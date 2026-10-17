@@ -61,6 +61,7 @@ public sealed class LocalizedValidationMessageFormatterTests
         var formatter = CreateFormatter();
         var model = new CreateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             ParticipationMode = ParticipationMode.Team,
             TeamSize = 0
         };
