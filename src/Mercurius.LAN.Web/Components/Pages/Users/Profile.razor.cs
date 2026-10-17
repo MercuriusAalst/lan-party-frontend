@@ -27,7 +27,7 @@ public partial class Profile : IDisposable
         nameof(UpdateUserProfileRequest.RiotId)];
 
     private readonly UpdateUserProfileRequest _model = new();
-    private readonly CancellationTokenSource _profilePictureReadCancellation = new();
+    private readonly CancellationTokenSource _lifetimeCancellation = new();
     private EditContext? _editContext;
     private ValidationMessageStore? _validationMessageStore;
     private string _emailDisplay = string.Empty;
@@ -49,8 +49,12 @@ public partial class Profile : IDisposable
     private string? _savedPictureUrl;
     private ProfilePictureSelection? _pendingPicture;
     private bool _isPictureBusy;
+    private bool _isPictureSelecting;
+    private bool _disposed;
     private string _pictureStatusText = string.Empty;
     private long _maxPictureBytes;
+    private bool IsProfileMutationBusy => _isSaving || _isDeleting || _isPictureBusy;
+    private bool IsPictureActionBusy => IsProfileMutationBusy || _isPictureSelecting;
 
     [Inject] private IUserClient UserClient { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
@@ -120,7 +124,7 @@ public partial class Profile : IDisposable
 
     private async Task SaveAsync()
     {
-        if(_isSaving)
+        if(IsProfileMutationBusy || _isPictureSelecting)
             return;
 
         _isSaving = true;
@@ -173,27 +177,31 @@ public partial class Profile : IDisposable
 
     private async Task SelectPictureAsync(InputFileChangeEventArgs args)
     {
-        if(_isPictureBusy)
+        if(IsPictureActionBusy)
             return;
 
+        _isPictureSelecting = true;
+        _pendingPicture = null;
         var file = args.File;
         if(!ProfilePictureContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
         {
             _pictureStatusText = Localization["profile.pictureTypeNotAllowed"];
+            _isPictureSelecting = false;
             return;
         }
 
         if(file.Size > _maxPictureBytes)
         {
             _pictureStatusText = Localization.Get("shared.fileSizeLimit", _maxPictureBytes / (1024 * 1024));
+            _isPictureSelecting = false;
             return;
         }
 
         try
         {
             var content = new byte[file.Size];
-            await using var stream = file.OpenReadStream(_maxPictureBytes, _profilePictureReadCancellation.Token);
-            await stream.ReadExactlyAsync(content, _profilePictureReadCancellation.Token);
+            await using var stream = file.OpenReadStream(_maxPictureBytes, _lifetimeCancellation.Token);
+            await stream.ReadExactlyAsync(content, _lifetimeCancellation.Token);
 
             _pendingPicture = new ProfilePictureSelection(file.Name, file.ContentType, content);
             _pictureStatusText = Localization.Get("profile.pictureSelected", file.Name);
@@ -203,8 +211,12 @@ public partial class Profile : IDisposable
             _pendingPicture = null;
             _pictureStatusText = Localization.Get("shared.fileSizeLimit", _maxPictureBytes / (1024 * 1024));
         }
-        catch(OperationCanceledException) when(_profilePictureReadCancellation.IsCancellationRequested)
+        catch(OperationCanceledException) when(_lifetimeCancellation.IsCancellationRequested)
         {
+        }
+        finally
+        {
+            _isPictureSelecting = false;
         }
     }
 
@@ -226,8 +238,11 @@ public partial class Profile : IDisposable
         {
             await using var stream = new MemoryStream(picture.Content);
             var response = await UserClient.UploadCurrentUserProfilePictureAsync(
-                new StreamPart(stream, picture.FileName, picture.ContentType));
+                new StreamPart(stream, picture.FileName, picture.ContentType),
+                _lifetimeCancellation.Token);
 
+            if(_disposed)
+                return;
             _pendingPicture = null;
             _savedPictureUrl = response.User?.ProfilePictureUrl;
         }, Localization["profile.pictureUploaded"]);
@@ -235,24 +250,37 @@ public partial class Profile : IDisposable
 
     private Task RemovePictureAsync() => RunPictureActionAsync(async () =>
     {
-        var response = await UserClient.RemoveCurrentUserProfilePictureAsync();
+        var response = await UserClient.RemoveCurrentUserProfilePictureAsync(_lifetimeCancellation.Token);
 
+        if(_disposed)
+            return;
         _pendingPicture = null;
         _savedPictureUrl = response.User?.ProfilePictureUrl;
     }, Localization["profile.pictureRemoved"]);
 
     private async Task RunPictureActionAsync(Func<Task> pictureAction, string successMessage)
     {
-        if(_isPictureBusy)
+        if(IsProfileMutationBusy || _isPictureSelecting)
             return;
 
         _isPictureBusy = true;
         try
         {
             await pictureAction();
+            if(_disposed)
+                return;
             _pictureStatusText = successMessage;
             ToastService.ShowSuccess(successMessage);
-            await CurrentUserProfileNotifier.NotifyChangedAsync();
+            try
+            {
+                await CurrentUserProfileNotifier.NotifyChangedAsync();
+            }
+            catch(Exception) when(_disposed)
+            {
+            }
+        }
+        catch(ApiException) when(_disposed)
+        {
         }
         catch(ApiException exception) when(exception.StatusCode == HttpStatusCode.BadRequest)
         {
@@ -274,9 +302,14 @@ public partial class Profile : IDisposable
         {
             FailPicture(GetApiError(exception, Localization["profile.pictureFailed"]));
         }
-        catch(Exception exception) when(exception is HttpRequestException or TaskCanceledException)
+        catch(Exception exception) when(
+            (exception is HttpRequestException or TaskCanceledException) &&
+            !_lifetimeCancellation.IsCancellationRequested)
         {
             FailPicture(Localization["profile.pictureFailed"]);
+        }
+        catch(OperationCanceledException) when(_lifetimeCancellation.IsCancellationRequested)
+        {
         }
         finally
         {
@@ -362,7 +395,7 @@ public partial class Profile : IDisposable
 
     private async Task DeleteAccountAsync()
     {
-        if(!_canDelete || _isDeleting)
+        if(!_canDelete || IsProfileMutationBusy || _isPictureSelecting)
             return;
 
         _isDeleting = true;
@@ -506,7 +539,8 @@ public partial class Profile : IDisposable
 
     public void Dispose()
     {
-        _profilePictureReadCancellation.Cancel();
-        _profilePictureReadCancellation.Dispose();
+        _disposed = true;
+        _lifetimeCancellation.Cancel();
+        _lifetimeCancellation.Dispose();
     }
 }

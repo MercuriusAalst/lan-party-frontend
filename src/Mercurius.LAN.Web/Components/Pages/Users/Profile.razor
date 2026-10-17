@@ -28,7 +28,7 @@ else
                     <h2>@Localization["General.Profile.YourInformation"]</h2>
                 </div>
 
-                <div class="profile-picture-editor">
+                <div class="profile-picture-editor" aria-busy="@IsPictureActionBusy">
                     <UserAvatar Name="@_model.Username"
                                 PictureUrl="@(_pendingPicture?.PreviewDataUrl ?? _savedPictureUrl)"
                                 Size="prominent" />
@@ -39,18 +39,18 @@ else
                             <span>@Localization["profile.pictureChoose"]</span>
                             <InputFile OnChange="SelectPictureAsync"
                                        accept="@ProfilePictureAccept"
-                                       disabled="@_isPictureBusy"
+                                       disabled="@IsPictureActionBusy"
                                        class="profile-picture-native" />
                         </label>
 
                         @if(_pendingPicture is not null)
                         {
-                            <button type="button" class="btn btn-primary" @onclick="UploadPictureAsync" disabled="@_isPictureBusy">@Localization["profile.pictureUpload"]</button>
-                            <button type="button" class="btn btn-outline-secondary" @onclick="ClearPendingPicture" disabled="@_isPictureBusy">@Localization["common.cancel"]</button>
+                            <button type="button" class="btn btn-primary" @onclick="UploadPictureAsync" disabled="@IsPictureActionBusy">@Localization["profile.pictureUpload"]</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="ClearPendingPicture" disabled="@IsPictureActionBusy">@Localization["common.cancel"]</button>
                         }
                         else if(!string.IsNullOrWhiteSpace(_savedPictureUrl))
                         {
-                            <button type="button" class="btn btn-outline-danger" @onclick="RemovePictureAsync" disabled="@_isPictureBusy">@Localization["profile.pictureRemove"]</button>
+                            <button type="button" class="btn btn-outline-danger" @onclick="RemovePictureAsync" disabled="@IsPictureActionBusy">@Localization["profile.pictureRemove"]</button>
                         }
                     </div>
 
@@ -117,7 +117,7 @@ else
                     </div>
 
                     <div class="form-actions-section">
-                        <button type="submit" class="btn btn-primary" disabled="@_isSaving">@Localization["profile.save"]</button>
+                        <button type="submit" class="btn btn-primary" disabled="@IsProfileMutationBusy || _isPictureSelecting">@Localization["profile.save"]</button>
                     </div>
                 </EditForm>
             </section>
@@ -136,7 +136,7 @@ else
                                    class="form-control" />
                     </div>
                     <div class="form-actions-section">
-                        <button type="button" class="btn btn-danger" @onclick="DeleteAccountAsync" disabled="@(!_canDelete || _isDeleting)">@Localization["General.Profile.DeleteAccount"]</button>
+                        <button type="button" class="btn btn-danger" @onclick="DeleteAccountAsync" disabled="@(!_canDelete || IsProfileMutationBusy || _isPictureSelecting)">@Localization["General.Profile.DeleteAccount"]</button>
                     </div>
                 </section>
             </aside>

@@ -117,6 +117,19 @@ public sealed class ProfilePictureBehaviorTests
     }
 
     [Fact]
+    public async Task InvalidReplacementClearsThePreviousPendingPreview()
+    {
+        var page = CreateProfile(out var userClient, out _);
+        await SelectPictureAsync(page, AcceptedImage());
+
+        await SelectPictureAsync(page, new TestBrowserFile("notes.txt", "text/plain", [1, 2, 3]));
+
+        Assert.Null(ReadProfileField<object?>(page, "_pendingPicture"));
+        Assert.Equal("profile.pictureTypeNotAllowed", ReadProfileField<string>(page, "_pictureStatusText"));
+        Assert.Equal(0, userClient.UploadCalls);
+    }
+
+    [Fact]
     public async Task SelectingAnImageBeyondTheMediaLimit_IsRejectedLocallyWithoutCallingTheBackend()
     {
         var page = CreateProfile(out var userClient, out _);
@@ -155,6 +168,25 @@ public sealed class ProfilePictureBehaviorTests
         await selection;
 
         Assert.Null(ReadProfileField<object?>(page, "_pendingPicture"));
+    }
+
+    [Fact]
+    public async Task DisposingTheProfileCancelsPictureUploadWithoutNotifyingStaleIdentity()
+    {
+        var page = CreateProfile(out var userClient, out var notifications);
+        var pending = new TaskCompletionSource<CurrentUserProfileResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        userClient.PendingUpload = pending;
+        SetProfileField(page, "_savedPictureUrl", "images/saved.webp");
+        await SelectPictureAsync(page, AcceptedImage());
+
+        var upload = InvokeProfileTaskAsync(page, "UploadPictureAsync");
+        page.Dispose();
+        await upload;
+
+        Assert.Equal("images/saved.webp", ReadProfileField<string?>(page, "_savedPictureUrl"));
+        Assert.Equal(0, notifications.Notifications);
+        Assert.Equal("profile.pictureSelected", ReadProfileField<string>(page, "_pictureStatusText"));
+        Assert.True(userClient.UploadCancellationToken.IsCancellationRequested);
     }
 
     [Fact]
@@ -227,6 +259,34 @@ public sealed class ProfilePictureBehaviorTests
         await upload;
 
         Assert.False(ReadProfileField<bool>(page, "_isPictureBusy"));
+    }
+
+    [Fact]
+    public async Task ProfileSaveAndDeleteAreIgnoredWhilePictureMutationIsPending()
+    {
+        var page = CreateProfile(out var userClient, out _);
+        SetProfileField(page, "_isPictureBusy", true);
+        SetProfileField(page, "_originalUsername", "mockuser");
+        SetProfileField(page, "_deleteConfirmation", "mockuser");
+
+        await InvokeProfileTaskAsync(page, "SaveAsync");
+        await InvokeProfileTaskAsync(page, "DeleteAccountAsync");
+
+        Assert.Equal(0, userClient.UpdateCalls);
+        Assert.Equal(0, userClient.DeleteCalls);
+    }
+
+    [Fact]
+    public async Task PictureUploadIsIgnoredWhileProfileSaveIsPending()
+    {
+        var page = CreateProfile(out var userClient, out _);
+        await SelectPictureAsync(page, AcceptedImage());
+        SetProfileField(page, "_isSaving", true);
+
+        await InvokeProfileTaskAsync(page, "UploadPictureAsync");
+
+        Assert.Equal(0, userClient.UploadCalls);
+        Assert.NotNull(ReadProfileField<object?>(page, "_pendingPicture"));
     }
 
     private static async Task<string> RenderAvatarAsync(string? name, string? pictureUrl)
@@ -432,30 +492,48 @@ public sealed class ProfilePictureBehaviorTests
         public TaskCompletionSource<CurrentUserProfileResponse>? PendingUpload { get; set; }
         public int UploadCalls { get; private set; }
         public int RemoveCalls { get; private set; }
+        public int UpdateCalls { get; private set; }
+        public int DeleteCalls { get; private set; }
+        public CancellationToken UploadCancellationToken { get; private set; }
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
             return targetMethod?.Name switch
             {
-                nameof(IUserClient.UploadCurrentUserProfilePictureAsync) => Upload(),
+                nameof(IUserClient.UploadCurrentUserProfilePictureAsync) => Upload((CancellationToken)args![1]!),
                 nameof(IUserClient.RemoveCurrentUserProfilePictureAsync) => Remove(),
+                nameof(IUserClient.UpdateCurrentUserProfileAsync) => Update(),
+                nameof(IUserClient.DeleteCurrentUserAsync) => Delete(),
                 _ => throw new NotSupportedException($"Unexpected user client call: {targetMethod?.Name}")
             };
         }
 
-        private object Upload()
+        private object Upload(CancellationToken cancellationToken)
         {
             UploadCalls++;
+            UploadCancellationToken = cancellationToken;
             if(UploadException is not null)
                 throw UploadException;
 
-            return PendingUpload?.Task ?? Task.FromResult(UploadResponse ?? CreateProfileResponse("images/users/new.png"));
+            return PendingUpload?.Task.WaitAsync(cancellationToken) ?? Task.FromResult(UploadResponse ?? CreateProfileResponse("images/users/new.png"));
         }
 
         private object Remove()
         {
             RemoveCalls++;
             return Task.FromResult(RemoveResponse ?? CreateProfileResponse(null));
+        }
+
+        private object Update()
+        {
+            UpdateCalls++;
+            return Task.FromResult(new UserProfileDTO { Username = "mockuser" });
+        }
+
+        private object Delete()
+        {
+            DeleteCalls++;
+            return Task.FromResult(new UserActionResponse("deleted"));
         }
     }
 

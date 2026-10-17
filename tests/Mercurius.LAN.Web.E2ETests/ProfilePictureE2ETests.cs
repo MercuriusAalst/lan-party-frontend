@@ -17,7 +17,7 @@ public class ProfilePictureE2ETests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
     // A 1x1 PNG: small enough to be an accepted image and decodable by the media pipeline.
     private static readonly byte[] TinyPng = Convert.FromBase64String(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==");
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
 
     [Fact]
     public async Task ProfilePictureCanBePreviewedUploadedReplacedAndRemoved()
@@ -44,19 +44,18 @@ public class ProfilePictureE2ETests(PlaywrightE2EFixture app) : E2ETestBase(app)
         }
 
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Upload picture" }));
-        await Expect(page.GetByText("Profile picture updated.")).ToBeVisibleAsync();
+        await Expect(page.Locator(".profile-picture-status")).ToHaveTextAsync("Profile picture updated.");
 
         var uploadedUrl = await avatar.Locator("img").GetAttributeAsync("src");
         Assert.NotNull(uploadedUrl);
-        Assert.Contains("/images/users/", uploadedUrl);
-        Assert.EndsWith(".webp", uploadedUrl);
+        Assert.Matches(new Regex(@"^https?://[^/]+/images/[0-9a-f]{32}\.webp$", RegexOptions.IgnoreCase), uploadedUrl);
 
         // A confirmed change reaches the shared signed-in identity without a manual reload.
         await Expect(page.Locator("#account-nav-menu-container .user-avatar img")).ToHaveCountAsync(1);
 
         await SelectPictureAsync(page, "replacement.png", TinyPng);
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Upload picture" }));
-        await Expect(page.GetByText("Profile picture updated.")).ToBeVisibleAsync();
+        await Expect(page.Locator(".profile-picture-status")).ToHaveTextAsync("Profile picture updated.");
 
         var replacedUrl = await avatar.Locator("img").GetAttributeAsync("src");
         Assert.NotNull(replacedUrl);
@@ -66,7 +65,7 @@ public class ProfilePictureE2ETests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(page.Locator($"{PictureEditorSelector} .user-avatar img")).ToHaveAttributeAsync("src", replacedUrl);
 
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Remove picture" }));
-        await Expect(page.GetByText("Profile picture removed.")).ToBeVisibleAsync();
+        await Expect(page.Locator(".profile-picture-status")).ToHaveTextAsync("Profile picture removed.");
         await Expect(page.Locator($"{PictureEditorSelector} .user-avatar img")).ToHaveCountAsync(0);
 
         await using var db = app.CreateDbContext();
