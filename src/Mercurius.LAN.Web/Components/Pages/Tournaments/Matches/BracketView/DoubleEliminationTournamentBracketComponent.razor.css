@@ -63,21 +63,21 @@
 }
 
 .double-elimination-tab:hover {
-    border-color: var(--color-primary-green);
+    border-color: var(--color-border-strong);
     background: var(--color-surface-muted);
     box-shadow: none;
     transform: translateY(-1px);
 }
 
 .double-elimination-tab:focus-visible {
-    outline: 2px solid var(--color-primary-green);
+    outline: 2px solid var(--color-ink);
     outline-offset: 2px;
 }
 
 .double-elimination-tab--active {
-    border-color: var(--color-primary-green);
-    background: rgba(9, 158, 51, 0.12);
-    outline: 2px solid var(--color-primary-green);
+    border-color: var(--color-ink);
+    background: var(--color-surface-muted);
+    outline: 2px solid var(--color-ink);
     outline-offset: -2px;
     box-shadow: none;
 }
@@ -87,11 +87,11 @@
     position: absolute;
     inset: 0 auto 0 0;
     width: 0.38rem;
-    background: var(--color-primary-green);
+    background: var(--color-ink);
 }
 
 .double-elimination-tab--active .double-elimination-tab-label {
-    color: var(--color-link);
+    color: var(--color-ink);
 }
 
 .double-elimination-tab-label {
@@ -116,8 +116,8 @@
 }
 
 .double-elimination-tab--active .double-elimination-tab-meta {
-    background: var(--color-primary-green);
-    color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface-raised);
 }
 
 .double-elimination-panel {
