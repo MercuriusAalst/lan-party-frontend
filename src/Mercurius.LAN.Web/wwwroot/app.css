@@ -40,6 +40,10 @@
     --color-info-soft: rgba(29, 100, 165, 0.11);
     --color-neutral-soft: rgba(35, 40, 46, 0.08);
 
+    /* Neutral badge: a visible grey fill and edge on white cards (light); soft translucent fill in dark. */
+    --badge-bg: var(--color-surface-muted);
+    --badge-border: var(--color-border-strong);
+
     --shadow-brand: 0 12px 30px rgba(35, 40, 46, 0.08);
     --shadow-brand-hover: 0 16px 34px rgba(35, 40, 46, 0.14);
     --sponsor-card-bg: var(--color-surface);
@@ -130,6 +134,9 @@
     --color-info-soft: rgba(156, 196, 229, 0.15);
     --color-neutral-soft: rgba(241, 243, 245, 0.09);
 
+    --badge-bg: var(--color-neutral-soft);
+    --badge-border: var(--color-border);
+
     --shadow-brand: 0 14px 34px rgba(0, 0, 0, 0.22);
     --shadow-brand-hover: 0 18px 42px rgba(0, 0, 0, 0.3);
     --sponsor-card-bg: var(--color-surface);
@@ -190,6 +197,9 @@
     --color-danger-soft: rgba(255, 159, 159, 0.15);
     --color-info-soft: rgba(156, 196, 229, 0.15);
     --color-neutral-soft: rgba(241, 243, 245, 0.09);
+
+    --badge-bg: var(--color-neutral-soft);
+    --badge-border: var(--color-border);
 
     --shadow-brand: 0 14px 34px rgba(0, 0, 0, 0.22);
     --shadow-brand-hover: 0 18px 42px rgba(0, 0, 0, 0.3);
@@ -866,8 +876,8 @@ main {
 
 /* Informational badges are neutral; green is reserved for status and primary actions. */
 .badge {
-    border: 1px solid var(--color-border);
-    background: var(--color-neutral-soft);
+    border: 1px solid var(--badge-border);
+    background: var(--badge-bg);
     color: var(--color-ink);
 }
 

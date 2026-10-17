@@ -80,7 +80,7 @@
 
 .packing-item {
     --packing-accent: var(--color-muted-text);
-    --packing-tint: var(--color-neutral-soft);
+    --packing-tint: color-mix(in srgb, var(--color-muted-text) 16%, transparent);
     position: relative;
     z-index: 3;
     display: grid;
@@ -105,7 +105,7 @@
 
 .packing-item--hardware {
     --packing-accent: var(--color-muted-text);
-    --packing-tint: var(--color-neutral-soft);
+    --packing-tint: color-mix(in srgb, var(--color-muted-text) 16%, transparent);
 }
 
 .packing-item--basic {

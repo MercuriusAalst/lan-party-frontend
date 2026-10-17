@@ -156,8 +156,11 @@
 }
 
 .tournaments-filter-chip {
+    /* Light theme: a visible grey edge and a darker grey selected fill; dark keeps the soft translucent fill. */
+    --filter-chip-border: var(--color-border-strong);
+    --filter-chip-active-bg: color-mix(in srgb, var(--color-surface-muted) 85%, var(--color-ink) 15%);
     padding: 0.52rem 0.78rem;
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--filter-chip-border);
     border-radius: 999px;
     background: var(--color-surface-muted);
     color: var(--color-ink);
@@ -169,9 +172,21 @@
 .tournaments-filter-chip:hover,
 .tournaments-filter-chip.is-active {
     border-color: var(--color-primary-green);
-    background: var(--color-neutral-soft);
+    background: var(--filter-chip-active-bg);
     color: var(--color-ink);
     box-shadow: none;
+}
+
+html[data-theme="dark"] .tournaments-filter-chip {
+    --filter-chip-border: var(--color-border);
+    --filter-chip-active-bg: var(--color-neutral-soft);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) .tournaments-filter-chip {
+        --filter-chip-border: var(--color-border);
+        --filter-chip-active-bg: var(--color-neutral-soft);
+    }
 }
 
 .tournaments-filter-chip.is-active {
