@@ -109,6 +109,25 @@ public sealed class TournamentAssignedAdminWarningTests
     }
 
     [Fact]
+    public async Task ScheduledAsksForAReplacementWhileInProgressOnlyExplainsTheEscalation()
+    {
+        var service = new AdminListService(() => Task.FromResult(new List<PublicUserDTO> { Admin(OtherAdminId) }));
+        var scheduled = CreateTab(service, Tournament(ContactId), isAdmin: true);
+        var inProgress = CreateTab(service, Tournament(ContactId, TournamentStatus.InProgress), isAdmin: true);
+
+        await scheduled.RunParametersAsync();
+        await inProgress.RunParametersAsync();
+
+        Assert.Equal("Feature.tournaments.assignedAdminRevokedWarning", scheduled.WarningKey);
+        Assert.Equal("Feature.tournaments.assignedAdminRevokedWarningInProgress", inProgress.WarningKey);
+
+        var english = ReadRepositoryFile("src/Mercurius.LAN.Web/wwwroot/locales/translations.en-US.json");
+        var dutch = ReadRepositoryFile("src/Mercurius.LAN.Web/wwwroot/locales/translations.nl-BE.json");
+        Assert.Contains("Feature.tournaments.assignedAdminRevokedWarningInProgress", english);
+        Assert.Contains("Feature.tournaments.assignedAdminRevokedWarningInProgress", dutch);
+    }
+
+    [Fact]
     public void ComparisonUsesTheAdminIdentity()
     {
         var contact = Admin(ContactId);
@@ -205,6 +224,8 @@ public sealed class TournamentAssignedAdminWarningTests
     private sealed class TestTab : TournamentOverviewTab
     {
         public bool ShowWarning => ShowAssignedAdminRevokedWarning;
+
+        public string WarningKey => AssignedAdminRevokedWarningKey;
 
         public Task RunParametersAsync() => OnParametersSetAsync();
     }

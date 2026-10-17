@@ -87,6 +87,12 @@ public partial class TournamentOverviewTab : IDisposable
         _assignedAdminStatus == AssignedAdminStatus.Revoked &&
         Tournament.Status is TournamentStatus.Scheduled or TournamentStatus.InProgress;
 
+    // Scheduled tournaments can be edited, so the admin is asked to pick a replacement. An in-progress tournament
+    // has no edit action: the text only explains that waiting matches are shown to every admin.
+    protected string AssignedAdminRevokedWarningKey => Tournament.Status == TournamentStatus.Scheduled
+        ? "Feature.tournaments.assignedAdminRevokedWarning"
+        : "Feature.tournaments.assignedAdminRevokedWarningInProgress";
+
     protected override async Task OnParametersSetAsync()
     {
         var contactAdminId = Tournament?.ContactAdmin?.Id;

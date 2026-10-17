@@ -905,6 +905,7 @@
   "Feature.tournaments.contactAdminSelect": "Kies een beheerder",
   "Feature.tournaments.contactAdminAssignPrompt": "Dit toernooi heeft nog geen toegewezen beheerder. Wijs een beheerder toe voordat je opslaat: de beheerder lost betwiste wedstrijden op.",
   "Feature.tournaments.assignedAdminRevokedWarning": "De toegewezen beheerder van dit toernooi is geen beheerder meer. Bewerk het toernooi en kies een vervanger, zodat betwiste wedstrijden een beheerder hebben die ze beslist.",
+  "Feature.tournaments.assignedAdminRevokedWarningInProgress": "De toegewezen beheerder van dit toernooi is geen beheerder meer, daarom zijn wedstrijden die op een beslissing wachten zichtbaar voor alle beheerders. Er is geen actie nodig om ze te deblokkeren; de toegewezen beheerder kan alleen worden gewijzigd zolang het toernooi gepland is.",
   "Feature.tournaments.created": "tournament {0} aangemaakt.",
   "Feature.tournaments.createFailed": "Het tournament kon niet worden aangemaakt.",
   "Feature.tournaments.createFailedNow": "Het tournament kan momenteel niet worden aangemaakt.",

@@ -62,12 +62,19 @@ for administrator validity, prize limits, and validation failures.
 
 ### Requirement: Admins are warned when the assigned admin is no longer an administrator
 
-The tournament overview MUST show a warning to administrators, and only to administrators, when the tournament's assigned admin is no longer an administrator, prompting them to pick a replacement. The check MUST compare the identity of the tournament's contact administrator with the administrator list used by the admin picker, MUST NOT require a new endpoint, and MUST apply only to scheduled and in-progress tournaments. The public view, anonymous visitors and non-administrators MUST NOT see the warning or any hint of it and MUST NOT trigger the administrator list request. While the list is loading, when it fails to load, when it is empty, or when the tournament has no contact administrator, the overview MUST NOT show the warning.
+The tournament overview MUST show a warning to administrators, and only to administrators, when the tournament's assigned admin is no longer an administrator, prompting a scheduled tournament's administrator to pick a replacement. The check MUST compare the identity of the tournament's contact administrator with the administrator list used by the admin picker, MUST NOT require a new endpoint, and MUST apply only to scheduled and in-progress tournaments. The public view, anonymous visitors and non-administrators MUST NOT see the warning or any hint of it and MUST NOT trigger the administrator list request. While the list is loading, when it fails to load, when it is empty, or when the tournament has no contact administrator, the overview MUST NOT show the warning.
 
 #### Scenario: Assigned admin was revoked
 
 - **WHEN** an administrator opens the overview of a scheduled or in-progress tournament whose contact administrator is not in the administrator list
 - **THEN** the overview MUST show the warning that asks for a replacement
+
+#### Scenario: In-progress tournament has no dead-end prompt
+
+- **WHEN** the warning is shown for an in-progress tournament, which has no edit action
+- **THEN** the text MUST state that the assigned admin is no longer an administrator and that matches awaiting resolution are therefore shown to all admins
+- **AND** it MUST NOT ask the administrator to pick a replacement, and MUST state that no action is needed to unblock those matches
+- **AND** a scheduled tournament MUST keep the text that asks for a replacement
 
 #### Scenario: Assigned admin is still valid
 

@@ -905,6 +905,7 @@
   "Feature.tournaments.contactAdminSelect": "Select an administrator",
   "Feature.tournaments.contactAdminAssignPrompt": "This tournament has no assigned admin yet. Assign an admin before saving: the admin resolves disputed matches.",
   "Feature.tournaments.assignedAdminRevokedWarning": "The assigned admin of this tournament is no longer an administrator. Edit the tournament and pick a replacement so disputed matches have an admin to resolve them.",
+  "Feature.tournaments.assignedAdminRevokedWarningInProgress": "The assigned admin of this tournament is no longer an administrator, so matches awaiting resolution are shown to all admins. No action is needed to unblock them; the assigned admin can only be changed while the tournament is scheduled.",
   "Feature.tournaments.created": "Tournament {0} created.",
   "Feature.tournaments.createFailed": "The tournament could not be created.",
   "Feature.tournaments.createFailedNow": "The tournament could not be created right now.",
