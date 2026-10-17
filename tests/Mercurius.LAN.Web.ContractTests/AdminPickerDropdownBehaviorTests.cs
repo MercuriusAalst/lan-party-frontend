@@ -7,6 +7,7 @@ using Mercurius.LAN.Web.Localization;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -26,6 +27,7 @@ public sealed class AdminPickerDropdownBehaviorTests
 
         await using var services = new ServiceCollection()
             .AddLogging()
+            .AddSingleton<IConfiguration>(new ConfigurationBuilder().Build())
             .AddSingleton(service)
             .AddSingleton<ILocalizationService>(TestLocalizationService.Instance)
             .BuildServiceProvider();
@@ -323,6 +325,7 @@ public sealed class AdminPickerDropdownBehaviorTests
     {
         await using var services = new ServiceCollection()
             .AddLogging()
+            .AddSingleton<IConfiguration>(new ConfigurationBuilder().Build())
             .AddSingleton<ITournamentService>(service)
             .AddSingleton<ILocalizationService>(TestLocalizationService.Instance)
             .BuildServiceProvider();
