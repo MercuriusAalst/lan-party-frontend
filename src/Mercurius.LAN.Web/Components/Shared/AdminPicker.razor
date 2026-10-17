@@ -23,7 +23,7 @@
     @if(SelectedChoice is { } selectedChoice)
     {
         <div class="admin-picker-selected">
-            <UserAvatar Name="@GetAdminLabel(selectedChoice)" PictureUrl="@selectedChoice.ProfilePictureUrl" Size="compact" />
+            <UserAvatar Name="@GetAdminLabel(selectedChoice)" PictureUrl="@selectedChoice.ProfilePictureUrl" Size="compact" Decorative="true" />
             <span>@GetAdminLabel(selectedChoice)</span>
         </div>
     }

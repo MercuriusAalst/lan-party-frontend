@@ -9,7 +9,7 @@
         @onmouseover="HoverAsync">
     @if(Result.Type == GlobalSearchResultType.User)
     {
-        <UserAvatar Name="@GetDisplayLabel()" PictureUrl="@Result.ProfilePictureUrl" Size="compact" />
+        <UserAvatar Name="@GetDisplayLabel()" PictureUrl="@Result.ProfilePictureUrl" Size="compact" Decorative="true" />
     }
     else
     {

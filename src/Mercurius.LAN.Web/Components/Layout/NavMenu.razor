@@ -140,7 +140,7 @@
                                 @onclick="ToggleUserMenu"
                                 aria-expanded="@GetAriaExpanded(_isUserMenuVisible)"
                                 aria-label="@GetUserMenuAriaLabel(authState.User)">
-                            <UserAvatar Name="@GetDisplayName(authState.User)" PictureUrl="@_currentProfilePictureUrl" Size="compact" />
+                            <UserAvatar Name="@GetDisplayName(authState.User)" PictureUrl="@_currentProfilePictureUrl" Size="compact" Decorative="true" />
                             <span>@GetDisplayName(authState.User)</span>
                         </button>
                         <button type="button"

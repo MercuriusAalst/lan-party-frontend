@@ -11,7 +11,7 @@
         {
             @if (Participant?.User is { } user)
             {
-                <UserAvatar Name="@ParticipantName" PictureUrl="@user.ProfilePictureUrl" Size="compact" />
+                <UserAvatar Name="@ParticipantName" PictureUrl="@user.ProfilePictureUrl" Size="compact" Decorative="true" />
                 <span>@ParticipantName</span>
             }
             else

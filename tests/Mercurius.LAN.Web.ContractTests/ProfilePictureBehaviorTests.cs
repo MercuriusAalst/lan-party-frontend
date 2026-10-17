@@ -52,6 +52,17 @@ public sealed class ProfilePictureBehaviorTests
     }
 
     [Fact]
+    public async Task DecorativeAvatarKeepsItsFallbackVisibleWithoutRepeatingTheAdjacentName()
+    {
+        var html = await RenderAvatarAsync("Morgan Player", null, decorative: true);
+
+        Assert.Contains(">MP<", html);
+        Assert.Contains("aria-hidden=\"true\"", html);
+        Assert.DoesNotContain("role=\"img\"", html);
+        Assert.DoesNotContain("aria-label=\"Morgan Player\"", html);
+    }
+
+    [Fact]
     public void WhenTheImageFails_TheInitialsReplaceTheBrokenImageAndANewReferenceCanLoadAgain()
     {
         var avatar = CreateAvatar("Morgan Player", "images/users/abc.webp");
@@ -98,6 +109,7 @@ public sealed class ProfilePictureBehaviorTests
         var matchDetails = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Matches/DetailView/TournamentMatchDetailsDialog.razor.cs");
         var matchRow = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Matches/BracketView/MatchParticipantRow.razor");
         var registration = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Tabs/TournamentParticipantsTab.razor");
+        var placements = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Tabs/TournamentPlacementsTab.razor");
 
         Assert.Contains("PictureUrl=\"@row.ProfilePictureUrl\"", leaderboard);
         Assert.Contains("PictureUrl=\"@result.ProfilePictureUrl\"", leaderboardAttempts);
@@ -109,7 +121,12 @@ public sealed class ProfilePictureBehaviorTests
         Assert.Contains("<UserAvatar Name=\"@selected.DisplayLabel\" PictureUrl=\"@selected.ProfilePictureUrl\"", inviteDialog);
         Assert.Contains("ProfilePictureUrl = profile.ProfilePictureUrl", matchDetails);
         Assert.Contains("@if (Participant?.User is { } user)", matchRow);
-        Assert.Contains("<UserAvatar Name=\"@ParticipantName\" PictureUrl=\"@user.ProfilePictureUrl\" Size=\"compact\" />", matchRow);
+        Assert.Contains("<UserAvatar Name=\"@ParticipantName\" PictureUrl=\"@user.ProfilePictureUrl\" Size=\"compact\" Decorative=\"true\" />", matchRow);
+        Assert.Contains("Decorative=\"true\"", matchRow);
+        Assert.Contains("Decorative=\"true\"", inviteDialog);
+        Assert.Contains("Decorative=\"true\"", registration);
+        Assert.Contains("class=\"placement-leaderboard-identity\"", placements);
+        Assert.Contains("Decorative=\"true\"", placements);
         Assert.Contains("PictureUrl=\"@member.ProfilePictureUrl\"", registration);
         Assert.Contains("PictureUrl=\"@selectedMember.ProfilePictureUrl\"", registration);
     }
@@ -365,7 +382,7 @@ public sealed class ProfilePictureBehaviorTests
         Assert.NotNull(ReadProfileField<object?>(page, "_pendingPicture"));
     }
 
-    private static async Task<string> RenderAvatarAsync(string? name, string? pictureUrl)
+    private static async Task<string> RenderAvatarAsync(string? name, string? pictureUrl, bool decorative = false)
     {
         await using var services = new ServiceCollection()
             .AddLogging()
@@ -380,7 +397,8 @@ public sealed class ProfilePictureBehaviorTests
                 new Dictionary<string, object?>
                 {
                     [nameof(UserAvatar.Name)] = name,
-                    [nameof(UserAvatar.PictureUrl)] = pictureUrl
+                    [nameof(UserAvatar.PictureUrl)] = pictureUrl,
+                    [nameof(UserAvatar.Decorative)] = decorative
                 }));
             return component.ToHtmlString();
         });

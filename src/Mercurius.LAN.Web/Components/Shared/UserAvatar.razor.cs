@@ -12,6 +12,7 @@ public partial class UserAvatar
     [Parameter] public string? PictureUrl { get; set; }
     [Parameter] public string Size { get; set; } = "regular";
     [Parameter] public string? AdditionalClass { get; set; }
+    [Parameter] public bool Decorative { get; set; }
 
     private bool _imageFailed;
     private string _resolvedPictureUrl = string.Empty;
@@ -28,7 +29,7 @@ public partial class UserAvatar
     }
 
     private string DisplayName => Name?.Trim() ?? string.Empty;
-    private bool IsDecorative => string.IsNullOrWhiteSpace(DisplayName);
+    private bool IsDecorative => Decorative || string.IsNullOrWhiteSpace(DisplayName);
     private string? AriaLabel => IsDecorative ? null : DisplayName;
     private bool HasImage => !_imageFailed && !string.IsNullOrWhiteSpace(_resolvedPictureUrl);
     private string ResolvedUrl => _resolvedPictureUrl;
