@@ -10,7 +10,10 @@ Light green currently appears on informational elements: the shared info badges 
 - Secondary buttons use ink text and a neutral border; the brand green appears only as a hover and focus border. Primary buttons are unchanged.
 - The Info packing list hardware group uses a neutral slate accent and tint instead of green; the basic (orange) and optional (blue) groups are unchanged, so the three priority groups remain distinct in light and dark themes.
 - Tournaments overview filter chips use a neutral selected-state fill and keep the green border.
+- Controls that combine the Bootstrap `.btn` class with an app button variant map Bootstrap's hover, focus and disabled state variables to the same app tokens, so keyboard focus and disabled states never fall back to Bootstrap blue or grey.
+- The double-elimination bracket view selector uses neutral hover, focus and active treatments with a non-green active indicator.
+- The footer Event Info column now holds the When & Where, Tickets, Catering and Contact links; the Explore column and the two descriptive paragraphs are removed.
 
 ## Impact
 
-Updates the `shared-brand-surfaces` and `lan-info-page` specifications. No new palette, package, API or backend change. Remaining light-green usages elsewhere are out of scope and tracked for a follow-up.
+Updates the `shared-brand-surfaces`, `lan-info-page` and `game-detail-page-experience` specifications. No new palette, package, API or backend change. Remaining light-green usages elsewhere are out of scope and tracked for a follow-up.
