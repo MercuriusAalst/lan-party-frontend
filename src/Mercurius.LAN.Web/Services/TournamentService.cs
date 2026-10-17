@@ -154,7 +154,7 @@ public sealed class TournamentService : ITournamentService
 
     public async Task<IReadOnlyList<PendingMatchResolutionDTO>> GetPendingMatchResolutionsAsync(
         CancellationToken cancellationToken = default) =>
-        await _lanClient.GetPendingMatchResolutionsAsync(cancellationToken);
+        PendingMatchResolutionOrdering.ByUrgency(await _lanClient.GetPendingMatchResolutionsAsync(cancellationToken));
 
     public Task<MatchActionStateDTO> GetMatchActionStateAsync(
         Guid matchId,

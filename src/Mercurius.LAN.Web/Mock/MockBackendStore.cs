@@ -47,6 +47,7 @@ internal sealed class MockBackendStore
     private readonly object _syncRoot = new();
     // When each match started waiting for its admin; only a dev-mock convenience, derived from the closed deadline.
     private readonly Dictionary<Guid, DateTime> _resolutionRequiredSinceUtc = [];
+    private static readonly TimeSpan PendingResolutionEscalationAfter = TimeSpan.FromMinutes(10);
     private readonly string _dataFilePath;
     private readonly Dictionary<Guid, List<TournamentRegistrationDTO>> _registrationDetails = [];
     private readonly Dictionary<Guid, Dictionary<Guid, MockRegistrationSnapshot>> _publicRegistrationSnapshots = [];
@@ -1185,9 +1186,8 @@ internal sealed class MockBackendStore
             var pending = new List<PendingMatchResolutionDTO>();
             // Like the backend: only in-progress tournaments, and only the assigned admin (any admin for legacy
             // tournaments without one).
-            foreach(var tournament in _document.Tournaments.Where(candidate =>
-                candidate.Status == TournamentStatus.InProgress &&
-                (!candidate.AssignedAdminUserId.HasValue || candidate.AssignedAdminUserId == currentUserId)))
+            var escalationThreshold = DateTime.UtcNow - PendingResolutionEscalationAfter;
+            foreach(var tournament in _document.Tournaments.Where(candidate => candidate.Status == TournamentStatus.InProgress))
             {
                 foreach(var match in tournament.Matches)
                 {
@@ -1201,6 +1201,17 @@ internal sealed class MockBackendStore
                         since = DateTime.UtcNow;
                         _resolutionRequiredSinceUtc[match.Id] = since;
                     }
+
+                    // Like the backend: the assigned admin (or any admin for an unassigned tournament) sees the match
+                    // at once, every other admin only after it has waited long enough to be escalated.
+                    var escalated = since <= escalationThreshold;
+                    var assignedToCurrentUser = tournament.AssignedAdminUserId.HasValue && tournament.AssignedAdminUserId == currentUserId;
+                    if(tournament.AssignedAdminUserId.HasValue && !assignedToCurrentUser && !escalated)
+                        continue;
+
+                    var assignment = escalated ? PendingMatchResolutionAssignment.Escalated
+                        : tournament.AssignedAdminUserId.HasValue ? PendingMatchResolutionAssignment.Assigned
+                        : PendingMatchResolutionAssignment.Unassigned;
 
                     var bothReported = match.Participant1ReportedScore1.HasValue && match.Participant2ReportedScore1.HasValue;
 
@@ -1216,16 +1227,13 @@ internal sealed class MockBackendStore
                         Participant2ReportedScore1 = match.Participant2ReportedScore1,
                         Participant2ReportedScore2 = match.Participant2ReportedScore2,
                         Reason = bothReported ? MatchResolutionReason.Disputed : MatchResolutionReason.MissingOpponentReport,
+                        Assignment = assignment,
                         RequiredSinceUtc = since
                     });
                 }
             }
 
-            return pending
-                .OrderBy(item => item.RequiredSinceUtc is null)
-                .ThenBy(item => item.RequiredSinceUtc)
-                .ThenBy(item => item.MatchId)
-                .ToList();
+            return PendingMatchResolutionOrdering.ByUrgency(pending);
         }
     }
 

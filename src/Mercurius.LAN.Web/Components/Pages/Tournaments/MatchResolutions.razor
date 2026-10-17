@@ -61,6 +61,10 @@ else
                                 <span class="section-eyebrow">@item.TournamentName</span>
                                 <h2 class="match-resolution-players">@item.Participant1Name <span class="match-resolution-versus">@Localization["Feature.matchResolutions.versus"]</span> @item.Participant2Name</h2>
                                 <p class="match-resolution-reason">@GetReasonText(item.Reason)</p>
+                                @if(GetAssignmentLabel(item.Assignment) is { } assignmentLabel)
+                                {
+                                    <p class="@GetAssignmentClass(item.Assignment)">@assignmentLabel</p>
+                                }
                                 @if(item.Participant1ReportedScore1.HasValue && item.Participant1ReportedScore2.HasValue)
                                 {
                                     <p class="match-resolution-score">@Localization.Get("Feature.matchResolutions.reportedScore", item.Participant1Name, item.Participant1ReportedScore1.Value, item.Participant1ReportedScore2.Value)</p>

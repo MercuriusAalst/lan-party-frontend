@@ -45,7 +45,7 @@ public partial class MatchResolutions : IDisposable
 
         try
         {
-            _items = await TournamentService.GetPendingMatchResolutionsAsync(_lifetime.Token);
+            _items = PendingMatchResolutionOrdering.ByUrgency(await TournamentService.GetPendingMatchResolutionsAsync(_lifetime.Token));
             _loadError = null;
             _isUnauthorized = false;
         }
@@ -142,6 +142,21 @@ public partial class MatchResolutions : IDisposable
         MatchResolutionReason.MissingOpponentReport => Localization["Feature.matchResolutions.reasonMissingReport"],
         _ => Localization["Feature.matchResolutions.reasonUnknown"]
     };
+
+    // A missing or unknown assignment (older backend) shows no label.
+    internal string? GetAssignmentLabel(PendingMatchResolutionAssignment? assignment) => assignment switch
+    {
+        PendingMatchResolutionAssignment.Assigned => Localization["Feature.matchResolutions.assignmentAssigned"],
+        PendingMatchResolutionAssignment.Unassigned => Localization["Feature.matchResolutions.assignmentUnassigned"],
+        PendingMatchResolutionAssignment.AssignedAdminUnavailable => Localization["Feature.matchResolutions.assignmentUnavailable"],
+        PendingMatchResolutionAssignment.Escalated => Localization["Feature.matchResolutions.assignmentEscalated"],
+        _ => null
+    };
+
+    internal static string GetAssignmentClass(PendingMatchResolutionAssignment? assignment) =>
+        assignment is PendingMatchResolutionAssignment.Escalated or PendingMatchResolutionAssignment.AssignedAdminUnavailable
+            ? "match-resolution-assignment match-resolution-assignment--urgent"
+            : "match-resolution-assignment";
 
     private string FormatSince(DateTime requiredSinceUtc) =>
         Localization.FormatDateTime(requiredSinceUtc.ToLocalDisplayTime());

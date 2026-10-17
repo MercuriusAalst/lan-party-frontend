@@ -55,3 +55,8 @@
 .match-resolutions-error {
     margin: 0;
 }
+
+.match-resolution-assignment--urgent {
+    color: #f1c86d;
+    font-weight: 600;
+}

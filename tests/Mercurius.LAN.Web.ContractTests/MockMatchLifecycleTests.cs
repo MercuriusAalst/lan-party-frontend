@@ -733,6 +733,19 @@ public sealed class MockMatchLifecycleTests
     }
 
     [Fact]
+    public void MockPendingResolutionsStateTheAssignmentAndEscalateAfterTenMinutes()
+    {
+        var fresh = CreateReplayStore(expiredState: ReplayExpiredState.LoneReport, expiredMinutesAgo: 2);
+        Assert.Equal(PendingMatchResolutionAssignment.Unassigned, Assert.Single(fresh.GetPendingMatchResolutions("admin")).Assignment);
+
+        var freshAssigned = CreateReplayStore(expiredState: ReplayExpiredState.LoneReport, expiredMinutesAgo: 2, assignedToAdmin: true);
+        Assert.Equal(PendingMatchResolutionAssignment.Assigned, Assert.Single(freshAssigned.GetPendingMatchResolutions("admin")).Assignment);
+
+        var old = CreateReplayStore(expiredState: ReplayExpiredState.Conflict, expiredMinutesAgo: 30, assignedToAdmin: true);
+        Assert.Equal(PendingMatchResolutionAssignment.Escalated, Assert.Single(old.GetPendingMatchResolutions("admin")).Assignment);
+    }
+
+    [Fact]
     public void MockMatchesStillInProgressAreNotPending()
     {
         var store = CreateReplayStore();
@@ -749,7 +762,9 @@ public sealed class MockMatchLifecycleTests
 
     private static MockBackendStore CreateReplayStore(
         bool awaitingScoreWithStaleDeadline = false,
-        ReplayExpiredState expiredState = ReplayExpiredState.None)
+        ReplayExpiredState expiredState = ReplayExpiredState.None,
+        int expiredMinutesAgo = 60,
+        bool assignedToAdmin = false)
     {
         var now = DateTime.UtcNow;
         var user = new UserProfileDTO
@@ -843,7 +858,7 @@ public sealed class MockMatchLifecycleTests
             {
                 match.LifecycleState = MatchLifecycleState.ScoreConfirmation;
                 match.Participant2Ended = false;
-                match.ScoreConfirmationDeadlineUtc = now.AddHours(-1);
+                match.ScoreConfirmationDeadlineUtc = now.AddMinutes(-expiredMinutesAgo);
             }
             else
             {
@@ -851,7 +866,7 @@ public sealed class MockMatchLifecycleTests
                 match.Participant2Ended = true;
                 match.Participant2ReportedScore1 = 0;
                 match.Participant2ReportedScore2 = 1;
-                match.CorrectionDeadlineUtc = now.AddHours(-1);
+                match.CorrectionDeadlineUtc = now.AddMinutes(-expiredMinutesAgo);
             }
         }
 
@@ -868,6 +883,7 @@ public sealed class MockMatchLifecycleTests
             Format = TournamentFormat.BestOf1,
             FinalsFormat = TournamentFormat.BestOf1,
             ParticipationMode = ParticipationMode.Team,
+            AssignedAdminUserId = assignedToAdmin ? ReplayAdminId : null,
             Teams = [team1, team2],
             Matches = [match]
         };
