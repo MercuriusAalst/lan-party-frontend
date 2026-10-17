@@ -108,7 +108,8 @@ public sealed class ProfilePictureBehaviorTests
         Assert.Contains("PictureUrl=\"@_currentProfilePictureUrl\"", navMenu);
         Assert.Contains("<UserAvatar Name=\"@selected.DisplayLabel\" PictureUrl=\"@selected.ProfilePictureUrl\"", inviteDialog);
         Assert.Contains("ProfilePictureUrl = profile.ProfilePictureUrl", matchDetails);
-        Assert.Contains("PictureUrl=\"@Participant?.User?.ProfilePictureUrl\"", matchRow);
+        Assert.Contains("@if (Participant?.User is { } user)", matchRow);
+        Assert.Contains("<UserAvatar Name=\"@ParticipantName\" PictureUrl=\"@user.ProfilePictureUrl\" Size=\"compact\" />", matchRow);
         Assert.Contains("PictureUrl=\"@member.ProfilePictureUrl\"", registration);
         Assert.Contains("PictureUrl=\"@selectedMember.ProfilePictureUrl\"", registration);
     }
