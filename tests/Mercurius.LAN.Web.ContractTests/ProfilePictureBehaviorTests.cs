@@ -94,6 +94,10 @@ public sealed class ProfilePictureBehaviorTests
         var publicTeamProfile = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Teams/PublicTeamProfile.razor");
         var publicUserProfile = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Users/PublicUserProfile.razor");
         var navMenu = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Layout/NavMenu.razor");
+        var inviteDialog = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Teams/InviteUserDialog.razor");
+        var matchDetails = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Matches/DetailView/TournamentMatchDetailsDialog.razor.cs");
+        var matchRow = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Matches/BracketView/MatchParticipantRow.razor");
+        var registration = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/Tabs/TournamentParticipantsTab.razor");
 
         Assert.Contains("PictureUrl=\"@row.ProfilePictureUrl\"", leaderboard);
         Assert.Contains("PictureUrl=\"@result.ProfilePictureUrl\"", leaderboardAttempts);
@@ -102,6 +106,77 @@ public sealed class ProfilePictureBehaviorTests
         Assert.Contains("PictureUrl=\"@member.ProfilePictureUrl\"", publicTeamProfile);
         Assert.Contains("PictureUrl=\"@_profile.ProfilePictureUrl\"", publicUserProfile);
         Assert.Contains("PictureUrl=\"@_currentProfilePictureUrl\"", navMenu);
+        Assert.Contains("<UserAvatar Name=\"@selected.DisplayLabel\" PictureUrl=\"@selected.ProfilePictureUrl\"", inviteDialog);
+        Assert.Contains("ProfilePictureUrl = profile.ProfilePictureUrl", matchDetails);
+        Assert.Contains("PictureUrl=\"@Participant?.User?.ProfilePictureUrl\"", matchRow);
+        Assert.Contains("PictureUrl=\"@member.ProfilePictureUrl\"", registration);
+        Assert.Contains("PictureUrl=\"@selectedMember.ProfilePictureUrl\"", registration);
+    }
+
+    [Fact]
+    public async Task UserSearchServicePreservesThePictureReferenceFromItsApiProjection()
+    {
+        var lanClient = DispatchProxy.Create<ILANClient, RecordingSearchClientProxy>();
+        var proxy = (RecordingSearchClientProxy)(object)lanClient;
+        proxy.Response = new UserSearchResponseDTO
+        {
+            Results =
+            [
+                new UserSearchResultDTO
+                {
+                    Id = Guid.NewGuid(),
+                    Username = "morgan",
+                    DisplayLabel = "Morgan Player",
+                    ProfilePictureUrl = "images/users/morgan.webp"
+                }
+            ]
+        };
+
+        var results = await new UserSearchService(lanClient).SearchAsync("morgan");
+
+        Assert.Equal("images/users/morgan.webp", Assert.Single(results).ProfilePictureUrl);
+    }
+
+    [Fact]
+    public void ManageTeamsMemberCardsCarryTheProjectedPictureIntoTheSharedAvatar()
+    {
+        var markup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Teams/ManageTeams.razor");
+        var card = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Shared/ParticipantCardComponent.razor");
+        var managementMember = new PublicUserDTO
+        {
+            Id = Guid.NewGuid(),
+            Username = "morgan",
+            DisplayName = "Morgan Player",
+            ProfilePictureUrl = "images/users/morgan.webp"
+        };
+        var participant = ParticipantViewModel.FromUser(managementMember);
+
+        Assert.Contains("ParticipantCardComponent Participant=\"ParticipantViewModel.FromUser(member)\"", markup);
+        Assert.Contains("PictureUrl=\"@Participant.User?.ProfilePictureUrl\"", card);
+        Assert.Equal("images/users/morgan.webp", participant.User?.ProfilePictureUrl);
+    }
+
+    [Fact]
+    public void ProfilePicturePickerUsesTheStyledLabelAndKeepsItsFileInputKeyboardReachable()
+    {
+        var markup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Users/Profile.razor");
+        var stylesheet = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Users/Profile.razor.css");
+        var labelStart = markup.IndexOf("<label class=\"profile-picture-picker\"", StringComparison.Ordinal);
+        Assert.True(labelStart >= 0);
+        var input = markup.IndexOf("<InputFile", labelStart, StringComparison.Ordinal);
+        Assert.True(input > labelStart);
+        var labelEnd = markup.IndexOf("</label>", input, StringComparison.Ordinal);
+
+        Assert.True(labelEnd > input);
+        Assert.Contains("@Localization[\"form.chooseFile\"]", markup);
+        Assert.Contains("@(_pendingPicture?.FileName ?? Localization[\"form.noFile\"])", markup);
+        Assert.Contains(":focus-within", stylesheet);
+        Assert.Contains("opacity: 0", stylesheet);
+        Assert.Contains(".profile-picture-actions button:disabled", stylesheet);
+        Assert.Contains("opacity: 0.55", stylesheet);
+        Assert.Contains(".button-primary:disabled:hover", stylesheet);
+        Assert.Contains("disabled=\"@(_pendingPicture is null || IsPictureActionBusy)\"", markup);
+        Assert.Contains("disabled=\"@(string.IsNullOrWhiteSpace(_savedPictureUrl) || IsPictureActionBusy)\"", markup);
     }
 
     [Fact]
@@ -565,5 +640,15 @@ public sealed class ProfilePictureBehaviorTests
     public class RecordingToastServiceProxy : DispatchProxy
     {
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) => null;
+    }
+
+    public class RecordingSearchClientProxy : DispatchProxy
+    {
+        public UserSearchResponseDTO Response { get; set; } = new();
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
+            targetMethod?.Name == nameof(ILANClient.SearchUsersAsync)
+                ? Task.FromResult(Response)
+                : throw new NotSupportedException($"Unexpected LAN client call: {targetMethod?.Name}");
     }
 }

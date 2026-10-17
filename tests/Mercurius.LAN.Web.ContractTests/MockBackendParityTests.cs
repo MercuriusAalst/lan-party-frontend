@@ -1,6 +1,7 @@
 using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.DTOs.Registrations;
+using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Mock;
 using Mercurius.LAN.Web.Models.Tournaments;
@@ -406,6 +407,11 @@ public sealed class MockBackendParityTests
         var context = new DefaultHttpContext { User = DependencyExtensions.BuildMockPrincipal("user", store) };
         var client = new MockUserClient(store, new HttpContextAccessor { HttpContext = context });
         var mockUserId = Guid.Parse("41111111-1111-1111-1111-111111111120");
+        var managedTeam = store.CreateCurrentUserTeam("user", new CreateTeamDTO
+        {
+            Name = "Profile picture team",
+            CaptainUserId = mockUserId
+        });
 
         using(var stream = new MemoryStream([1, 2, 3, 4]))
         {
@@ -423,12 +429,18 @@ public sealed class MockBackendParityTests
         Assert.Equal(
             pictureUrl,
             store.SearchGlobal("mockuser").Single(result => result.UserId == mockUserId).ProfilePictureUrl);
+        Assert.Equal(
+            pictureUrl,
+            store.GetCurrentUserTeamSummary("user").CaptainedTeams
+                .Single(team => team.Id == managedTeam.Id).Members.Single().ProfilePictureUrl);
 
         var removed = await client.RemoveCurrentUserProfilePictureAsync();
 
         Assert.Null(removed.User!.ProfilePictureUrl);
         Assert.Null(store.GetCurrentProfile("user").User!.ProfilePictureUrl);
         Assert.Null(store.GetPublicUserByUsername("mockuser")!.ProfilePictureUrl);
+        Assert.Null(store.GetCurrentUserTeamSummary("user").CaptainedTeams
+            .Single(team => team.Id == managedTeam.Id).Members.Single().ProfilePictureUrl);
     }
 
     private static MockBackendStore CreateStore()

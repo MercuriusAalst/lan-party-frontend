@@ -33,6 +33,7 @@ public class ProfilePictureE2ETests(PlaywrightE2EFixture app) : E2ETestBase(app)
         Assert.False(string.IsNullOrWhiteSpace(await avatar.InnerTextAsync()));
 
         await SelectPictureAsync(page, "avatar.png", TinyPng);
+        await Expect(page.Locator(".profile-picture-file-name")).ToHaveTextAsync("avatar.png");
         await Expect(avatar.Locator("img")).ToHaveCountAsync(1);
         Assert.StartsWith("data:image/png;base64,", await avatar.Locator("img").GetAttributeAsync("src"));
 
@@ -43,7 +44,7 @@ public class ProfilePictureE2ETests(PlaywrightE2EFixture app) : E2ETestBase(app)
             Assert.Null(pendingUser.ProfilePictureUrl);
         }
 
-        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Upload picture" }));
+        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Save picture" }));
         await Expect(page.Locator(".profile-picture-status")).ToHaveTextAsync("Profile picture updated.");
 
         var uploadedUrl = await avatar.Locator("img").GetAttributeAsync("src");
@@ -53,8 +54,21 @@ public class ProfilePictureE2ETests(PlaywrightE2EFixture app) : E2ETestBase(app)
         // A confirmed change reaches the shared signed-in identity without a manual reload.
         await Expect(page.Locator("#account-nav-menu-container .user-avatar img")).ToHaveCountAsync(1);
 
+        using(var api = app.CreateApiClient(member))
+        {
+            var team = await TeamE2E.CreateTeamAsync(api, TeamE2E.UniqueTeamName());
+            Assert.Equal(new Uri(uploadedUrl!).AbsolutePath.TrimStart('/'), team.Members.Single().ProfilePictureUrl);
+        }
+
+        await page.GotoAsync($"{app.BaseUrl}teams/manage");
+        await page.WaitForInteractiveAsync();
+        await Expect(page.Locator(".team-member-row .user-avatar img")).ToHaveAttributeAsync("src", uploadedUrl);
+
+        await page.GotoAsync($"{app.BaseUrl}profile");
+        await page.WaitForInteractiveAsync();
+
         await SelectPictureAsync(page, "replacement.png", TinyPng);
-        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Upload picture" }));
+        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Save picture" }));
         await Expect(page.Locator(".profile-picture-status")).ToHaveTextAsync("Profile picture updated.");
 
         var replacedUrl = await avatar.Locator("img").GetAttributeAsync("src");
@@ -85,7 +99,7 @@ public class ProfilePictureE2ETests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await SelectPictureAsync(page, "huge.png", new byte[(6 * 1024 * 1024)]);
 
         await Expect(page.Locator(".profile-picture-status")).ToContainTextAsync(new Regex("MB limit"));
-        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Upload picture" })).ToHaveCountAsync(0);
+        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Save picture" })).ToBeDisabledAsync();
         await Expect(page.Locator($"{PictureEditorSelector} .user-avatar img")).ToHaveCountAsync(0);
 
         await using var db = app.CreateDbContext();

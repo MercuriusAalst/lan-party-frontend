@@ -2880,6 +2880,9 @@ internal sealed class MockBackendStore
 
         foreach(var user in _document.Users.Where(user => user.Id == userId))
             user.ProfilePictureUrl = pictureUrl;
+
+        foreach(var member in _document.Teams.SelectMany(team => team.Members).Where(member => member.Id == userId))
+            member.ProfilePictureUrl = pictureUrl;
     }
 
     private (MockProfileRecord Record, Guid UserId) GetCurrentProfileRecord(string persona)
@@ -4482,6 +4485,10 @@ internal sealed class MockBackendStore
 
     private void UpsertUserPublicFields(PublicUserDTO member)
     {
+        var profileRecord = _document.Profiles.FirstOrDefault(profile => profile.Profile.User?.Id == member.Id);
+        var profilePictureUrl = profileRecord is null
+            ? member.ProfilePictureUrl
+            : profileRecord.Profile.User?.ProfilePictureUrl;
         var userIndex = _document.Users.FindIndex(existing => existing.Id == member.Id);
         if(userIndex >= 0)
         {
@@ -4492,6 +4499,7 @@ internal sealed class MockBackendStore
             existingUser.DiscordId = member.DiscordId;
             existingUser.SteamId = member.SteamId;
             existingUser.RiotId = member.RiotId;
+            existingUser.ProfilePictureUrl = profilePictureUrl;
             existingUser.DisplayName = string.IsNullOrWhiteSpace(member.DisplayName)
                 ? BuildDisplayName(existingUser.Firstname, existingUser.Lastname, existingUser.Username)
                 : member.DisplayName;
@@ -4510,6 +4518,7 @@ internal sealed class MockBackendStore
             DiscordId = member.DiscordId,
             SteamId = member.SteamId,
             RiotId = member.RiotId,
+            ProfilePictureUrl = profilePictureUrl,
             DisplayName = string.IsNullOrWhiteSpace(member.DisplayName)
                 ? BuildDisplayName(member.Firstname, member.Lastname, member.Username)
                 : member.DisplayName,

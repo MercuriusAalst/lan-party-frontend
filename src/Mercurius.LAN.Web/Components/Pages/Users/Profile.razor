@@ -28,34 +28,44 @@ else
                     <h2>@Localization["General.Profile.YourInformation"]</h2>
                 </div>
 
-                <div class="profile-picture-editor" aria-busy="@IsPictureActionBusy">
-                    <UserAvatar Name="@_model.Username"
-                                PictureUrl="@(_pendingPicture?.PreviewDataUrl ?? _savedPictureUrl)"
-                                Size="prominent" />
+                <section class="profile-picture-tool" aria-labelledby="profile-picture-heading" aria-busy="@IsPictureActionBusy">
+                    <div class="profile-picture-heading">
+                        <span class="profile-picture-heading-icon" aria-hidden="true"><span class="bi bi-image"></span></span>
+                        <h3 id="profile-picture-heading">@Localization["profile.pictureHeading"]</h3>
+                    </div>
+                    <div class="profile-picture-editor">
+                        <UserAvatar Name="@_model.Username"
+                                    PictureUrl="@(_pendingPicture?.PreviewDataUrl ?? _savedPictureUrl)"
+                                    Size="prominent" />
 
-                    <div class="profile-picture-controls">
-                        <label class="profile-picture-picker @(_isPictureBusy ? "profile-picture-picker--busy" : null)">
-                            <span class="bi bi-image" aria-hidden="true"></span>
-                            <span>@Localization["profile.pictureChoose"]</span>
-                            <InputFile OnChange="SelectPictureAsync"
-                                       accept="@ProfilePictureAccept"
-                                       disabled="@IsPictureActionBusy"
-                                       class="profile-picture-native" />
-                        </label>
-
+                        <div class="profile-picture-file-group">
+                            <label class="profile-picture-picker">
+                                <span class="bi bi-upload" aria-hidden="true"></span>
+                                <span>@Localization["form.chooseFile"]</span>
+                                <InputFile OnChange="SelectPictureAsync"
+                                           accept="@ProfilePictureAccept"
+                                           disabled="@IsPictureActionBusy"
+                                           class="profile-picture-native" />
+                            </label>
+                            <small class="profile-picture-file-name">@(_pendingPicture?.FileName ?? Localization["form.noFile"])</small>
+                        </div>
+                    </div>
+                    <div class="profile-picture-actions">
+                        <button type="button" class="button-primary" @onclick="UploadPictureAsync" disabled="@(_pendingPicture is null || IsPictureActionBusy)">
+                            <span class="bi bi-check-lg" aria-hidden="true"></span>
+                            @Localization["profile.pictureUpload"]
+                        </button>
+                        <button type="button" class="button-secondary profile-picture-remove" @onclick="RemovePictureAsync" disabled="@(string.IsNullOrWhiteSpace(_savedPictureUrl) || IsPictureActionBusy)">
+                            <span class="bi bi-trash3" aria-hidden="true"></span>
+                            @Localization["profile.pictureRemove"]
+                        </button>
                         @if(_pendingPicture is not null)
                         {
-                            <button type="button" class="btn btn-primary" @onclick="UploadPictureAsync" disabled="@IsPictureActionBusy">@Localization["profile.pictureUpload"]</button>
-                            <button type="button" class="btn btn-outline-secondary" @onclick="ClearPendingPicture" disabled="@IsPictureActionBusy">@Localization["common.cancel"]</button>
-                        }
-                        else if(!string.IsNullOrWhiteSpace(_savedPictureUrl))
-                        {
-                            <button type="button" class="btn btn-outline-danger" @onclick="RemovePictureAsync" disabled="@IsPictureActionBusy">@Localization["profile.pictureRemove"]</button>
+                            <button type="button" class="button-secondary" @onclick="ClearPendingPicture" disabled="@IsPictureActionBusy">@Localization["common.cancel"]</button>
                         }
                     </div>
-
                     <p class="form-text profile-picture-status" aria-live="polite">@_pictureStatusText</p>
-                </div>
+                </section>
 
                 <div class="profile-email-row mb-5 grid gap-2">
                     <label class="form-label">@Localization["profile.email"]</label>

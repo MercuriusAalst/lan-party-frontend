@@ -22,19 +22,49 @@
     margin-top: 0.1rem;
 }
 
-.profile-picture-editor {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 1rem;
+.profile-picture-tool {
+    display: grid;
+    gap: 0.8rem;
     margin-bottom: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-muted);
 }
 
-.profile-picture-controls {
+.profile-picture-heading {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.65rem;
+}
+
+.profile-picture-heading h3 {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.profile-picture-heading-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: var(--radius-button);
+    background: var(--color-neutral-soft);
+    color: var(--color-muted-text);
+}
+
+.profile-picture-editor {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.profile-picture-file-group {
+    display: grid;
+    gap: 0.45rem;
     min-width: 0;
 }
 
@@ -43,31 +73,71 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    justify-self: start;
     gap: 0.45rem;
-    min-height: 2.6rem;
-    padding: 0.65rem 0.85rem;
-    border: 1px dashed color-mix(in srgb, var(--color-success) 42%, transparent);
-    border-radius: 14px;
+    min-height: 2.5rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--radius-button);
     background: var(--color-success-soft);
-    color: var(--color-success);
+    color: var(--color-link);
     cursor: pointer;
+    font-size: 0.86rem;
     font-weight: 800;
 }
 
-.profile-picture-picker:hover {
-    border-color: color-mix(in srgb, var(--color-success) 58%, transparent);
-    background: color-mix(in srgb, var(--color-success) 18%, var(--color-surface-raised));
-}
-
+.profile-picture-picker:hover,
 .profile-picture-picker:focus-within {
-    border-color: var(--color-electric-lime);
-    box-shadow: 0 0 0 4px var(--color-focus);
-    outline: none;
+    background: color-mix(in srgb, var(--color-success-soft) 78%, var(--color-primary-green));
 }
 
-.profile-picture-picker--busy {
-    opacity: 0.6;
+.profile-picture-picker ::deep input[type="file"] {
+    position: fixed;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
     pointer-events: none;
+}
+
+.profile-picture-file-name {
+    overflow: hidden;
+    color: var(--color-muted-text);
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-picture-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.profile-picture-remove {
+    color: var(--color-danger);
+}
+
+.profile-picture-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    transform: none;
+    box-shadow: none;
+}
+
+.profile-picture-actions .button-primary:disabled:hover {
+    background: var(--brand-button-primary-background, var(--color-primary-green));
+    border-color: var(--brand-button-primary-border, var(--color-primary-green));
+    color: var(--brand-button-primary-color, var(--color-dark-navy));
+}
+
+.profile-picture-actions .button-secondary:disabled:hover {
+    background: var(--brand-button-secondary-background, var(--color-surface-raised));
+    border-color: var(--brand-button-secondary-border, var(--color-border-strong));
+    color: var(--brand-button-secondary-color, var(--color-link));
+}
+
+.profile-picture-actions .profile-picture-remove:disabled:hover {
+    color: var(--color-danger);
 }
 
 .profile-picture-native {
@@ -101,4 +171,15 @@
 
 .profile-danger-card {
     border-color: rgba(220, 38, 38, 0.18);
+}
+
+@media (max-width: 480px) {
+    .profile-picture-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .profile-picture-actions > * {
+        width: 100%;
+    }
 }

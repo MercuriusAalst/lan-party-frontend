@@ -354,6 +354,7 @@
                                     @foreach(var member in currentTeam.RosterMembers)
                                     {
                                         <span class="registration-review-member @(member.ConfirmationStatus == RosterMemberConfirmationStatus.Pending ? "registration-review-member--pending" : "registration-review-member--confirmed")">
+                                            @if(member.User is not null){<UserAvatar Name="@GetUserLabel(member.User)" PictureUrl="@member.User.ProfilePictureUrl" Size="compact" />}
                                             @if(member.IsCaptain){<span class="registration-captain-chip">@Localization["Feature.tournaments.captain"]</span>}@GetUserLabel(member.User): @GetConfirmationLabel(member.ConfirmationStatus)
                                         </span>
                                     }
@@ -389,6 +390,7 @@
                                     @foreach(var member in currentTeam.RosterMembers)
                                     {
                                         <span class="registration-review-member @(member.ConfirmationStatus == RosterMemberConfirmationStatus.Pending ? "registration-review-member--pending" : "registration-review-member--confirmed")">
+                                            @if(member.User is not null){<UserAvatar Name="@GetUserLabel(member.User)" PictureUrl="@member.User.ProfilePictureUrl" Size="compact" />}
                                             @if(member.IsCaptain){<span class="registration-captain-chip">@Localization["Feature.tournaments.captain"]</span>}@GetUserLabel(member.User): @GetConfirmationLabel(member.ConfirmationStatus)
                                         </span>
                                     }
@@ -492,6 +494,7 @@
                                                                disabled="@(_isSubmitting || _isLoadingRegistration || _isLoadingRoster || unavailable)"
                                                                aria-label='@GetRosterMemberAriaLabel(member, unavailable)'
                                                                @onchange="args => ToggleRosterMemberAsync(member.Id, args)" />
+                                                        <UserAvatar Name="@GetUserLabel(member)" PictureUrl="@member.ProfilePictureUrl" Size="compact" />
                                                         <span class="registration-roster-member-copy">
                                                             <span class="registration-roster-member-name">
                                                                 <strong>@GetUserLabel(member)</strong>
@@ -545,6 +548,7 @@
                                                         : RosterMemberConfirmationStatus.Pending;
                                                     <div class="registration-review-player @(confirmationStatus == RosterMemberConfirmationStatus.Pending ? "registration-review-player--pending" : "registration-review-player--confirmed")">
                                                         <span class="registration-review-player-name">
+                                                            <UserAvatar Name="@GetUserLabel(selectedMember)" PictureUrl="@selectedMember.ProfilePictureUrl" Size="compact" />
                                                             <strong>@GetUserLabel(selectedMember)</strong>
                                                             @if(selectedMember.Id == SelectedTeam.CaptainUserId){<span class="registration-captain-chip">@Localization["Feature.tournaments.captain"]</span>}
                                                         </span>

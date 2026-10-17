@@ -79,7 +79,7 @@
                     @if(_selected is { } selected)
                     {
                         <div class="team-selected-player">
-                            <span class="bi bi-person-plus-fill" aria-hidden="true"></span>
+                            <UserAvatar Name="@selected.DisplayLabel" PictureUrl="@selected.ProfilePictureUrl" Size="compact" />
                             <span>@selected.DisplayLabel</span>
                         </div>
                     }
