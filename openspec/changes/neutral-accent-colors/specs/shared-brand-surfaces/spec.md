@@ -2,7 +2,7 @@
 
 ### Requirement: Informational badges and secondary buttons use neutral accents
 
-Shared informational badges MUST use a neutral background, a neutral border and neutral ink text in both light and dark themes, and MUST meet WCAG AA contrast. Status pills that convey a tournament or registration status MUST keep their semantic status colours. Secondary and outline buttons MUST render their text in the neutral ink colour with a neutral border; the brand green MAY appear on their hover and focus borders only. Primary buttons MUST keep the brand green. The global link colour MUST NOT change.
+Shared informational badges MUST use a neutral background, a neutral border and neutral ink text in both light and dark themes, and MUST meet WCAG AA contrast. In the light theme the badge fill and border MUST be a visible grey (not a near-white tint) against white cards. Status pills that convey a tournament or registration status MUST keep their semantic status colours. Secondary and outline buttons MUST render their text in the neutral ink colour with a neutral border; the brand green MAY appear on their hover and focus borders only. Primary buttons MUST keep the brand green. The global link colour MUST NOT change.
 
 #### Scenario: Tournament card shows informational badges
 
@@ -18,7 +18,7 @@ Shared informational badges MUST use a neutral background, a neutral border and 
 
 ### Requirement: Button states stay on the app palette
 
-Controls that combine the Bootstrap `btn` class with an app button variant (primary, secondary, outline) MUST render their hover, keyboard focus, active and disabled states from the app's button tokens. Keyboard focus MUST keep the variant's neutral or brand background and text and add only a visible focus border or ring, and disabled controls MUST keep the variant's own treatment at reduced opacity. These states MUST NOT render Bootstrap's default blue or grey.
+Controls that combine the Bootstrap `btn` class with an app button variant (primary, secondary, outline) MUST render their hover, keyboard focus, active and disabled states from the app's button tokens. Keyboard focus MUST keep the variant's normal (not hover) background and text and add only a visible focus border or ring, while a control that is also hovered MUST show its hover fill, and disabled controls MUST keep the variant's own treatment at reduced opacity. These states MUST NOT render Bootstrap's default blue or grey.
 
 #### Scenario: Keyboard focus lands on a Bootstrap-class secondary button
 
