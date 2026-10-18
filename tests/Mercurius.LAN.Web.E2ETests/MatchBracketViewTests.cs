@@ -105,6 +105,9 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await MatchE2E.CloseContextsAsync(app, context);
     }
 
+    private static Task<string> ComputedBackgroundAsync(ILocator locator) =>
+        locator.EvaluateAsync<string>("el => getComputedStyle(el).backgroundColor");
+
     [Fact]
     public async Task DoubleEliminationBracketExposesUpperLowerAndGrandFinalViews()
     {
@@ -139,6 +142,32 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(lowerTab).ToHaveAttributeAsync("aria-selected", "true");
         await Expect(lowerTab).ToHaveClassAsync(new Regex("double-elimination-tab--active"));
         await Expect(upperTab).ToHaveAttributeAsync("aria-selected", "false");
+
+        // Hovering the selected tab must not replace its active fill with the lighter hover fill.
+        await page.Mouse.MoveAsync(0, 0);
+        await page.WaitForTimeoutAsync(400);
+        var restingFill = await ComputedBackgroundAsync(lowerTab);
+        await lowerTab.HoverAsync();
+        await page.WaitForTimeoutAsync(400);
+        Assert.Equal(restingFill, await ComputedBackgroundAsync(lowerTab));
+
+        // Keyboard focus on a Bootstrap-class secondary button keeps its normal fill, and hover still wins.
+        await page.Mouse.MoveAsync(0, 0);
+        var probe = page.Locator("#focus-fill-probe");
+        await page.EvaluateAsync(
+            "() => { const b = document.createElement('button'); b.id = 'focus-fill-probe'; b.type = 'button'; " +
+            "b.className = 'btn btn-secondary'; b.textContent = 'probe'; document.body.appendChild(b); }");
+        await page.WaitForTimeoutAsync(400);
+        var unfocusedFill = await ComputedBackgroundAsync(probe);
+        await page.Keyboard.PressAsync("Shift");
+        await probe.FocusAsync();
+        Assert.True(await probe.EvaluateAsync<bool>("el => el.matches(':focus-visible')"));
+        await page.WaitForTimeoutAsync(400);
+        Assert.Equal(unfocusedFill, await ComputedBackgroundAsync(probe));
+        await probe.HoverAsync();
+        await page.WaitForTimeoutAsync(400);
+        Assert.NotEqual(unfocusedFill, await ComputedBackgroundAsync(probe));
+        await page.EvaluateAsync("() => document.getElementById('focus-fill-probe')?.remove()");
 
         await MatchE2E.ClickAsync(tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Grand final") }));
         await Expect(shell.Locator(".double-elimination-finals-card .bracket-match")).ToBeVisibleAsync();

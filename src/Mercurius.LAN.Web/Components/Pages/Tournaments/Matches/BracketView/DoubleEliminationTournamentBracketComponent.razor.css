@@ -113,10 +113,14 @@ html[data-theme="dark"] .double-elimination-tabs {
 }
 
 .double-elimination-tab:hover {
-    border-color: var(--de-tab-hover-border);
-    background: var(--de-tab-hover-bg);
     box-shadow: none;
     transform: translateY(-1px);
+}
+
+/* The selected tab keeps its active fill and edge while hovered. */
+.double-elimination-tab:hover:not(.double-elimination-tab--active) {
+    border-color: var(--de-tab-hover-border);
+    background: var(--de-tab-hover-bg);
 }
 
 .double-elimination-tab:focus-visible {

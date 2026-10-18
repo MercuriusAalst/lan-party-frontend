@@ -775,6 +775,26 @@ main {
     box-shadow: 0 0 0 3px var(--color-focus), var(--shadow-brand-hover);
 }
 
+/*
+ * Bootstrap's .btn:focus-visible applies the hover fill and text colour. Keyboard focus must keep the
+ * variant's normal fill and text (only the border and ring change); a hovered, pressed or selected
+ * control keeps the hover, pressed or selected fill. :where() keeps this at the same specificity as
+ * Bootstrap's rule so the later app.css wins without overriding the danger variant.
+ */
+.button-secondary:focus-visible:where(:not(:hover, :active, .is-active, [aria-pressed="true"], .button-danger)),
+.btn-secondary:focus-visible:where(:not(:hover, :active, .is-active, [aria-pressed="true"], .button-danger)),
+.btn-outline-primary:focus-visible:where(:not(:hover, :active, .is-active, [aria-pressed="true"], .button-danger)),
+.btn-outline-secondary:focus-visible:where(:not(:hover, :active, .is-active, [aria-pressed="true"], .button-danger)) {
+    background: var(--brand-button-secondary-background, var(--color-surface-raised));
+    color: var(--brand-button-secondary-color, var(--color-ink));
+}
+
+.btn-primary:focus-visible:where(:not(:hover, :active)) {
+    background: var(--brand-button-primary-background, var(--color-primary-green));
+    border-color: var(--brand-button-primary-border, var(--color-primary-green));
+    color: var(--brand-button-primary-color, var(--color-dark-navy));
+}
+
 .button-secondary:active,
 .btn-secondary:active,
 .btn-outline-primary:active,
