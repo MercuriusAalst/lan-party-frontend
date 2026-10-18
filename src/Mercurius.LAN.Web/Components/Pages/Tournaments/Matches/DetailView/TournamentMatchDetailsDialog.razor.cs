@@ -293,10 +293,12 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     };
 
     // The state alone does not say why the admin is needed, so the text states the reason: a conflict, or an
-    // opponent who never reported. Admins see the private reports; everyone else relies on the public ended flags.
+    // opponent who never reported. The private reports decide only when they are actually present in the action
+    // state; a successful response can still withhold them (unrelated viewer, unassigned global admin), and then the
+    // public ended flags decide: both sides ended means both reported.
     internal static MatchResolutionReason GetResolutionReason(Match match, MatchActionStateDTO? actionState)
     {
-        var bothReported = actionState is not null
+        var bothReported = actionState is not null && ShouldRenderAdminReports(actionState)
             ? actionState.Participant1ReportedScore1.HasValue && actionState.Participant2ReportedScore1.HasValue
             : match.Participant1Ended && match.Participant2Ended;
         return bothReported ? MatchResolutionReason.Disputed : MatchResolutionReason.MissingOpponentReport;

@@ -8,23 +8,10 @@ namespace Mercurius.LAN.Web.ContractTests;
 public sealed class MatchResolutionUiTests
 {
     [Fact]
-    public void ResolutionReason_UsesTheAdminReportsWhenPresentAndTheEndedFlagsOtherwise()
+    public void ResolutionReason_UsesVisiblePrivateReports()
     {
-        var match = new Match
-        {
-            LifecycleState = MatchLifecycleState.AdminResolutionRequired,
-            Participant1Ended = true,
-            Participant2Ended = false
-        };
-
-        Assert.Equal(MatchResolutionReason.MissingOpponentReport, TournamentMatchDetailsDialog.GetResolutionReason(match, null));
-
-        match.Participant2Ended = true;
-        Assert.Equal(MatchResolutionReason.Disputed, TournamentMatchDetailsDialog.GetResolutionReason(match, null));
-
-        var loneReport = new MatchActionStateDTO { Participant1ReportedScore1 = 1, Participant1ReportedScore2 = 0 };
-        Assert.Equal(MatchResolutionReason.MissingOpponentReport, TournamentMatchDetailsDialog.GetResolutionReason(match, loneReport));
-
+        // Public flags deliberately contradict the reports to prove the visible reports win.
+        var match = new Match { LifecycleState = MatchLifecycleState.AdminResolutionRequired, Participant1Ended = true, Participant2Ended = false };
         var conflict = new MatchActionStateDTO
         {
             Participant1ReportedScore1 = 1,
@@ -32,7 +19,34 @@ public sealed class MatchResolutionUiTests
             Participant2ReportedScore1 = 0,
             Participant2ReportedScore2 = 1
         };
+        var loneReport = new MatchActionStateDTO { Participant1ReportedScore1 = 1, Participant1ReportedScore2 = 0 };
+
         Assert.Equal(MatchResolutionReason.Disputed, TournamentMatchDetailsDialog.GetResolutionReason(match, conflict));
+
+        match.Participant2Ended = true;
+        Assert.Equal(MatchResolutionReason.MissingOpponentReport, TournamentMatchDetailsDialog.GetResolutionReason(match, loneReport));
+    }
+
+    [Fact]
+    public void ResolutionReason_FallsBackToThePublicFlagsWhenPrivateReportsAreWithheld()
+    {
+        // A successful action-state response can withhold both reports: every report field is null.
+        var withheld = new MatchActionStateDTO();
+        var bothEnded = new Match { LifecycleState = MatchLifecycleState.AdminResolutionRequired, Participant1Ended = true, Participant2Ended = true };
+        var oneEnded = new Match { LifecycleState = MatchLifecycleState.AdminResolutionRequired, Participant1Ended = true, Participant2Ended = false };
+
+        Assert.Equal(MatchResolutionReason.Disputed, TournamentMatchDetailsDialog.GetResolutionReason(bothEnded, withheld));
+        Assert.Equal(MatchResolutionReason.MissingOpponentReport, TournamentMatchDetailsDialog.GetResolutionReason(oneEnded, withheld));
+    }
+
+    [Fact]
+    public void ResolutionReason_UsesThePublicFlagsWithoutAnActionState()
+    {
+        var bothEnded = new Match { Participant1Ended = true, Participant2Ended = true };
+        var oneEnded = new Match { Participant1Ended = false, Participant2Ended = true };
+
+        Assert.Equal(MatchResolutionReason.Disputed, TournamentMatchDetailsDialog.GetResolutionReason(bothEnded, null));
+        Assert.Equal(MatchResolutionReason.MissingOpponentReport, TournamentMatchDetailsDialog.GetResolutionReason(oneEnded, null));
     }
 
     [Fact]
