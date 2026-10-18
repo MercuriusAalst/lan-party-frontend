@@ -2196,6 +2196,7 @@ internal sealed class MockBackendStore
         lock(_syncRoot)
         {
             var tournament = GetRequiredTournament(tournamentId);
+            EnsureAdminRegistrationRemovalAllowed(tournament);
             var registrations = GetRegistrationDetails(tournament);
             var registration = registrations.FirstOrDefault(candidate =>
                 candidate.Kind == TournamentRegistrationKind.Individual && candidate.User?.Id == userId);
@@ -2212,6 +2213,7 @@ internal sealed class MockBackendStore
         lock(_syncRoot)
         {
             var tournament = GetRequiredTournament(tournamentId);
+            EnsureAdminRegistrationRemovalAllowed(tournament);
             var registrations = GetRegistrationDetails(tournament);
             var registration = registrations.FirstOrDefault(candidate =>
                 candidate.Kind == TournamentRegistrationKind.Team && candidate.Team?.Id == teamId);
@@ -2221,6 +2223,13 @@ internal sealed class MockBackendStore
             registrations.Remove(registration);
             UpdatePublicRegistrationProjection(tournament, registrations);
         }
+    }
+
+    private static void EnsureAdminRegistrationRemovalAllowed(TournamentExtended tournament)
+    {
+        if(tournament.Status != TournamentStatus.Scheduled &&
+           tournament.BracketType is (BracketType.SingleElimination or BracketType.DoubleElimination))
+            throw new InvalidOperationException("registration_locked_after_start");
     }
 
     private void InitializeRegistrationDetails()
@@ -4720,3 +4729,4 @@ internal sealed class MockBackendStore
         return JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, SerializerOptions), SerializerOptions);
     }
 }
+

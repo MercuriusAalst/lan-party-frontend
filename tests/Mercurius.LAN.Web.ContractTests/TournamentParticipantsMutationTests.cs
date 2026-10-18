@@ -20,6 +20,66 @@ public sealed class TournamentParticipantsMutationTests
 {
     private static readonly BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
 
+    [Theory]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.Scheduled, false)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.Scheduled, false)]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.InProgress, true)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.Canceled, true)]
+    [InlineData(BracketType.Leaderboard, TournamentStatus.InProgress, false)]
+    [InlineData(BracketType.RoundRobin, TournamentStatus.InProgress, false)]
+    public void AdminRemovalLockOnlyAppliesToNonScheduledElimination(
+        BracketType bracketType,
+        TournamentStatus status,
+        bool expected)
+    {
+        var tournament = CreateTournament(Guid.NewGuid());
+        tournament.BracketType = bracketType;
+        tournament.Status = status;
+        var tab = CreateTab(out _);
+        tab.SetTournamentForTest(tournament);
+
+        var isLocked = (bool)typeof(TournamentParticipantsTab)
+            .GetProperty("IsAdminRemovalLocked", PrivateInstance)!
+            .GetValue(tab)!;
+
+        Assert.Equal(expected, isLocked);
+    }
+    [Theory]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.InProgress, TournamentRegistrationKind.Individual)]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.Completed, TournamentRegistrationKind.Team)]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.Canceled, TournamentRegistrationKind.Individual)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.InProgress, TournamentRegistrationKind.Team)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.Completed, TournamentRegistrationKind.Individual)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.Canceled, TournamentRegistrationKind.Team)]
+    public async Task AdminRemovalDoesNotSendMutationAfterEliminationLeavesScheduled(
+        BracketType bracketType,
+        TournamentStatus status,
+        TournamentRegistrationKind kind)
+    {
+        var tournament = CreateTournament(Guid.NewGuid());
+        tournament.BracketType = bracketType;
+        tournament.Status = status;
+        var tab = CreateTab(out _);
+        var service = CreateTournamentService(NewCompletionSource<bool>());
+        SetPrivateProperty(tab, "TournamentService", service);
+        tab.SetTournamentForTest(tournament);
+        var registration = CreateAdminRegistration(Guid.NewGuid(), tournament.Id);
+        if(kind == TournamentRegistrationKind.Team)
+            registration = new AdminTournamentRegistrationDTO
+            {
+                Id = registration.Id,
+                TournamentId = registration.TournamentId,
+                Kind = TournamentRegistrationKind.Team,
+                Status = TournamentRegistrationStatus.Active,
+                Team = new TeamParticipantDTO { Id = Guid.NewGuid(), Name = "Test team" }
+            };
+
+        await InvokeAdminMutation(tab, registration);
+
+        Assert.Empty(service.Calls);
+        Assert.Null(GetField(tab, "_pendingAdminRemovalRegistrationId"));
+        Assert.False(GetField<bool>(tab, "_isSubmitting"));
+    }
     [Fact]
     public async Task UserMutationStaleSuccessAfterTournamentChangeHasNoEffects()
     {
@@ -49,6 +109,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.Equal(0, callbackCount);
     }
 
+
     [Fact]
     public async Task UserMutationStaleErrorAfterTournamentChangeHasNoEffects()
     {
@@ -72,6 +133,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.Empty(toastService.Messages);
         Assert.Equal(0, callbackCount);
     }
+
 
     [Fact]
     public async Task AdminMutationStaleSuccessAfterTournamentChangeHasNoEffects()
@@ -111,6 +173,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.Equal(tournamentAId, call.TournamentId);
     }
 
+
     [Fact]
     public async Task AdminMutationStaleErrorAfterTournamentChangeHasNoEffects()
     {
@@ -141,6 +204,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.Equal(0, callbackCount);
     }
 
+
     [Fact]
     public async Task IndividualRegistrationActionOpensTheInlineConfirmationWithoutSendingTheMutation()
     {
@@ -158,6 +222,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.Equal(0, service.RegisterCallCount);
         Assert.Empty(service.Calls);
     }
+
 
     [Fact]
     public async Task ConfirmingIndividualRegistrationSendsTheMutationExactlyOnce()
@@ -177,6 +242,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.False(GetField<bool>(tab, "_isIndividualRegistrationConfirmationOpen"));
     }
 
+
     [Fact]
     public async Task DismissingIndividualRegistrationConfirmationSendsNoMutation()
     {
@@ -195,6 +261,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.Empty(service.Calls);
     }
 
+
     [Fact]
     public async Task IneligibleIndividualPlayerStillUsesTheRegistrationDialog()
     {
@@ -211,6 +278,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.False(GetField<bool>(tab, "_isIndividualRegistrationConfirmationOpen"));
         Assert.Empty(service.Calls);
     }
+
 
     [Fact]
     public async Task IndividualUnregistrationRequiresTheConfirmationBeforeTheMutation()
@@ -233,6 +301,7 @@ public sealed class TournamentParticipantsMutationTests
         Assert.Equal([tournament.Id], service.DeleteTournamentIds);
         Assert.False(GetField<bool>(tab, "_isIndividualUnregistrationConfirmationOpen"));
     }
+
 
     [Fact]
     public async Task RosterRevalidationKeepsTheStepStateAndExplainsABlockedStep()
@@ -627,3 +696,4 @@ public sealed class TournamentParticipantsMutationTests
         }
     }
 }
+

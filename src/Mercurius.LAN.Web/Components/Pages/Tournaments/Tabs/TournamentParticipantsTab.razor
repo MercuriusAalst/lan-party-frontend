@@ -626,6 +626,10 @@
                     }
                 </div>
 
+                @if(IsAdminRemovalLocked)
+                {
+                    <p class="registration-message" role="status">@Localization["Feature.tournaments.adminRemovalLocked"]</p>
+                }
                 @if(_adminError is not null)
                 {
                     <p class="registration-message registration-message--error" role="alert">@_adminError</p>
@@ -651,7 +655,7 @@
                                     <strong>@registrationLabel</strong>
                                 <span>@GetRegistrationKindLabel(registration.Kind) · @GetRegistrationStatusLabel(registration.Status)</span>
                                 </div>
-                                <button type="button" class="button-secondary" disabled="@(_pendingAdminRemovalRegistrationId.HasValue || _isLoadingRegistration)" @onclick="() => RemoveAdminRegistrationAsync(registration)">@Localization["team.remove"]</button>
+                                <button type="button" class="button-secondary" disabled="@(IsAdminRemovalLocked || _pendingAdminRemovalRegistrationId.HasValue || _isLoadingRegistration)" @onclick="() => RemoveAdminRegistrationAsync(registration)">@Localization["team.remove"]</button>
                             </div>
                         }
                     </div>
@@ -661,3 +665,4 @@
     </div>
 
 </div>
+

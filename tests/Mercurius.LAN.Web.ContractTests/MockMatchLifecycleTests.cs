@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mercurius.LAN.Web.DTOs.Matches;
@@ -34,6 +35,86 @@ public sealed class MockMatchLifecycleTests
     private static readonly Guid ReplayUserId = Guid.Parse("53111111-1111-1111-1111-111111111111");
     private static readonly Guid ReplayAdminId = Guid.Parse("53111111-1111-1111-1111-111111111112");
 
+    [Theory]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.InProgress)]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.Completed)]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.Canceled)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.InProgress)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.Completed)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.Canceled)]
+    public void MockAdminCannotRemoveIndividualFromStartedElimination(
+        BracketType bracketType,
+        TournamentStatus status)
+    {
+        var store = CreateSeededStore();
+        var tournament = GetStoredTournament(store, IndividualProfileFixtureTournamentId);
+        tournament.BracketType = bracketType;
+        tournament.Status = status;
+        var registrationsBefore = store.GetAdminTournamentRegistrations(tournament.Id, null, null)
+            .Select(registration => registration.Id)
+            .ToArray();
+
+        Assert.Throws<InvalidOperationException>(() => store.RemoveTournamentUserRegistrationAsAdmin(
+            tournament.Id,
+            IndividualProfileFixtureOpponentId,
+            "Started elimination regression"));
+
+        Assert.Equal(registrationsBefore, store.GetAdminTournamentRegistrations(tournament.Id, null, null)
+            .Select(registration => registration.Id));
+    }
+
+    [Theory]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.InProgress)]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.Completed)]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.Canceled)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.InProgress)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.Completed)]
+    [InlineData(BracketType.DoubleElimination, TournamentStatus.Canceled)]
+    public void MockAdminCannotRemoveTeamFromStartedElimination(
+        BracketType bracketType,
+        TournamentStatus status)
+    {
+        var store = CreateSeededStore();
+        var tournament = GetStoredTournament(store, FeaturedTournamentId);
+        tournament.BracketType = bracketType;
+        tournament.Status = status;
+        var registration = store.GetAdminTournamentRegistrations(tournament.Id, null, null)
+            .First(item => item.Kind == TournamentRegistrationKind.Team);
+        var registrationsBefore = store.GetAdminTournamentRegistrations(tournament.Id, null, null)
+            .Select(item => item.Id)
+            .ToArray();
+
+        Assert.Throws<InvalidOperationException>(() => store.RemoveTournamentTeamRegistrationAsAdmin(
+            tournament.Id,
+            registration.Team!.Id,
+            "Started elimination regression"));
+
+        Assert.Equal(registrationsBefore, store.GetAdminTournamentRegistrations(tournament.Id, null, null)
+            .Select(item => item.Id));
+    }
+
+    [Theory]
+    [InlineData(BracketType.SingleElimination, TournamentStatus.Scheduled)]
+    [InlineData(BracketType.Leaderboard, TournamentStatus.InProgress)]
+    public void MockAdminRemovalRemainsAvailableForScheduledAndLeaderboardRegistrations(
+        BracketType bracketType,
+        TournamentStatus status)
+    {
+        var store = CreateSeededStore();
+        var tournament = GetStoredTournament(store, FeaturedTournamentId);
+        tournament.BracketType = bracketType;
+        tournament.Status = status;
+        var registration = store.GetAdminTournamentRegistrations(tournament.Id, null, null)
+            .First(item => item.Kind == TournamentRegistrationKind.Team);
+
+        store.RemoveTournamentTeamRegistrationAsAdmin(
+            tournament.Id,
+            registration.Team!.Id,
+            "Allowed registration regression");
+
+        Assert.DoesNotContain(store.GetAdminTournamentRegistrations(tournament.Id, null, null),
+            item => item.Id == registration.Id);
+    }
     [Fact]
     public void MockAdminForfeitAndReverseKeepExplicitLifecycleState()
     {
@@ -69,6 +150,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Null(reversed.Participant2Score);
         Assert.False(store.GetMatchActionState("admin", FeaturedGrandFinalId).CanReverse);
     }
+
 
     [Fact]
     public void MockReverseClearsWinnerAndLoserFromBothDownstreamPaths()
@@ -118,6 +200,7 @@ public sealed class MockMatchLifecycleTests
         Assert.DoesNotContain(participant2Id, new[] { loserNext.TeamParticipant1Id, loserNext.TeamParticipant2Id });
     }
 
+
     [Fact]
     public void MockReversalClearsProvenancedFeaturedGrandFinalAssignment()
     {
@@ -131,6 +214,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Null(final.TeamParticipant2Id);
         Assert.Null(final.Participant2SourceMatchId);
     }
+
     [Fact]
     public void MockReversalStillRejectsUnprovenancedDownstreamAssignment()
     {
@@ -145,6 +229,7 @@ public sealed class MockMatchLifecycleTests
         var exception = Assert.Throws<InvalidOperationException>(() => store.ReverseMatch("admin", FeaturedLowerBracketFinalId));
         Assert.StartsWith("match_reversal_blocked:", exception.Message, StringComparison.Ordinal);
     }
+
 
     [Fact]
     public void MockReversedMatchCanReplayAndSecondReversalClearsEndTime()
@@ -176,6 +261,7 @@ public sealed class MockMatchLifecycleTests
         Assert.True(store.GetMatchActionState("user", ReplayMatchId).CanSubmitScore);
     }
 
+
     [Fact]
     public void MockDirectScoreReportRecordsTheEndingWithoutASeparateConfirmation()
     {
@@ -205,6 +291,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Equal(MatchLifecycleState.Completed, completed.LifecycleState);
     }
 
+
     [Fact]
     public void MockFirstReportOpensAFreshWindowEvenWithAStaleDeadline()
     {
@@ -221,6 +308,7 @@ public sealed class MockMatchLifecycleTests
         Assert.NotNull(afterReport.ScoreConfirmationDeadlineUtc);
         Assert.True(afterReport.ScoreConfirmationDeadlineUtc > before.AddMinutes(4));
     }
+
 
     [Fact]
     public void MockForfeitClearsPendingScoreAndCorrectionDeadlines()
@@ -270,6 +358,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Null(disputedForfeited.ScoreConfirmationDeadlineUtc);
         Assert.Null(disputedForfeited.CorrectionDeadlineUtc);
     }
+
 
     [Fact]
     public void MockResultPropagationMirrorsBackendOrientationAndReplacesSourceOwnedSlots()
@@ -353,6 +442,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Equal(lowerSource.Id, lowerLoserTarget.Participant1SourceMatchId);
     }
 
+
     [Fact]
     public void MockAnonymousMatchStateUsesPublicProjectionWithoutPrivateReports()
     {
@@ -380,6 +470,7 @@ public sealed class MockMatchLifecycleTests
 
         Assert.Null(store.GetTournament(FeaturedTournamentId)!.AssignedAdminUserId);
     }
+
 
     [Fact]
     public async Task MockAnonymousLoginAndUnauthenticatedRequestsStayAnonymousInTournamentService()
@@ -414,6 +505,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Null(unauthenticatedState.Participant2ReportedScore1);
     }
 
+
     [Fact]
     public void MockPrivateReportsMatchLiveAssignedAdminVisibilityRules()
     {
@@ -426,6 +518,7 @@ public sealed class MockMatchLifecycleTests
         Assert.True(MockBackendStore.CanViewPrivateReports("user", adminId, otherAdminId, true));
         Assert.False(MockBackendStore.CanViewPrivateReports("user", adminId, otherAdminId, false));
     }
+
 
     [Fact]
     public void MockPublicProfilesExposeBoundedLifecycleAwareMatchSummaries()
@@ -469,16 +562,13 @@ public sealed class MockMatchLifecycleTests
         Assert.Null(store.GetPublicUserMatchSummaries("missing-user"));
     }
 
+
     [Fact]
     public void MockPublicProfileSummariesRetainHistoricalOpponentSnapshotAfterRegistrationRemoval()
     {
         var repositoryRoot = FindRepositoryRoot();
-        var store = new MockBackendStore(
-            new TestHostEnvironment(repositoryRoot),
-            Microsoft.Extensions.Options.Options.Create(new MockBackendOptions
-            {
-                DataFilePath = Path.Combine(repositoryRoot, "src", "Mercurius.LAN.Web", "MockData.Local", "backend.json")
-            }));
+        var store = CreateSeededStore();
+        SetBracketType(store, IndividualProfileFixtureTournamentId, BracketType.RoundRobin);
 
         store.RemoveTournamentUserRegistrationAsAdmin(
             IndividualProfileFixtureTournamentId,
@@ -491,6 +581,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Equal("solo2", Assert.Single(summaries!.PreviousMatches).OpponentDisplayName);
         Assert.Equal("solo2", Assert.Single(summaries.UpcomingMatches).OpponentDisplayName);
     }
+
 
     [Fact]
     public void MockPublicProfileSummariesPreferCurrentPublicOpponentLabelsAfterRename()
@@ -517,10 +608,12 @@ public sealed class MockMatchLifecycleTests
         Assert.Equal("Current Gamma Grid", Assert.Single(teamSummaries!.UpcomingMatches).OpponentDisplayName);
     }
 
+
     [Fact]
     public void MockRemovingFinalTeamRegistrationDoesNotRepopulatePublicProjection()
     {
         var store = CreateFeaturedStore();
+        SetBracketType(store, FeaturedTournamentId, BracketType.RoundRobin);
         var teamIds = store.GetTournament(FeaturedTournamentId)!.Registrations
             .Where(registration =>
                 registration.Kind == TournamentRegistrationKind.Team &&
@@ -546,6 +639,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Empty(summaries!.PreviousMatches);
         Assert.Empty(summaries.UpcomingMatches);
     }
+
 
     [Fact]
     public void MockDeletedTeamIsNotPublicAndAReusedNameDoesNotInheritHistory()
@@ -581,6 +675,7 @@ public sealed class MockMatchLifecycleTests
         Assert.Empty(replacementSummaries!.PreviousMatches);
         Assert.Empty(replacementSummaries.UpcomingMatches);
     }
+
 
     [Fact]
     public async Task MockServicesUseAuthenticationStateWhenInteractiveCircuitHasNoHttpContext()
@@ -860,6 +955,30 @@ public sealed class MockMatchLifecycleTests
         };
     }
 
+    private static MockBackendStore CreateSeededStore()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        return new MockBackendStore(
+            new TestHostEnvironment(repositoryRoot),
+            Microsoft.Extensions.Options.Options.Create(new MockBackendOptions
+            {
+                DataFilePath = Path.Combine(repositoryRoot, "src", "Mercurius.LAN.Web", "MockData.Local", "backend.json")
+            }));
+    }
+
+    private static TournamentExtended GetStoredTournament(MockBackendStore store, Guid tournamentId)
+    {
+        var document = typeof(MockBackendStore)
+            .GetField("_document", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(store)!;
+        var tournaments = (List<TournamentExtended>)document.GetType()
+            .GetProperty("Tournaments")!
+            .GetValue(document)!;
+        return tournaments.Single(tournament => tournament.Id == tournamentId);
+    }
+
+    private static void SetBracketType(MockBackendStore store, Guid tournamentId, BracketType bracketType) =>
+        GetStoredTournament(store, tournamentId).BracketType = bracketType;
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -889,3 +1008,4 @@ public sealed class MockMatchLifecycleTests
             Task.FromResult(_state);
     }
 }
+
