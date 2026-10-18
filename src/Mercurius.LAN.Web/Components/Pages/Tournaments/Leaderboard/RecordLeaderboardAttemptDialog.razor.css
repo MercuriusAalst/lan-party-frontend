@@ -38,12 +38,6 @@
     font-size: 1.2rem;
 }
 
-.leaderboard-dialog-subtitle {
-    margin: 0.25rem 0 0;
-    color: var(--color-text-muted, #b9c0d4);
-    font-size: 0.9rem;
-}
-
 .leaderboard-dialog-close {
     border: 0;
     background: transparent;
@@ -105,10 +99,9 @@
     font-weight: 600;
 }
 
-.leaderboard-entry-hint,
-.leaderboard-selected-user {
+.leaderboard-entry-hint {
     margin: 0;
-    color: var(--color-text-muted, #b9c0d4);
+    color: var(--color-muted-text);
     font-size: 0.85rem;
 }
 

@@ -19,6 +19,7 @@
                             aria-describedby="@(ResultEntryUnavailableReason is null ? null : ResultEntryUnavailableDescriptionId)"
                             title="@ResultEntryUnavailableReason"
                             @onclick="OpenResultEntry">
+                        <span class="bi bi-plus-lg" aria-hidden="true"></span>
                         @Localization["Feature.leaderboard.recordResult"]
                     </button>
                     @if(ResultEntryUnavailableReason is not null)

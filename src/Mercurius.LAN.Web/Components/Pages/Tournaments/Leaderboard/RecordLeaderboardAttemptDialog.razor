@@ -12,10 +12,6 @@
          aria-label='@Localization["Feature.leaderboard.entryDialogTitle"]'
          @onclick:stopPropagation>
         <header class="leaderboard-dialog-header">
-            <div>
-                <h2>@Localization["Feature.leaderboard.entryDialogTitle"]</h2>
-                <p class="leaderboard-dialog-subtitle">@GetMetricDescription()</p>
-            </div>
             <button type="button"
                     class="leaderboard-dialog-close"
                     aria-label='@Localization["Feature.leaderboard.close"]'
@@ -89,7 +85,7 @@
                                    type="search"
                                    class="form-control"
                                    placeholder='@Localization["Feature.leaderboard.searchUserPlaceholder"]'
-                                   value="@_userQuery"
+                                   value="@(_selectedUserLabel ?? _userQuery)"
                                    @oninput="HandleUserQueryChangedAsync" />
 
                             @if(_isSearchingUsers)
@@ -101,7 +97,7 @@
                                 <p class="leaderboard-entry-hint">@Localization["Feature.leaderboard.noUserResults"]</p>
                             }
 
-                            @if(!_isSearchingUsers && _userResults.Any())
+                            @if(!_selectedUserId.HasValue && !_isSearchingUsers && _userResults.Any())
                             {
                                 <ul class="leaderboard-user-results">
                                     @foreach(var result in _userResults)
@@ -116,10 +112,6 @@
                                 </ul>
                             }
 
-                            @if(_selectedUserId.HasValue)
-                            {
-                                <p class="leaderboard-selected-user">@Localization.Get("Feature.leaderboard.selectedUser", _selectedUserLabel ?? string.Empty)</p>
-                            }
                         </div>
                     }
                     else
@@ -172,12 +164,14 @@
                     </div>
                 </section>
 
+                @if(_mode != EntryMode.Guest)
+                {
                 <section class="leaderboard-entry-section">
                     <h3>@Localization["Feature.leaderboard.attemptHistory"]</h3>
 
                     @if(SelectedParticipant is null)
                     {
-                        <p class="leaderboard-entry-hint">@Localization["Feature.leaderboard.attemptHistoryHint"]</p>
+                        <p class="leaderboard-entry-hint">@(_mode == EntryMode.LinkedUser && _selectedUserId.HasValue ? Localization["Feature.leaderboard.attemptHistoryEmpty"] : Localization["Feature.leaderboard.attemptHistoryHint"])</p>
                     }
                     else if(!SelectedParticipant.Attempts.Any())
                     {
@@ -236,6 +230,7 @@
                         </ul>
                     }
                 </section>
+                }
             </div>
         }
 
