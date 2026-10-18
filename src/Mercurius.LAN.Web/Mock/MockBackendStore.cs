@@ -4729,4 +4729,3 @@ internal sealed class MockBackendStore
         return JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, SerializerOptions), SerializerOptions);
     }
 }
-

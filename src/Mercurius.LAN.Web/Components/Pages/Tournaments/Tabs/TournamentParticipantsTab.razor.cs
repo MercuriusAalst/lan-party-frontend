@@ -2500,4 +2500,3 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
         await DisposeRegistrationFocusTrapAsync();
     }
 }
-

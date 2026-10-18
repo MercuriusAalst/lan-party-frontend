@@ -696,4 +696,3 @@ public sealed class TournamentParticipantsMutationTests
         }
     }
 }
-

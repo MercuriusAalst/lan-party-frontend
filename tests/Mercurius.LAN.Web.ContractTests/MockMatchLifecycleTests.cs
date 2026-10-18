@@ -1008,4 +1008,3 @@ public sealed class MockMatchLifecycleTests
             Task.FromResult(_state);
     }
 }
-
