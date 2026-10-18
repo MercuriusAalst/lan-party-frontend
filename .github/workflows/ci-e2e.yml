@@ -45,10 +45,11 @@ jobs:
     env:
       TEST_POSTGRES_CONNECTION: "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=postgres"
       MERCURIUS_BACKEND_ROOT: ${{ github.workspace }}/backend-playwright-e2e
-      # Backend PR #151 (direct match score submission) merged with backend main, which includes
-      # backend #145 (featured homepage tournaments) needed by the featured homepage UI on main.
-      # Return this to backend main once #151 merges.
-      E2E_BACKEND_REF: 806bf6296c2e51cb49b17dbec7be660d6da0de21
+      # Pinned to the backend merge commit of #153 (mandatory assigned admin, GET /v1/lan/matches/pending-resolution,
+      # no automatic acceptance of a lone score report), which this frontend's E2E tests need. It is a fixed SHA
+      # because backend main also carries later changes (for example #155 profile pictures) that this frontend
+      # does not cover yet. Move this to backend main once the frontend is aligned with those backend changes.
+      E2E_BACKEND_REF: ca7b6cc57e9376210c0132e8ba1d35602e801ed0
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
