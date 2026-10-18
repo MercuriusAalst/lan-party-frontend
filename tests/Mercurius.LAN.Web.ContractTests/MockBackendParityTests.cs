@@ -407,11 +407,9 @@ public sealed class MockBackendParityTests
         var context = new DefaultHttpContext { User = DependencyExtensions.BuildMockPrincipal("user", store) };
         var client = new MockUserClient(store, new HttpContextAccessor { HttpContext = context });
         var mockUserId = Guid.Parse("41111111-1111-1111-1111-111111111120");
-        var managedTeam = store.CreateCurrentUserTeam("user", new CreateTeamDTO
-        {
-            Name = "Profile picture team",
-            CaptainUserId = mockUserId
-        });
+        var managedTeam = store.GetCurrentUserTeamSummary("user").CaptainedTeams
+            .OrderBy(team => team.Id)
+            .First(team => team.Members.Any(member => member.Id == mockUserId));
 
         using(var stream = new MemoryStream([1, 2, 3, 4]))
         {
@@ -432,7 +430,8 @@ public sealed class MockBackendParityTests
         Assert.Equal(
             pictureUrl,
             store.GetCurrentUserTeamSummary("user").CaptainedTeams
-                .Single(team => team.Id == managedTeam.Id).Members.Single().ProfilePictureUrl);
+                .Single(team => team.Id == managedTeam.Id).Members
+                .Single(member => member.Id == mockUserId).ProfilePictureUrl);
 
         var removed = await client.RemoveCurrentUserProfilePictureAsync();
 
@@ -440,7 +439,8 @@ public sealed class MockBackendParityTests
         Assert.Null(store.GetCurrentProfile("user").User!.ProfilePictureUrl);
         Assert.Null(store.GetPublicUserByUsername("mockuser")!.ProfilePictureUrl);
         Assert.Null(store.GetCurrentUserTeamSummary("user").CaptainedTeams
-            .Single(team => team.Id == managedTeam.Id).Members.Single().ProfilePictureUrl);
+            .Single(team => team.Id == managedTeam.Id).Members
+            .Single(member => member.Id == mockUserId).ProfilePictureUrl);
     }
 
     private static MockBackendStore CreateStore()
