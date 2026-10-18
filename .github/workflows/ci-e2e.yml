@@ -15,11 +15,6 @@ on:
       - reopened
       - ready_for_review
   workflow_dispatch:
-    inputs:
-      backend_ref:
-        description: Backend repository ref to run the E2E suite against
-        required: false
-        type: string
 
 permissions:
   contents: read
@@ -45,8 +40,6 @@ jobs:
     env:
       TEST_POSTGRES_CONNECTION: "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=postgres"
       MERCURIUS_BACKEND_ROOT: ${{ github.workspace }}/backend-playwright-e2e
-      # Backend PR #155 adds the profile-picture contract required by these E2E tests.
-      E2E_BACKEND_REF: f1c85beee827f274bc022e967a3e143410544ce9
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
@@ -55,7 +48,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: MercuriusAalst/lan-party-backend
-          ref: ${{ inputs.backend_ref || env.E2E_BACKEND_REF }}
+          ref: main
           path: backend-playwright-e2e
 
       - name: Setup .NET
