@@ -53,6 +53,21 @@ public sealed class AdminPickerDropdownBehaviorTests
     }
 
     [Fact]
+    public async Task WhenRequired_ThePickerOffersNoNoneChoice()
+    {
+        var admins = new List<PublicUserDTO> { Selected(OtherId, "other-admin") };
+        var service = CreateTournamentService(_ => Task.FromResult(admins));
+
+        var optionalHtml = await RenderAsync(service, null, null);
+        var requiredHtml = await RenderAsync(service, null, null, required: true);
+
+        Assert.Contains("contactAdminNone", optionalHtml);
+        Assert.DoesNotContain("contactAdminNone", requiredHtml);
+        Assert.Contains("aria-required=\"true\"", requiredHtml);
+        Assert.Contains($"option value=\"{OtherId}\"", requiredHtml);
+    }
+
+    [Fact]
     public async Task AfterLoading_TheAssignedAdminIsAnOptionAndTheSelectKeepsItsValue()
     {
         var admins = new List<PublicUserDTO> { Selected(OtherId, "other-admin"), Selected(AssignedId, "assigned-admin") };
@@ -319,7 +334,7 @@ public sealed class AdminPickerDropdownBehaviorTests
     private static PublicUserDTO Selected(Guid id, string username) =>
         new() { Id = id, Username = username, DisplayName = username };
 
-    private static async Task<string> RenderAsync(ITournamentService service, Guid? value, PublicUserDTO? selectedAdmin)
+    private static async Task<string> RenderAsync(ITournamentService service, Guid? value, PublicUserDTO? selectedAdmin, bool required = false)
     {
         await using var services = new ServiceCollection()
             .AddLogging()
@@ -335,7 +350,8 @@ public sealed class AdminPickerDropdownBehaviorTests
                 {
                     [nameof(AdminPicker.Id)] = "adminPicker",
                     [nameof(AdminPicker.Value)] = value,
-                    [nameof(AdminPicker.SelectedAdmin)] = selectedAdmin
+                    [nameof(AdminPicker.SelectedAdmin)] = selectedAdmin,
+                    [nameof(AdminPicker.Required)] = required
                 }));
             return component.ToHtmlString();
         });

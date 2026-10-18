@@ -1,0 +1,62 @@
+.match-resolutions-page {
+    padding-block: 1.5rem 3rem;
+}
+
+.match-resolutions-shell {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.5rem;
+}
+
+.match-resolutions-header h1 {
+    margin-bottom: 0.35rem;
+}
+
+.match-resolutions-list {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.match-resolution-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(233, 180, 76, 0.44);
+    border-radius: 14px;
+}
+
+.match-resolution-main {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.match-resolution-players {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.match-resolution-versus {
+    opacity: 0.7;
+    font-weight: 400;
+}
+
+.match-resolution-main p {
+    margin: 0;
+}
+
+.match-resolutions-empty,
+.match-resolutions-error {
+    margin: 0;
+}
+
+.match-resolution-assignment--urgent {
+    color: #f1c86d;
+    font-weight: 600;
+}

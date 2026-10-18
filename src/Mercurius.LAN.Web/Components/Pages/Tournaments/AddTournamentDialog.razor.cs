@@ -54,12 +54,14 @@ public partial class AddTournamentDialog
         [nameof(CreateTournamentDTO.AverageGameDurationMinutes)] = "Feature.tournaments.averageGameDuration",
         [nameof(CreateTournamentDTO.RoundBreakDurationMinutes)] = "Feature.tournaments.roundBreakDuration",
         [nameof(CreateTournamentDTO.FirstPlacePrize)] = "Feature.tournaments.firstPlacePrize",
+        [nameof(CreateTournamentDTO.AssignedAdminUserId)] = "Feature.tournaments.contactAdmin",
         [nameof(CreateTournamentDTO.SecondPlacePrize)] = "Feature.tournaments.secondPlacePrize",
         [nameof(CreateTournamentDTO.ThirdPlacePrize)] = "Feature.tournaments.thirdPlacePrize"
     };
 
     private static readonly IReadOnlyDictionary<string, string> ValidationMessageKeys = new Dictionary<string, string>
     {
+        ["An assigned admin is required."] = "form.assignedAdminRequired",
         ["Planned start time is required."] = "form.plannedStartTimeRequired",
         ["Team tournaments require a team size between 1 and 50."] = "form.teamSizeRange",
         ["Leaderboard tournaments require a ranking metric."] = "form.leaderboardMetricRequired",
@@ -79,6 +81,16 @@ public partial class AddTournamentDialog
                 ApplyBracketTypeDefaults();
             _editContext.Validate();
         };
+    }
+
+    private Guid? GetAssignedAdminSelection() =>
+        _newTournament.AssignedAdminUserId == Guid.Empty ? null : _newTournament.AssignedAdminUserId;
+
+    private Task SetAssignedAdmin(Guid? adminId)
+    {
+        _newTournament.AssignedAdminUserId = adminId ?? Guid.Empty;
+        _editContext?.NotifyFieldChanged(_editContext.Field(nameof(CreateTournamentDTO.AssignedAdminUserId)));
+        return Task.CompletedTask;
     }
 
     internal void ApplyBracketTypeDefaults()
