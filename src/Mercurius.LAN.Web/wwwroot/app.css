@@ -40,6 +40,10 @@
     --color-info-soft: rgba(29, 100, 165, 0.11);
     --color-neutral-soft: rgba(35, 40, 46, 0.08);
 
+    /* Neutral badge: a visible grey fill and edge on white cards (light); soft translucent fill in dark. */
+    --badge-bg: var(--color-surface-muted);
+    --badge-border: var(--color-border-strong);
+
     --shadow-brand: 0 12px 30px rgba(35, 40, 46, 0.08);
     --shadow-brand-hover: 0 16px 34px rgba(35, 40, 46, 0.14);
     --sponsor-card-bg: var(--color-surface);
@@ -130,6 +134,9 @@
     --color-info-soft: rgba(156, 196, 229, 0.15);
     --color-neutral-soft: rgba(241, 243, 245, 0.09);
 
+    --badge-bg: var(--color-neutral-soft);
+    --badge-border: var(--color-border);
+
     --shadow-brand: 0 14px 34px rgba(0, 0, 0, 0.22);
     --shadow-brand-hover: 0 18px 42px rgba(0, 0, 0, 0.3);
     --sponsor-card-bg: var(--color-surface);
@@ -190,6 +197,9 @@
     --color-danger-soft: rgba(255, 159, 159, 0.15);
     --color-info-soft: rgba(156, 196, 229, 0.15);
     --color-neutral-soft: rgba(241, 243, 245, 0.09);
+
+    --badge-bg: var(--color-neutral-soft);
+    --badge-border: var(--color-border);
 
     --shadow-brand: 0 14px 34px rgba(0, 0, 0, 0.22);
     --shadow-brand-hover: 0 18px 42px rgba(0, 0, 0, 0.3);
@@ -742,7 +752,7 @@ main {
 .btn-outline-secondary {
     background: var(--brand-button-secondary-background, var(--color-surface-raised));
     border-color: var(--brand-button-secondary-border, var(--color-border-strong));
-    color: var(--brand-button-secondary-color, var(--color-link));
+    color: var(--brand-button-secondary-color, var(--color-ink));
     box-shadow: var(--brand-button-secondary-shadow, var(--shadow-brand));
 }
 
@@ -751,7 +761,7 @@ main {
 .btn-outline-primary:hover,
 .btn-outline-secondary:hover {
     background: var(--brand-button-secondary-hover-background, var(--color-surface-muted));
-    border-color: var(--brand-button-secondary-hover-border, var(--color-border-strong));
+    border-color: var(--brand-button-secondary-hover-border, var(--color-primary-green));
     color: var(--brand-button-secondary-hover-color, var(--color-ink));
     box-shadow: var(--brand-button-secondary-hover-shadow, var(--shadow-brand-hover));
     transform: translateY(-1px);
@@ -763,6 +773,26 @@ main {
 .btn-outline-secondary:focus-visible {
     border-color: var(--color-primary-green);
     box-shadow: 0 0 0 3px var(--color-focus), var(--shadow-brand-hover);
+}
+
+/*
+ * Bootstrap's .btn:focus-visible applies the hover fill and text colour. Keyboard focus must keep the
+ * variant's normal fill and text (only the border and ring change); a hovered, pressed or selected
+ * control keeps the hover, pressed or selected fill. :where() keeps this at the same specificity as
+ * Bootstrap's rule so the later app.css wins without overriding the danger variant.
+ */
+.button-secondary:focus-visible:where(:not(:hover, :active, .is-active, [aria-pressed="true"], .button-danger)),
+.btn-secondary:focus-visible:where(:not(:hover, :active, .is-active, [aria-pressed="true"], .button-danger)),
+.btn-outline-primary:focus-visible:where(:not(:hover, :active, .is-active, [aria-pressed="true"], .button-danger)),
+.btn-outline-secondary:focus-visible:where(:not(:hover, :active, .is-active, [aria-pressed="true"], .button-danger)) {
+    background: var(--brand-button-secondary-background, var(--color-surface-raised));
+    color: var(--brand-button-secondary-color, var(--color-ink));
+}
+
+.btn-primary:focus-visible:where(:not(:hover, :active)) {
+    background: var(--brand-button-primary-background, var(--color-primary-green));
+    border-color: var(--brand-button-primary-border, var(--color-primary-green));
+    color: var(--brand-button-primary-color, var(--color-dark-navy));
 }
 
 .button-secondary:active,
@@ -781,6 +811,45 @@ main {
     border-color: var(--color-border-strong);
     color: var(--color-ink);
     box-shadow: var(--shadow-brand);
+}
+
+/*
+ * Bootstrap's .btn:hover, .btn:focus-visible and .btn:disabled read the --bs-btn-* variables,
+ * so controls that combine .btn with an app variant must map those variables to the same
+ * app tokens; otherwise keyboard focus and disabled states fall back to Bootstrap blue/grey.
+ */
+.btn-primary {
+    --bs-btn-color: var(--brand-button-primary-color, var(--color-dark-navy));
+    --bs-btn-bg: var(--brand-button-primary-background, var(--color-primary-green));
+    --bs-btn-border-color: var(--brand-button-primary-border, var(--color-primary-green));
+    --bs-btn-hover-color: var(--brand-button-primary-hover-color, var(--color-white));
+    --bs-btn-hover-bg: var(--brand-button-primary-hover-background, var(--color-deep-green));
+    --bs-btn-hover-border-color: var(--brand-button-primary-hover-border, var(--color-deep-green));
+    --bs-btn-active-color: var(--brand-button-primary-hover-color, var(--color-white));
+    --bs-btn-active-bg: var(--brand-button-primary-hover-background, var(--color-deep-green));
+    --bs-btn-active-border-color: var(--brand-button-primary-hover-border, var(--color-deep-green));
+    --bs-btn-disabled-color: var(--brand-button-primary-color, var(--color-dark-navy));
+    --bs-btn-disabled-bg: var(--brand-button-primary-background, var(--color-primary-green));
+    --bs-btn-disabled-border-color: var(--brand-button-primary-border, var(--color-primary-green));
+    --bs-btn-focus-box-shadow: 0 0 0 3px var(--color-focus), var(--brand-button-primary-hover-shadow, 0 16px 28px rgba(15, 23, 42, 0.2));
+}
+
+.btn-secondary,
+.btn-outline-primary,
+.btn-outline-secondary {
+    --bs-btn-color: var(--brand-button-secondary-color, var(--color-ink));
+    --bs-btn-bg: var(--brand-button-secondary-background, var(--color-surface-raised));
+    --bs-btn-border-color: var(--brand-button-secondary-border, var(--color-border-strong));
+    --bs-btn-hover-color: var(--brand-button-secondary-hover-color, var(--color-ink));
+    --bs-btn-hover-bg: var(--brand-button-secondary-hover-background, var(--color-surface-muted));
+    --bs-btn-hover-border-color: var(--brand-button-secondary-hover-border, var(--color-primary-green));
+    --bs-btn-active-color: var(--color-ink);
+    --bs-btn-active-bg: var(--color-surface-muted);
+    --bs-btn-active-border-color: var(--color-border-strong);
+    --bs-btn-disabled-color: var(--brand-button-secondary-color, var(--color-ink));
+    --bs-btn-disabled-bg: var(--brand-button-secondary-background, var(--color-surface-raised));
+    --bs-btn-disabled-border-color: var(--brand-button-secondary-border, var(--color-border-strong));
+    --bs-btn-focus-box-shadow: 0 0 0 3px var(--color-focus), var(--shadow-brand-hover);
 }
 
 /* Destructive action variant; global so every dialog (CSS isolation) shares one definition. */
@@ -820,12 +889,23 @@ main {
     gap: 0.35rem;
     padding: 0.28rem 0.68rem;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--color-success) 42%, transparent);
-    background: var(--color-success-soft);
-    color: var(--color-success);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.02em;
+}
+
+/* Informational badges are neutral; green is reserved for status and primary actions. */
+.badge {
+    border: 1px solid var(--badge-border);
+    background: var(--badge-bg);
+    color: var(--color-ink);
+}
+
+/* Status pills keep the success palette unless a .status-* modifier overrides it. */
+.tournament-status {
+    border: 1px solid color-mix(in srgb, var(--color-success) 42%, transparent);
+    background: var(--color-success-soft);
+    color: var(--color-success);
 }
 
 .status-scheduled {
@@ -1309,10 +1389,10 @@ html[data-theme="dark"] .home-hero-wordmark {
     z-index: 1;
 }
 
-/* Keep the packing priorities legible without changing their light-theme palette. */
+/* Keep the packing priorities legible; hardware is neutral slate, basic stays orange and optional stays blue. */
 html[data-theme="dark"] .info-page .packing-item--hardware {
-    --packing-accent: #8bd6ad;
-    --packing-tint: rgba(139, 214, 173, 0.18);
+    --packing-accent: var(--color-muted-text);
+    --packing-tint: color-mix(in srgb, var(--color-muted-text) 18%, transparent);
 }
 
 html[data-theme="dark"] .info-page .packing-item--basic {
@@ -1335,8 +1415,8 @@ html[data-theme="dark"] .info-page .packing-item {
 
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme]) .info-page .packing-item--hardware {
-        --packing-accent: #8bd6ad;
-        --packing-tint: rgba(139, 214, 173, 0.18);
+        --packing-accent: var(--color-muted-text);
+        --packing-tint: color-mix(in srgb, var(--color-muted-text) 18%, transparent);
     }
 
     :root:not([data-theme]) .info-page .packing-item--basic {
