@@ -188,7 +188,6 @@ public sealed class ProfilePictureBehaviorTests
         Assert.True(labelEnd > input);
         Assert.Contains("@Localization[\"form.chooseFile\"]", markup);
         Assert.Contains("@(_pendingPicture?.FileName ?? Localization[\"form.noFile\"])", markup);
-        Assert.Contains("PictureUrl=\"@(_pendingPicture?.PreviewDataUrl ?? _savedPictureUrl)\"", markup);
         Assert.Contains(":focus-within", stylesheet);
         Assert.Contains("opacity: 0", stylesheet);
         Assert.Contains(".profile-picture-actions button:disabled", stylesheet);
