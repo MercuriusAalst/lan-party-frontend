@@ -13,7 +13,7 @@ namespace Mercurius.LAN.Web.E2ETests;
 public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 {
     [Fact]
-    public async Task OneSidedReportBecomesOfficialWhenTheConfirmationWindowExpires()
+    public async Task OneSidedReportRequiresAdminResolutionWhenTheConfirmationWindowExpires()
     {
         var setup = await StartScoredSingleMatchAsync("deadline-score", report1: 2, report2: 1);
         await MatchE2E.ExpireScoreWindowAsync(app, setup.MatchId);
@@ -22,10 +22,8 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
 
-        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.CompletedStatus })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("The result is official and has advanced the bracket.")).ToBeVisibleAsync();
-        await Expect(dialog).ToContainTextAsync("[2]");
-        await Expect(dialog).ToContainTextAsync("[1]");
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AdminResolutionStatus })).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.CompletedStatus })).ToHaveCountAsync(0);
         await Expect(MatchE2E.Section(dialog, MatchE2E.DeadlineLabel)).ToHaveCountAsync(0);
 
         await MatchE2E.CloseContextsAsync(app, context);

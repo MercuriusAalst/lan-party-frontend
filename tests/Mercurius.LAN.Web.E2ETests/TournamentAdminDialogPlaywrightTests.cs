@@ -24,6 +24,7 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
         var dialog = page.Locator("[role=\"dialog\"]");
         await dialog.Locator("#name").FillAsync(name);
         await dialog.Locator("#tournamentImage").SetInputFilesAsync(TournamentE2E.TestImagePath());
+        await SelectAssignedAdminAsync(dialog, admin);
         await dialog.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateTournament }).ClickAsync();
 
         await Expect(page.Locator("[role=\"dialog\"]")).ToHaveCountAsync(0);
@@ -58,6 +59,7 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
         await dialog.Locator("#name").FillAsync(name);
         await dialog.Locator("#leaderboardRankingMetric").SelectOptionAsync("HighestScore");
         await dialog.Locator("#tournamentImage").SetInputFilesAsync(TournamentE2E.TestImagePath());
+        await SelectAssignedAdminAsync(dialog, admin);
         await dialog.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateTournament }).ClickAsync();
 
         await Expect(page.Locator("[role=\"dialog\"]")).ToHaveCountAsync(0);
@@ -100,6 +102,7 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
         await dialog.Locator("#participationMode").SelectOptionAsync("Team");
         await Expect(dialog.Locator("#teamSize")).ToBeVisibleAsync();
         await dialog.Locator("#tournamentImage").SetInputFilesAsync(TournamentE2E.TestImagePath());
+        await SelectAssignedAdminAsync(dialog, admin);
 
         await dialog.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.CreateTournament }).ClickAsync();
         await Expect(dialog).ToBeVisibleAsync();
@@ -111,6 +114,9 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
         await Expect(page.Locator("[role=\"dialog\"]")).ToHaveCountAsync(0);
         await Expect(page.Locator("article.tournaments-card").Filter(new() { HasText = name })).ToBeVisibleAsync();
     }
+
+    private static Task SelectAssignedAdminAsync(ILocator dialog, E2EPersona admin) =>
+        dialog.Locator("#contactAdmin").SelectOptionAsync(admin.UserId!.Value.ToString());
 
     private static async Task OpenDialogAsync(IPage page)
     {
