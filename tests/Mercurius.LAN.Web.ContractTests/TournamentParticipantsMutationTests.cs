@@ -60,7 +60,9 @@ public sealed class TournamentParticipantsMutationTests
         tournament.BracketType = bracketType;
         tournament.Status = status;
         var tab = CreateTab(out _);
-        var service = CreateTournamentService(NewCompletionSource<bool>());
+        var completion = NewCompletionSource<bool>();
+        completion.SetResult(true);
+        var service = CreateTournamentService(completion);
         SetPrivateProperty(tab, "TournamentService", service);
         tab.SetTournamentForTest(tournament);
         var registration = CreateAdminRegistration(Guid.NewGuid(), tournament.Id);
@@ -631,7 +633,8 @@ public sealed class TournamentParticipantsMutationTests
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            if(targetMethod?.Name == nameof(ITournamentService.RemoveTournamentUserRegistrationAsAdminAsync))
+            if(targetMethod?.Name is nameof(ITournamentService.RemoveTournamentUserRegistrationAsAdminAsync)
+                or nameof(ITournamentService.RemoveTournamentTeamRegistrationAsAdminAsync))
             {
                 Calls.Add(((Guid)args![0]!, (Guid)args[1]!, (string?)args[2]));
                 CallStarted.TrySetResult(true);
