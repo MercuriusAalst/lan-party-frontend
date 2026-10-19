@@ -185,15 +185,4 @@ public partial class PublicTeamProfile
         }
     }
 
-    private static string GetMemberInitials(string username)
-    {
-        if(string.IsNullOrWhiteSpace(username))
-            return "?";
-
-        var trimmed = username.Trim();
-        if(trimmed.Length == 1)
-            return trimmed.ToUpperInvariant();
-
-        return trimmed[..2].ToUpperInvariant();
-    }
 }

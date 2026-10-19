@@ -181,8 +181,12 @@ internal static class TournamentE2E
     public static Task<Guid> CreateScheduledTeamTournamentAsync(HttpClient admin, string name, int teamSize) =>
         CreateTournamentAsync(admin, name, "SingleElimination", "Team", teamSize: teamSize);
 
-    public static Task<Guid> CreateLeaderboardTournamentAsync(HttpClient admin, string name, string metric) =>
-        CreateTournamentAsync(admin, name, "Leaderboard", "Individual", rankingMetric: metric);
+    public static Task<Guid> CreateLeaderboardTournamentAsync(
+        HttpClient admin,
+        string name,
+        string metric,
+        Guid? assignedAdminUserId = null) =>
+        CreateTournamentAsync(admin, name, "Leaderboard", "Individual", rankingMetric: metric, assignedAdminUserId: assignedAdminUserId);
 
     public static async Task SetLifecycleAsync(HttpClient admin, Guid tournamentId, string state)
     {

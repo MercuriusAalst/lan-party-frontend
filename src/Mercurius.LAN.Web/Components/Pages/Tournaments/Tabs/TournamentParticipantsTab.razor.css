@@ -563,6 +563,12 @@ html[data-theme="dark"] .registration-cancel-button {
     overflow-wrap: anywhere;
 }
 
+.registration-roster-member ::deep .user-avatar,
+.registration-review-member ::deep .user-avatar,
+.registration-review-player-name ::deep .user-avatar {
+    flex: 0 0 auto;
+}
+
 .registration-candidate-reason {
     color: var(--color-warning);
     font-size: 0.78rem;

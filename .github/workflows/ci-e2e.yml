@@ -15,11 +15,6 @@ on:
       - reopened
       - ready_for_review
   workflow_dispatch:
-    inputs:
-      backend_ref:
-        description: Backend repository ref to run the E2E suite against
-        required: false
-        type: string
 
 permissions:
   contents: read
@@ -45,10 +40,6 @@ jobs:
     env:
       TEST_POSTGRES_CONNECTION: "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=postgres"
       MERCURIUS_BACKEND_ROOT: ${{ github.workspace }}/backend-playwright-e2e
-      # Follows backend main, which includes #153 (mandatory assigned admin, GET /v1/lan/matches/pending-resolution,
-      # no automatic acceptance of a lone score report) that this frontend's E2E tests need. A manual run can still
-      # override it with the workflow_dispatch backend_ref input to test a specific backend branch or SHA.
-      E2E_BACKEND_REF: main
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
@@ -57,7 +48,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: MercuriusAalst/lan-party-backend
-          ref: ${{ inputs.backend_ref || env.E2E_BACKEND_REF }}
+          ref: main
           path: backend-playwright-e2e
 
       - name: Setup .NET

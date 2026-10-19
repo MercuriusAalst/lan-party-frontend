@@ -120,10 +120,6 @@ public partial class TournamentLeaderboardTab : IDisposable
         }
     }
 
-    private string GetMetricDescription() => Metric == LeaderboardRankingMetric.HighestScore
-        ? Localization["Feature.leaderboard.metricHighestScoreDescription"]
-        : Localization["Feature.leaderboard.metricFastestTimeDescription"];
-
     private string GetResultColumnLabel() => Metric == LeaderboardRankingMetric.HighestScore
         ? Localization["Feature.leaderboard.bestScore"]
         : Localization["Feature.leaderboard.bestTime"];
