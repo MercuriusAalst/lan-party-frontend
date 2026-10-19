@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.6.0...frontend-v0.7.0) (2026-10-19)
+
+
+### Features
+
+* Add Profile Pictures And Consistent Player Avatars ([#112](https://github.com/MercuriusAalst/lan-party-frontend/issues/112)) ([08635fc](https://github.com/MercuriusAalst/lan-party-frontend/commit/08635fc1c3fe9c05c1b62595187ecdb8b87fd6eb)), closes [#111](https://github.com/MercuriusAalst/lan-party-frontend/issues/111)
+* Require Assigned Admin And List Matches Awaiting Resolution ([#110](https://github.com/MercuriusAalst/lan-party-frontend/issues/110)) ([56d7665](https://github.com/MercuriusAalst/lan-party-frontend/commit/56d76659d1bf35c9fa20f0a5b80bd3c04f8a07d9))
+
+
+### Bug Fixes
+
+* Improve Leaderboard Result Entry ([#116](https://github.com/MercuriusAalst/lan-party-frontend/issues/116)) ([039a4a1](https://github.com/MercuriusAalst/lan-party-frontend/commit/039a4a119180f7641c65c477b0557cb755b1df53))
+* Lock Started Elimination Participants ([#115](https://github.com/MercuriusAalst/lan-party-frontend/issues/115)) ([00151dc](https://github.com/MercuriusAalst/lan-party-frontend/commit/00151dc2e47f198add1eb9751a53b72cc6afb5e6))
+* Use Neutral Accents For Badges, Secondary Buttons And Packlist ([#109](https://github.com/MercuriusAalst/lan-party-frontend/issues/109)) ([ffab4fb](https://github.com/MercuriusAalst/lan-party-frontend/commit/ffab4fbd1247a4942f1d781e1d436f38f4b63f55))
+
 ## [0.6.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.5.0...frontend-v0.6.0) (2026-10-15)
 
 
