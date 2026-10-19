@@ -319,7 +319,7 @@ public partial class Profile : IDisposable
 
     private void FailPicture(string message)
     {
-        // The saved reference is only replaced after a confirmed response, so a failure keeps the previous picture.
+        _pendingPicture = null;
         _pictureStatusText = message;
         ToastService.ShowError(message);
     }
