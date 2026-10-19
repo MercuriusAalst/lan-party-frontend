@@ -135,6 +135,19 @@ While a leaderboard tournament is in progress, an authenticated administrator MU
 - **WHEN** the tournament is completed, canceled, or reset
 - **THEN** result-entry, correction, and removal controls MUST be disabled or hidden
 
+#### Scenario: Selecting a linked LAN user
+
+- **WHEN** an administrator selects a LAN user in the result-entry dialog
+- **THEN** the selected user MUST remain identifiable in the selection control after the search results close
+- **AND** if that user is already a leaderboard participant, their attempt history MUST be selected
+- **AND** if that user has no participant yet, the dialog MUST show the empty-history state
+
+#### Scenario: Switching participant mode
+
+- **WHEN** an administrator switches between existing participants, linked users, and guests
+- **THEN** prior participant and user selections, guest text, search results, and history MUST be cleared
+- **AND** a guest MUST NOT display participant attempt history
+
 ### Requirement: Attempt history, correction, and removal
 
 Administrators MUST be able to inspect a participant's recorded attempts while managing the tournament, correct an accidentally entered attempt, and remove an attempt while the tournament remains in progress. A rejected mutation MUST leave actionable feedback and MUST NOT leave the rejected value on screen as if it had been stored, and a stale attempt-concurrency rejection MUST surface as a recoverable conflict that refreshes the authoritative leaderboard.
@@ -166,6 +179,12 @@ Administrators MUST be able to inspect a participant's recorded attempts while m
 - **WHEN** the backend rejects an attempt submission, correction, or removal
 - **THEN** the front end MUST show actionable feedback
 - **AND** it MUST NOT optimistically leave an incorrect result on screen
+
+#### Scenario: Removing a participant's final attempt
+
+- **WHEN** an administrator removes the final recorded attempt for a participant
+- **THEN** the participant MUST be removed from the leaderboard
+- **AND** removing one of several attempts MUST retain the participant and their remaining attempts
 
 ### Requirement: Leaderboard lifecycle and completed placements
 
@@ -254,6 +273,12 @@ All new leaderboard configuration, presentation, result-entry, history, lifecycl
 - **THEN** the leaderboard MUST remain readable without overlapping or clipped content
 - **AND** rank, display name, and best result MUST each remain identifiable
 
+#### Scenario: Result-entry dialog is readable in either theme
+
+- **WHEN** an administrator opens the result-entry dialog in light or dark theme
+- **THEN** dialog labels, inputs, selection results, and history MUST remain readable with sufficient text and control contrast
+- **AND** the dialog MUST use concise result-entry headings without a redundant outer title or highest-score explanation
+
 ### Requirement: Unavailable result entry explains how to proceed
 
 While a leaderboard tournament is not in progress, the administrator result-entry control MUST stay unavailable, and the interface MUST explain why it is unavailable and how to proceed. The control MUST be presented as clearly disabled rather than as a clickable action, and the explanation MUST be localized and associated with the control for assistive technology.
@@ -281,4 +306,3 @@ While a leaderboard tournament is not in progress, the administrator result-entr
 - **WHEN** the tournament is in progress
 - **THEN** the result-entry control MUST stay enabled
 - **AND** the unavailable explanation MUST NOT be shown
-

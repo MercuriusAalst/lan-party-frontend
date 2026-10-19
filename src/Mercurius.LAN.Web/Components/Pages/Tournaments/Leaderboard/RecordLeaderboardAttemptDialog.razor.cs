@@ -61,10 +61,14 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
 
     private bool HasParticipants => Participants.Count > 0;
 
-    private AdminLeaderboardParticipantDTO? SelectedParticipant =>
-        _selectedParticipantId.HasValue
-            ? Participants.FirstOrDefault(participant => participant.Id == _selectedParticipantId.Value)
-            : null;
+    private AdminLeaderboardParticipantDTO? SelectedParticipant => _mode switch
+    {
+        EntryMode.ExistingParticipant when _selectedParticipantId.HasValue =>
+            Participants.FirstOrDefault(participant => participant.Id == _selectedParticipantId.Value),
+        EntryMode.LinkedUser when _selectedUserId.HasValue =>
+            Participants.FirstOrDefault(participant => participant.LinkedUserId == _selectedUserId.Value),
+        _ => null
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -102,7 +106,18 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
 
     private void SetMode(EntryMode mode)
     {
+        CancelPendingUserSearch();
         _mode = mode;
+        _selectedParticipantId = null;
+        _selectedUserId = null;
+        _selectedUserLabel = null;
+        _userQuery = string.Empty;
+        _userResults = [];
+        _isSearchingUsers = false;
+        _guestName = string.Empty;
+        _valueInput = string.Empty;
+        _editingAttemptId = null;
+        _pendingRemovalAttemptId = null;
         _submitError = null;
     }
 
@@ -189,6 +204,10 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
 
         _selectedUserId = result.UserId.Value;
         _selectedUserLabel = result.DisplayLabel;
+        _userQuery = result.DisplayLabel;
+        CancelPendingUserSearch();
+        _userResults = [];
+        _isSearchingUsers = false;
         _submitError = null;
     }
 
@@ -521,10 +540,6 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         participant.ParticipantKind == LeaderboardParticipantKind.Guest
             ? Localization.Get("Feature.leaderboard.guestParticipantLabel", participant.DisplayName)
             : participant.DisplayName;
-
-    private string GetMetricDescription() => RankingMetric == LeaderboardRankingMetric.HighestScore
-        ? Localization["Feature.leaderboard.metricHighestScoreDescription"]
-        : Localization["Feature.leaderboard.metricFastestTimeDescription"];
 
     private string GetValueLabel() => RankingMetric == LeaderboardRankingMetric.HighestScore
         ? Localization["Feature.leaderboard.scoreLabel"]

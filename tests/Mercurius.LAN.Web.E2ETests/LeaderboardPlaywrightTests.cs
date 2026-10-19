@@ -14,13 +14,14 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
     {
         var admin = await App.CreatePersonaAsync("board-scheduled-admin", isAdmin: true);
         var adminApi = App.CreateApiClient(admin);
-        var id = await CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Scheduled"), "HighestScore");
+        var id = await TournamentE2E.CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Scheduled"), "HighestScore");
 
         var context = await App.NewAuthenticatedContextAsync(admin);
         var page = await context.NewPageAsync();
         await TournamentE2E.GotoInteractiveAsync(page, $"/tournaments/{id}");
 
         await Expect(page.GetByText(TournamentE2E.Text.LeaderboardNoResults)).ToBeVisibleAsync();
+        await Expect(page.Locator(".leaderboard-metric")).ToHaveCountAsync(0);
 
         var addEntry = page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult });
         await Expect(addEntry).ToBeDisabledAsync();
@@ -32,7 +33,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
     {
         var admin = await App.CreatePersonaAsync("board-guest-admin", isAdmin: true);
         var adminApi = App.CreateApiClient(admin);
-        var id = await CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Guest"), "HighestScore");
+        var id = await TournamentE2E.CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Guest"), "HighestScore");
         await TournamentE2E.SetLifecycleAsync(adminApi, id, "InProgress");
         var guestName = TournamentE2E.Unique("Guest");
 
@@ -57,7 +58,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         var admin = await App.CreatePersonaAsync("board-user-admin", isAdmin: true);
         var adminApi = App.CreateApiClient(admin);
         var player = await App.CreatePersonaAsync("board-linked-player");
-        var id = await CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board User"), "HighestScore");
+        var id = await TournamentE2E.CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board User"), "HighestScore");
         await TournamentE2E.SetLifecycleAsync(adminApi, id, "InProgress");
 
         var context = await App.NewAuthenticatedContextAsync(admin);
@@ -81,10 +82,85 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
     }
 
     [Fact]
+    public async Task LinkedUserSelectionKeepsHistoryVisibleAndModeChangesClearSelections()
+    {
+        var admin = await App.CreatePersonaAsync("board-selection-admin", isAdmin: true);
+        var adminApi = App.CreateApiClient(admin);
+        var player = await App.CreatePersonaAsync("board-selection-player");
+        var id = await TournamentE2E.CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Selection"), "HighestScore");
+        await TournamentE2E.SetLifecycleAsync(adminApi, id, "InProgress");
+
+        var context = await App.NewAuthenticatedContextAsync(admin);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, $"/tournaments/{id}");
+        await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
+
+        var dialog = page.Locator("div.leaderboard-dialog");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Existing LAN user" }).ClickAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = "Record or edit results" })).ToBeVisibleAsync();
+        await Expect(dialog.Locator("h2, .leaderboard-dialog-subtitle")).ToHaveCountAsync(0);
+        var search = dialog.Locator("#leaderboard-user-search");
+        await search.FillAsync(player.Username);
+        var userResult = dialog.Locator(".leaderboard-user-results button").First;
+        await userResult.ClickAsync();
+        await Expect(search).ToHaveValueAsync(player.Username);
+        await Expect(dialog.Locator(".leaderboard-user-results")).ToHaveCountAsync(0);
+        await Expect(dialog.GetByText("No matching LAN users.")).ToHaveCountAsync(0);
+        await Expect(dialog.GetByText("No attempts recorded yet.")).ToBeVisibleAsync();
+
+        await dialog.Locator("#leaderboard-attempt-value").FillAsync("88");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();
+        await Expect(dialog.Locator(".leaderboard-attempt-item").First).ToContainTextAsync("88");
+        await CloseDialogAsync(dialog);
+
+        await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
+        dialog = page.Locator("div.leaderboard-dialog");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Existing LAN user" }).ClickAsync();
+        search = dialog.Locator("#leaderboard-user-search");
+        await search.FillAsync(player.Username);
+        userResult = dialog.Locator(".leaderboard-user-results button").First;
+        await Expect(userResult).ToBeVisibleAsync();
+        await CaptureEntryDialogScreenshotAsync(page, "search-light");
+        await userResult.ClickAsync();
+        await Expect(search).ToHaveValueAsync(player.Username);
+        await Expect(dialog.Locator(".leaderboard-attempt-item").First).ToContainTextAsync("88");
+        await Expect(dialog.Locator(".leaderboard-user-results")).ToHaveCountAsync(0);
+        await CaptureEntryDialogScreenshotAsync(page, "light");
+
+        await CloseDialogAsync(dialog);
+        await page.ClickWhenInteractiveAsync(page.Locator(".theme-toggle"));
+        await Expect(page.Locator(".layout-shell")).ToHaveAttributeAsync("data-theme-state", "dark");
+        await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
+        dialog = page.Locator("div.leaderboard-dialog");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Existing LAN user" }).ClickAsync();
+        search = dialog.Locator("#leaderboard-user-search");
+        await search.FillAsync(player.Username);
+        userResult = dialog.Locator(".leaderboard-user-results button").First;
+        await userResult.ClickAsync();
+        await Expect(search).ToHaveValueAsync(player.Username);
+        await Expect(dialog.Locator(".leaderboard-attempt-item").First).ToContainTextAsync("88");
+        await CaptureEntryDialogScreenshotAsync(page, "dark");
+
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "New guest" }).ClickAsync();
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = "Attempt history" })).ToHaveCountAsync(0);
+        await CaptureEntryDialogScreenshotAsync(page, "guest-dark");
+        await dialog.Locator("#leaderboard-guest-name").FillAsync("Reset me");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Existing LAN user" }).ClickAsync();
+        await Expect(dialog.Locator("#leaderboard-user-search")).ToHaveValueAsync(string.Empty);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "New guest" }).ClickAsync();
+        await Expect(dialog.Locator("#leaderboard-guest-name")).ToHaveValueAsync(string.Empty);
+
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Existing participant" }).ClickAsync();
+        await Expect(dialog.Locator("#leaderboard-participant")).ToHaveValueAsync(string.Empty);
+        await Expect(dialog.Locator(".leaderboard-attempt-list")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public async Task FastestTimeLeaderboardRanksShortestDurationFirst()
     {
-        var adminApi = App.CreateApiClient(await App.CreatePersonaAsync("board-time-admin", isAdmin: true));
-        var id = await CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Time"), "FastestTime");
+        var admin = await App.CreatePersonaAsync("board-time-admin", isAdmin: true);
+        var adminApi = App.CreateApiClient(admin);
+        var id = await TournamentE2E.CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Time"), "FastestTime");
         await TournamentE2E.SetLifecycleAsync(adminApi, id, "InProgress");
         var slower = TournamentE2E.Unique("Slow");
         var faster = TournamentE2E.Unique("Fast");
@@ -123,7 +199,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
     {
         var admin = await App.CreatePersonaAsync("board-manage-admin", isAdmin: true);
         var adminApi = App.CreateApiClient(admin);
-        var id = await CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Manage"), "HighestScore");
+        var id = await TournamentE2E.CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Manage"), "HighestScore");
         await TournamentE2E.SetLifecycleAsync(adminApi, id, "InProgress");
         var guestName = TournamentE2E.Unique("Guest Manage");
         await TournamentE2E.RecordGuestAttemptAsync(adminApi, id, guestName, score: 100);
@@ -157,7 +233,8 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         await dialog.Locator(".leaderboard-attempt-item").GetByRole(AriaRole.Button, new() { Name = "Remove attempt" }).ClickAsync();
         // The backend prunes a guest participant once its last attempt is removed, so the dialog
         // falls back to the empty-participants state instead of an empty attempt history.
-        await Expect(dialog.GetByText("No participants yet")).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("No participants yet. Record a result for a LAN user or a guest to create the first one.")).ToBeVisibleAsync();
+        await Expect(dialog.Locator(".leaderboard-attempt-list")).ToHaveCountAsync(0);
         await Expect(dialog.Locator("#leaderboard-participant")).ToHaveCountAsync(0);
         await Expect(dialog.GetByText("No attempts recorded yet.")).ToHaveCountAsync(0);
     }
@@ -165,8 +242,9 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
     [Fact]
     public async Task NonAdminCannotSeeLeaderboardEntryControl()
     {
-        var adminApi = App.CreateApiClient(await App.CreatePersonaAsync("board-nonadmin-admin", isAdmin: true));
-        var id = await CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board NonAdmin"), "HighestScore");
+        var admin = await App.CreatePersonaAsync("board-nonadmin-admin", isAdmin: true);
+        var adminApi = App.CreateApiClient(admin);
+        var id = await TournamentE2E.CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board NonAdmin"), "HighestScore");
         await TournamentE2E.SetLifecycleAsync(adminApi, id, "InProgress");
 
         var context = await App.NewAuthenticatedContextAsync(await App.CreatePersonaAsync("board-nonadmin-member"));
@@ -182,7 +260,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
     {
         var admin = await App.CreatePersonaAsync("board-finish-admin", isAdmin: true);
         var adminApi = App.CreateApiClient(admin);
-        var id = await CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Finish"), "HighestScore");
+        var id = await TournamentE2E.CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Finish"), "HighestScore");
         await TournamentE2E.SetLifecycleAsync(adminApi, id, "InProgress");
 
         var context = await App.NewAuthenticatedContextAsync(admin);
@@ -219,5 +297,18 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
             .GetByRole(AriaRole.Button, new() { Name = "Close" })
             .ClickAsync();
         await Expect(dialog).ToHaveCountAsync(0);
+    }
+
+    private static async Task CaptureEntryDialogScreenshotAsync(IPage page, string theme)
+    {
+        var root = Environment.GetEnvironmentVariable("MERCURIUS_E2E_SCREENSHOT_DIR");
+        if (string.IsNullOrWhiteSpace(root))
+            return;
+
+        Directory.CreateDirectory(root);
+        await page.Locator("div.leaderboard-dialog").ScreenshotAsync(new()
+        {
+            Path = Path.Combine(root, $"leaderboard-entry-{theme}.png")
+        });
     }
 }

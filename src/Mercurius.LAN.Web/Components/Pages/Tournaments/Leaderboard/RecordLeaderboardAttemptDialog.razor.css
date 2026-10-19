@@ -29,19 +29,20 @@
 .leaderboard-dialog-header {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 1rem;
 }
 
-.leaderboard-dialog-header h2 {
-    margin: 0;
-    font-size: 1.2rem;
+.leaderboard-dialog .form-control,
+.leaderboard-dialog .form-select {
+    background-color: var(--color-field);
+    color: var(--color-ink);
+    border-color: var(--color-border-strong);
 }
 
-.leaderboard-dialog-subtitle {
-    margin: 0.25rem 0 0;
-    color: var(--color-text-muted, #b9c0d4);
-    font-size: 0.9rem;
+.leaderboard-dialog input::placeholder {
+    color: var(--color-muted-text);
+    opacity: 1;
 }
 
 .leaderboard-dialog-close {
@@ -90,8 +91,8 @@
 }
 
 .leaderboard-mode-option--active {
-    border-color: var(--color-accent, #7c5cff);
-    background: rgba(124, 92, 255, 0.16);
+    border-color: var(--color-primary-action);
+    background: var(--color-success-soft);
     font-weight: 600;
 }
 
@@ -105,10 +106,9 @@
     font-weight: 600;
 }
 
-.leaderboard-entry-hint,
-.leaderboard-selected-user {
+.leaderboard-entry-hint {
     margin: 0;
-    color: var(--color-text-muted, #b9c0d4);
+    color: var(--color-muted-text);
     font-size: 0.85rem;
 }
 
@@ -116,7 +116,10 @@
     display: grid;
     gap: 0.35rem;
     margin: 0;
-    padding: 0;
+    padding: 0.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
     list-style: none;
     max-height: 12rem;
     overflow-y: auto;
@@ -127,13 +130,26 @@
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--color-border);
-    border-radius: 0.45rem;
-    background: transparent;
-    color: inherit;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.65rem;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    justify-content: flex-start;
     text-align: left;
     cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.leaderboard-user-results button:hover,
+.leaderboard-user-results button:focus-visible {
+    border-color: var(--color-primary-green);
+    background: var(--color-surface-raised);
+}
+
+.leaderboard-user-results button:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 1px;
 }
 
 .leaderboard-attempt-list {
@@ -148,6 +164,8 @@
     padding: 0.6rem 0.75rem;
     border: 1px solid var(--color-border);
     border-radius: 0.5rem;
+    background: var(--color-surface-raised);
+    color: var(--color-ink);
 }
 
 .leaderboard-attempt-summary {
@@ -164,7 +182,7 @@
 }
 
 .leaderboard-attempt-time {
-    color: var(--color-text-muted, #b9c0d4);
+    color: var(--color-muted-text);
     font-size: 0.8rem;
 }
 

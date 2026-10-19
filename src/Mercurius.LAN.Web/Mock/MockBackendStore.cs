@@ -937,8 +937,11 @@ internal sealed class MockBackendStore
             if(rowVersion != attempt.RowVersion)
                 throw new LeaderboardConflictException();
 
-            foreach(var participant in GetLeaderboardParticipants(tournament.Id))
-                participant.Attempts.RemoveAll(candidate => candidate.Id == attemptId);
+            var participants = GetLeaderboardParticipants(tournament.Id);
+            var participant = participants.First(candidate => candidate.Attempts.Any(item => item.Id == attemptId));
+            participant.Attempts.RemoveAll(candidate => candidate.Id == attemptId);
+            if(participant.Attempts.Count == 0)
+                participants.Remove(participant);
         }
     }
 

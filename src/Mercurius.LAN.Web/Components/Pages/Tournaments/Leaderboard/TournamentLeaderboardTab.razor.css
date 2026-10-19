@@ -12,16 +12,16 @@
     justify-content: space-between;
 }
 
-.leaderboard-metric {
-    margin: 0.25rem 0 0;
-    color: var(--color-text-muted, #b9c0d4);
-    font-size: 0.95rem;
-}
-
 .leaderboard-entry-actions {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.leaderboard-entry-button.button-primary {
+    display: inline-flex;
+    align-items: center;
     gap: 0.5rem;
 }
 
