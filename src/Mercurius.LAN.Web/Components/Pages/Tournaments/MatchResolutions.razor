@@ -1,0 +1,107 @@
+@page "/admin/match-resolutions"
+@attribute [Authorize(Roles = "admin")]
+@using Mercurius.LAN.Web.Components.Pages.Tournaments.Matches.DetailView
+@using Mercurius.LAN.Web.Components.Shared
+@using Mercurius.LAN.Web.DTOs.Matches
+@using Mercurius.LAN.Web.Extensions
+@using Microsoft.AspNetCore.Authorization
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>@Localization["Feature.matchResolutions.pageTitle"]</PageTitle>
+
+@if(_isLoading)
+{
+    <LoadingScreen Message='@Localization["Feature.matchResolutions.loading"]' />
+}
+else if(_isUnauthorized)
+{
+    <StatusPage Eyebrow='@Localization["Feature.matchResolutions.pageTitle"]'
+                Title='@Localization["Feature.matchResolutions.unauthorizedTitle"]'
+                Message='@Localization["Feature.matchResolutions.unauthorizedMessage"]'
+                Tone="StatusPageTone.Warning"
+                SecondaryHref="/"
+                SecondaryLabel='@Localization["common.backHome"]' />
+}
+else if(_loadError is not null)
+{
+    <StatusPage Eyebrow='@Localization["Feature.matchResolutions.pageTitle"]'
+                Title='@Localization["Feature.matchResolutions.errorTitle"]'
+                Message="@_loadError"
+                OnRetry="RetryAsync"
+                SecondaryHref="/"
+                SecondaryLabel='@Localization["common.backHome"]' />
+}
+else
+{
+    <section class="brand-section match-resolutions-page">
+        <div class="brand-card match-resolutions-shell">
+            <div class="match-resolutions-header">
+                <span class="section-eyebrow">@Localization["nav.admin"]</span>
+                <h1>@Localization["Feature.matchResolutions.pageTitle"]</h1>
+                <p>@Localization["Feature.matchResolutions.intro"]</p>
+            </div>
+
+            @if(_openError is not null)
+            {
+                <p class="match-resolutions-error" role="alert">@_openError</p>
+            }
+
+            @if(_items.Count == 0)
+            {
+                <p id="match-resolutions-empty" class="match-resolutions-empty" role="status">@Localization["Feature.matchResolutions.empty"]</p>
+            }
+            else
+            {
+                <ul class="match-resolutions-list" aria-label='@Localization["Feature.matchResolutions.listAria"]'>
+                    @foreach(var item in _items)
+                    {
+                        <li class="match-resolution-item" data-match-id="@item.MatchId">
+                            <div class="match-resolution-main">
+                                <span class="section-eyebrow">@item.TournamentName</span>
+                                <h2 class="match-resolution-players">@item.Participant1Name <span class="match-resolution-versus">@Localization["Feature.matchResolutions.versus"]</span> @item.Participant2Name</h2>
+                                <p class="match-resolution-reason">@GetReasonText(item.Reason)</p>
+                                @if(GetAssignmentLabel(item.Assignment) is { } assignmentLabel)
+                                {
+                                    <p class="@GetAssignmentClass(item.Assignment)">@assignmentLabel</p>
+                                }
+                                @if(item.Participant1ReportedScore1.HasValue && item.Participant1ReportedScore2.HasValue)
+                                {
+                                    <p class="match-resolution-score">@Localization.Get("Feature.matchResolutions.reportedScore", item.Participant1Name, item.Participant1ReportedScore1.Value, item.Participant1ReportedScore2.Value)</p>
+                                }
+                                @if(item.Participant2ReportedScore1.HasValue && item.Participant2ReportedScore2.HasValue)
+                                {
+                                    <p class="match-resolution-score">@Localization.Get("Feature.matchResolutions.reportedScore", item.Participant2Name, item.Participant2ReportedScore1.Value, item.Participant2ReportedScore2.Value)</p>
+                                }
+                                @if(item.RequiredSinceUtc.HasValue)
+                                {
+                                    <p class="match-resolution-since">@Localization.Get("Feature.matchResolutions.since", FormatSince(item.RequiredSinceUtc.Value))</p>
+                                }
+                            </div>
+                            <div class="match-resolution-actions">
+                                <button type="button"
+                                        class="button-primary"
+                                        disabled="@(_openingMatchId is not null)"
+                                        aria-label='@Localization.Get("Feature.matchResolutions.resolveAria", item.Participant1Name, item.Participant2Name)'
+                                        @onclick="() => OpenAsync(item)">
+                                    @(_openingMatchId == item.MatchId ? Localization["Feature.matchResolutions.opening"] : Localization["Feature.matchResolutions.resolve"])
+                                </button>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </section>
+
+    @if(_selectedMatch is not null && _selectedTournament is not null)
+    {
+        <TournamentMatchDetailsDialog Match="@_selectedMatch"
+                                      Tournament="@_selectedTournament"
+                                      Participant1Name="@_selectedParticipant1Name"
+                                      Participant2Name="@_selectedParticipant2Name"
+                                      OnClose="CloseDialogAsync"
+                                      OnDataReload="HandleMatchDataReloadAsync"
+                                      OnMatchRefreshed="HandleMatchRefreshedAsync" />
+    }
+}

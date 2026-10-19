@@ -23,6 +23,17 @@
 
     @if(!_isEditMode)
     {
+        @* Admin-only: the public view and non-admins never render this block or call the admin list. *@
+        <AuthorizeView Roles="admin">
+            <Authorized Context="assignedAdminContext">
+                @if(ShowAssignedAdminRevokedWarning)
+                {
+                    <div class="admin-picker-state" role="alert" id="assignedAdminRevokedWarning">
+                        @Localization[AssignedAdminRevokedWarningKey]
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
         <div class="overview-grid">
             <section class="brand-card overview-card">
                 <h3>@Localization["Feature.tournamentsOverview.competitionSetup"]</h3>
@@ -223,7 +234,18 @@
 
                         <div class="form-group">
                             <label for="contactAdmin">@Localization["Feature.tournaments.contactAdmin"]</label>
-                            <AdminPicker Id="contactAdmin" @bind-Value="_editTournament.AssignedAdminUserId" SelectedAdmin="Tournament.ContactAdmin" />
+                            @if(Tournament.ContactAdmin is null)
+                            {
+                                <div class="admin-picker-state" role="alert" id="contactAdminLegacyPrompt">
+                                    @Localization["Feature.tournaments.contactAdminAssignPrompt"]
+                                </div>
+                            }
+                            <AdminPicker Id="contactAdmin"
+                                         Required="true"
+                                         Value="@GetAssignedAdminSelection()"
+                                         ValueChanged="SetAssignedAdmin"
+                                         SelectedAdmin="Tournament.ContactAdmin" />
+                            <ValidationMessage For="@(() => _editTournament.AssignedAdminUserId)" />
                         </div>
 
                         <div class="form-group-inline grid gap-4 lg:grid-cols-3">
