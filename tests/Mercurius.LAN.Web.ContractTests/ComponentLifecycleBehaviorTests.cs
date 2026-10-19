@@ -227,6 +227,7 @@ public sealed class ComponentLifecycleBehaviorTests
         SetProperty(component, "UserClient", userClient);
         SetProperty(component, "NotificationService", notificationService);
         SetProperty(component, "TeamRealtimeService", realtimeService);
+        SetProperty(component, "CurrentUserProfileNotifier", new CurrentUserProfileNotifier());
         SetProperty(component, "AuthenticationStateTask", Task.FromResult(new AuthenticationState(principal)));
 
         component.StartInitialization();
@@ -272,6 +273,7 @@ public sealed class ComponentLifecycleBehaviorTests
                 authenticationType: "test"));
             SetProperty(menu, "TournamentService", tournamentService);
             SetProperty(menu, "UserClient", userClient);
+            SetProperty(menu, "CurrentUserProfileNotifier", new CurrentUserProfileNotifier());
             SetProperty(menu, "NotificationService", new TrackingNotificationService());
             SetProperty(menu, "TeamRealtimeService", new TrackingRealtimeService());
             SetProperty(menu, "AuthenticationStateTask", Task.FromResult(new AuthenticationState(principal)));

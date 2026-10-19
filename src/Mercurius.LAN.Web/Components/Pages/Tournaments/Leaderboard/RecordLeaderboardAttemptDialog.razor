@@ -108,6 +108,7 @@
                                     {
                                         <li>
                                             <button type="button" @onclick="() => SelectUser(result)">
+                                                <UserAvatar Name="@result.DisplayLabel" PictureUrl="@result.ProfilePictureUrl" Size="compact" Decorative="true" />
                                                 @result.DisplayLabel
                                             </button>
                                         </li>

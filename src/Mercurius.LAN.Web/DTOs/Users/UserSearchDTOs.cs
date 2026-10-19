@@ -14,4 +14,5 @@ public sealed class UserSearchResultDTO
     public string Username { get; init; } = string.Empty;
     public string DisplayLabel { get; init; } = string.Empty;
     public string? SupportingText { get; init; }
+    public string? ProfilePictureUrl { get; init; }
 }

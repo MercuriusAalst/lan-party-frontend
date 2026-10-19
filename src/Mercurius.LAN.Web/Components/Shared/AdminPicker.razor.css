@@ -9,3 +9,11 @@
     align-items: center;
     color: var(--color-muted-text);
 }
+
+.admin-picker-selected {
+    display: inline-flex;
+    gap: 0.45rem;
+    align-items: center;
+    color: var(--color-muted-text);
+    font-weight: 700;
+}

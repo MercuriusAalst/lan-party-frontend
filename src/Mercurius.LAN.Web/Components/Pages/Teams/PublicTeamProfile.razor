@@ -69,7 +69,7 @@ else
                                     string.Equals(member.Username, _team.CaptainUsername, StringComparison.OrdinalIgnoreCase);
                                 <li>
                                     <div class="public-team-member">
-                                        <span class="public-team-member-avatar" aria-hidden="true">@GetMemberInitials(member.Username)</span>
+                                        <UserAvatar Name="@member.Username" PictureUrl="@member.ProfilePictureUrl" Size="regular" Decorative="true" />
                                         <span class="public-team-member-copy">
                                             <strong>
                                                 @member.Username

@@ -28,6 +28,45 @@ else
                     <h2>@Localization["General.Profile.YourInformation"]</h2>
                 </div>
 
+                <section class="profile-picture-tool" aria-labelledby="profile-picture-heading" aria-busy="@IsPictureActionBusy">
+                    <div class="profile-picture-heading">
+                        <span class="profile-picture-heading-icon" aria-hidden="true"><span class="bi bi-image"></span></span>
+                        <h3 id="profile-picture-heading">@Localization["profile.pictureHeading"]</h3>
+                    </div>
+                    <div class="profile-picture-editor">
+                        <UserAvatar Name="@_model.Username"
+                                    PictureUrl="@(_pendingPicture?.PreviewDataUrl ?? _savedPictureUrl)"
+                                    Size="prominent" />
+
+                        <div class="profile-picture-file-group">
+                            <label class="profile-picture-picker">
+                                <span class="bi bi-upload" aria-hidden="true"></span>
+                                <span>@Localization["form.chooseFile"]</span>
+                                <InputFile OnChange="SelectPictureAsync"
+                                           accept="@ProfilePictureAccept"
+                                           disabled="@IsPictureActionBusy"
+                                           class="profile-picture-native" />
+                            </label>
+                            <small class="profile-picture-file-name">@(_pendingPicture?.FileName ?? Localization["form.noFile"])</small>
+                        </div>
+                    </div>
+                    <div class="profile-picture-actions">
+                        <button type="button" class="button-primary" @onclick="UploadPictureAsync" disabled="@(_pendingPicture is null || IsPictureActionBusy)">
+                            <span class="bi bi-check-lg" aria-hidden="true"></span>
+                            @Localization["profile.pictureUpload"]
+                        </button>
+                        <button type="button" class="button-secondary profile-picture-remove" @onclick="RemovePictureAsync" disabled="@(string.IsNullOrWhiteSpace(_savedPictureUrl) || IsPictureActionBusy)">
+                            <span class="bi bi-trash3" aria-hidden="true"></span>
+                            @Localization["profile.pictureRemove"]
+                        </button>
+                        @if(_pendingPicture is not null)
+                        {
+                            <button type="button" class="button-secondary" @onclick="ClearPendingPicture" disabled="@IsPictureActionBusy">@Localization["common.cancel"]</button>
+                        }
+                    </div>
+                    <p class="form-text profile-picture-status" aria-live="polite">@_pictureStatusText</p>
+                </section>
+
                 <div class="profile-email-row mb-5 grid gap-2">
                     <label class="form-label">@Localization["profile.email"]</label>
                     <input class="form-control" value="@_emailDisplay" disabled />
@@ -88,7 +127,7 @@ else
                     </div>
 
                     <div class="form-actions-section">
-                        <button type="submit" class="btn btn-primary" disabled="@_isSaving">@Localization["profile.save"]</button>
+                        <button type="submit" class="btn btn-primary" disabled="@(IsProfileMutationBusy || _isPictureSelecting)">@Localization["profile.save"]</button>
                     </div>
                 </EditForm>
             </section>
@@ -107,7 +146,7 @@ else
                                    class="form-control" />
                     </div>
                     <div class="form-actions-section">
-                        <button type="button" class="btn btn-danger" @onclick="DeleteAccountAsync" disabled="@(!_canDelete || _isDeleting)">@Localization["General.Profile.DeleteAccount"]</button>
+                        <button type="button" class="btn btn-danger" @onclick="DeleteAccountAsync" disabled="@(!_canDelete || IsProfileMutationBusy || _isPictureSelecting)">@Localization["General.Profile.DeleteAccount"]</button>
                     </div>
                 </section>
             </aside>

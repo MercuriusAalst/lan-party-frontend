@@ -130,6 +130,13 @@
     font-variant-numeric: tabular-nums;
 }
 
+.leaderboard-participant-identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
 .leaderboard-name {
     font-weight: 600;
     overflow-wrap: anywhere;
