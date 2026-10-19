@@ -541,10 +541,6 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
             ? Localization.Get("Feature.leaderboard.guestParticipantLabel", participant.DisplayName)
             : participant.DisplayName;
 
-    private string GetMetricDescription() => RankingMetric == LeaderboardRankingMetric.HighestScore
-        ? Localization["Feature.leaderboard.metricHighestScoreDescription"]
-        : Localization["Feature.leaderboard.metricFastestTimeDescription"];
-
     private string GetValueLabel() => RankingMetric == LeaderboardRankingMetric.HighestScore
         ? Localization["Feature.leaderboard.scoreLabel"]
         : Localization["Feature.leaderboard.durationLabel"];
