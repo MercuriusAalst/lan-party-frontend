@@ -1010,6 +1010,7 @@
   "Feature.tournaments.registration": "Registration",
   "Feature.tournaments.registrationAdministration": "Registration administration",
   "Feature.tournaments.registrationAdministrationHelp": "Review and remove tournament registrations.",
+  "Feature.tournaments.adminRemovalLocked": "Registrations are locked after this elimination tournament starts.",
   "Feature.tournaments.registrationChangeFailed": "The registration change could not be saved.",
   "Feature.tournaments.registrationChangeUnauthorized": "You are not authorized to change this registration.",
   "Feature.tournaments.registrationClosed": "Registration closed",

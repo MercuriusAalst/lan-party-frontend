@@ -1010,6 +1010,7 @@
   "Feature.tournaments.registration": "Inschrijving",
   "Feature.tournaments.registrationAdministration": "Beheer van inschrijvingen",
   "Feature.tournaments.registrationAdministrationHelp": "Bekijk en verwijder inschrijvingen voor Tournaments.",
+  "Feature.tournaments.adminRemovalLocked": "Inschrijvingen kunnen niet meer worden verwijderd zodra dit eliminatietoernooi is gestart.",
   "Feature.tournaments.registrationChangeFailed": "De wijziging van de inschrijving kon niet worden opgeslagen.",
   "Feature.tournaments.registrationChangeUnauthorized": "Je bent niet gemachtigd om deze inschrijving te wijzigen.",
   "Feature.tournaments.registrationClosed": "Inschrijving gesloten",

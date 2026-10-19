@@ -180,6 +180,9 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
 
     private bool IsRegistrationOpen => Tournament.Status == TournamentStatus.Scheduled;
 
+    private bool IsAdminRemovalLocked => Tournament.Status != TournamentStatus.Scheduled &&
+        Tournament.BracketType is (BracketType.SingleElimination or BracketType.DoubleElimination);
+
     private bool CanAdvanceFromTeamSelection =>
         SelectedTeam is not null &&
         _selectedTeamEligibility is not null &&
@@ -1391,7 +1394,7 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
 
     private async Task RemoveAdminRegistrationAsync(AdminTournamentRegistrationDTO registration)
     {
-        if(_pendingAdminRemovalRegistrationId.HasValue || _isLoadingRegistration || _isSubmitting)
+        if(IsAdminRemovalLocked || _pendingAdminRemovalRegistrationId.HasValue || _isLoadingRegistration || _isSubmitting)
             return;
 
         _pendingAdminRemovalRegistrationId = registration.Id;
