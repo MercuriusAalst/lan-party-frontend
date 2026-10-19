@@ -9,6 +9,7 @@ using Mercurius.LAN.Web.Components.Layout;
 using Mercurius.LAN.Web.Components.Pages;
 using Mercurius.LAN.Web.Components.Pages.Teams;
 using Mercurius.LAN.Web.Components.Pages.Tournaments;
+using Mercurius.LAN.Web.DTOs.Matches;
 using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.DTOs.Tournaments;
 using Mercurius.LAN.Web.DTOs.Users;
@@ -241,6 +242,70 @@ public sealed class ComponentLifecycleBehaviorTests
 
         Assert.Equal(0, notificationService.RefreshCalls);
         Assert.Equal(0, realtimeService.StartCalls);
+    }
+
+    [Fact]
+    public async Task NavMenuPollsPendingResolutionsOnlyForAdminsAndStopsOnDisposal()
+    {
+        var calls = 0;
+        var failNext = false;
+        var tournamentService = CreateProxy<ITournamentService>((method, _) =>
+        {
+            if(method.Name != nameof(ITournamentService.GetPendingMatchResolutionsAsync))
+                throw new NotSupportedException(method.Name);
+
+            Interlocked.Increment(ref calls);
+            if(Volatile.Read(ref failNext))
+                return Task.FromException<IReadOnlyList<PendingMatchResolutionDTO>>(new HttpRequestException("offline"));
+
+            IReadOnlyList<PendingMatchResolutionDTO> items =
+                [new PendingMatchResolutionDTO(), new PendingMatchResolutionDTO()];
+            return Task.FromResult(items);
+        });
+        var userClient = CreateProxy<IUserClient>((_, _) =>
+            Task.FromResult(new CurrentUserProfileResponse(true, null, null, true)));
+
+        TestNavMenu CreateMenu(params Claim[] claims)
+        {
+            var menu = new TestNavMenu();
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(
+                [new Claim(ClaimTypes.NameIdentifier, "user-1"), .. claims],
+                authenticationType: "test"));
+            SetProperty(menu, "TournamentService", tournamentService);
+            SetProperty(menu, "UserClient", userClient);
+            SetProperty(menu, "CurrentUserProfileNotifier", new CurrentUserProfileNotifier());
+            SetProperty(menu, "NotificationService", new TrackingNotificationService());
+            SetProperty(menu, "TeamRealtimeService", new TrackingRealtimeService());
+            SetProperty(menu, "AuthenticationStateTask", Task.FromResult(new AuthenticationState(principal)));
+            menu.SetPollInterval(TimeSpan.FromMilliseconds(20));
+            menu.StartInitialization();
+            return menu;
+        }
+
+        var member = CreateMenu();
+        await member.ApplyParametersAsync();
+        await member.StartInteractiveRenderAsync();
+        await Task.Delay(100);
+        await member.DisposeAsync();
+        Assert.Equal(0, Volatile.Read(ref calls));
+
+        var admin = CreateMenu(new Claim(ClaimTypes.Role, "admin"));
+        await admin.ApplyParametersAsync();
+        Assert.Equal(0, Volatile.Read(ref calls));
+        await admin.StartInteractiveRenderAsync();
+        await WaitForAsync(() => Volatile.Read(ref calls) >= 3);
+        Assert.Equal(2, admin.PendingCount);
+
+        // A failing refresh keeps the last known count and never throws into the circuit.
+        Volatile.Write(ref failNext, true);
+        var callsBeforeFailure = Volatile.Read(ref calls);
+        await WaitForAsync(() => Volatile.Read(ref calls) >= callsBeforeFailure + 2);
+        Assert.Equal(2, admin.PendingCount);
+
+        await admin.DisposeAsync();
+        var callsAfterDisposal = Volatile.Read(ref calls);
+        await Task.Delay(100);
+        Assert.Equal(callsAfterDisposal, Volatile.Read(ref calls));
     }
 
     [Fact]
@@ -496,6 +561,10 @@ public sealed class ComponentLifecycleBehaviorTests
         public Task ApplyParametersAsync() => base.OnParametersSetAsync();
 
         public Task StartInteractiveRenderAsync() => base.OnAfterRenderAsync(firstRender: true);
+
+        public int PendingCount => PendingResolutionCount;
+
+        public void SetPollInterval(TimeSpan interval) => PendingResolutionPollInterval = interval;
     }
 
     private sealed class TestProfileRedirect : ProfileRedirect

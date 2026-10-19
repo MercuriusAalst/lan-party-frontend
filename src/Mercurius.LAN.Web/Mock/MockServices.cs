@@ -128,6 +128,13 @@ internal sealed class MockTournamentService : ITournamentService
         CancellationToken cancellationToken = default) =>
         Task.FromResult(_store.GetMatch(matchId));
 
+    public async Task<IReadOnlyList<PendingMatchResolutionDTO>> GetPendingMatchResolutionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var persona = await GetCurrentPersonaAsync();
+        return _store.GetPendingMatchResolutions(persona);
+    }
+
     public async Task<MatchActionStateDTO> GetMatchActionStateAsync(
         Guid matchId,
         CancellationToken cancellationToken = default)

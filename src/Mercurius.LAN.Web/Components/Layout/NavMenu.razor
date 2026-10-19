@@ -116,6 +116,10 @@
                             aria-haspopup="true"
                             aria-controls="@AdminMenuElementId">
                         @Localization["nav.admin"]
+                        @if(PendingResolutionCount > 0)
+                        {
+                            <span id="admin-nav-pending-count" class="badge rounded-pill bg-danger ms-2" aria-label="@GetPendingResolutionAriaLabel()">@PendingResolutionCount</span>
+                        }
                     </button>
                     @if(_isDropdownVisible)
                     {
@@ -125,6 +129,13 @@
                              aria-labelledby="@AdminMenuTriggerElementId"
                              @onclick:stopPropagation="true">
                             <NavLink href="/admin/sponsors" Match="NavLinkMatch.All" class="dropdown-item" ActiveClass="dropdown-item--active" role="menuitem" @onclick="HandleNavigationClicked">@Localization["admin.sponsors"]</NavLink>
+                            <NavLink href="/admin/match-resolutions" Match="NavLinkMatch.All" class="dropdown-item" ActiveClass="dropdown-item--active" role="menuitem" @onclick="HandleNavigationClicked">
+                                @Localization["admin.matchResolutions"]
+                                @if(PendingResolutionCount > 0)
+                                {
+                                    <span id="admin-menu-pending-count" class="badge rounded-pill bg-danger ms-2">@PendingResolutionCount</span>
+                                }
+                            </NavLink>
                         </div>
                     }
                 </div>

@@ -66,7 +66,8 @@ internal static class TournamentE2E
         string? rankingMetric = null,
         DateTime? plannedStart = null,
         int averageGameDurationMinutes = 30,
-        int roundBreakDurationMinutes = 10)
+        int roundBreakDurationMinutes = 10,
+        Guid? assignedAdminUserId = null)
     {
         var form = new MultipartFormDataContent
         {
@@ -89,6 +90,9 @@ internal static class TournamentE2E
             form.Add(new StringContent(teamSize.Value.ToString()), "TeamSize");
         if (!string.IsNullOrWhiteSpace(rankingMetric))
             form.Add(new StringContent(rankingMetric), "LeaderboardRankingMetric");
+        // The backend requires an assigned admin on every tournament write.
+        if (assignedAdminUserId.HasValue)
+            form.Add(new StringContent(assignedAdminUserId.Value.ToString()), "AssignedAdminUserId");
 
         var image = new ByteArrayContent(PngBytes);
         image.Headers.ContentType = new MediaTypeHeaderValue("image/png");
@@ -152,12 +156,23 @@ internal static class TournamentE2E
         string format = "BestOf1",
         string finalsFormat = "BestOf1",
         int? teamSize = null,
-        string? rankingMetric = null)
+        string? rankingMetric = null,
+        Guid? assignedAdminUserId = null)
     {
-        using var form = TournamentForm(name, bracketType, participationMode, format, finalsFormat, teamSize, rankingMetric);
+        // The creating admin is the assigned admin unless a test names another one.
+        var assignedAdmin = assignedAdminUserId ?? await CurrentUserIdAsync(admin);
+        using var form = TournamentForm(
+            name, bracketType, participationMode, format, finalsFormat, teamSize, rankingMetric,
+            assignedAdminUserId: assignedAdmin);
         var response = await admin.PostAsync("v1/lan/tournaments", form);
         var json = await ReadJsonAsync(response);
         return json.GetProperty("id").GetGuid();
+    }
+
+    public static async Task<Guid> CurrentUserIdAsync(HttpClient client)
+    {
+        var profile = await ReadJsonAsync(await client.GetAsync("v1/lan/users/me"));
+        return profile.GetProperty("user").GetProperty("id").GetGuid();
     }
 
     public static Task<Guid> CreateScheduledIndividualTournamentAsync(HttpClient admin, string name) =>

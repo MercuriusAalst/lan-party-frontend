@@ -375,7 +375,7 @@ public sealed class ApiContractTests
     }
 
     [Fact]
-    public async Task TournamentWrites_SendContactAdminAndPrizesWithExplicitClearValues()
+    public async Task TournamentWrites_SendTheMandatoryAdminAndPrizesWithExplicitClearValues()
     {
         var adminId = Guid.Parse("41111111-1111-1111-1111-111111111121");
         var handler = new RecordingHandler("{\"id\":\"11111111-1111-1111-1111-111111111112\",\"name\":\"Prize Cup\"}");
@@ -417,19 +417,82 @@ public sealed class ApiContractTests
             PlannedStartTime = DateTime.UtcNow.AddDays(1),
             AverageGameDurationMinutes = 30,
             RoundBreakDurationMinutes = 10,
-            AssignedAdminUserId = null,
+            AssignedAdminUserId = adminId,
             FirstPlacePrize = null,
             SecondPlacePrize = null,
             ThirdPlacePrize = null
         }, null, null, null);
 
         Assert.Equal(HttpMethod.Patch, handler.Request!.Method);
-        // The update contract clears a previously set value only through an explicit empty field.
+        // The admin is mandatory and always sent; prizes clear only through an explicit empty field.
         Assert.Contains("AssignedAdminUserId", handler.RequestBody!);
+        Assert.Contains(adminId.ToString(), handler.RequestBody!);
         Assert.Contains("FirstPlacePrize", handler.RequestBody!);
         Assert.Contains("SecondPlacePrize", handler.RequestBody!);
         Assert.Contains("ThirdPlacePrize", handler.RequestBody!);
-        Assert.DoesNotContain(adminId.ToString(), handler.RequestBody!);
+    }
+
+    [Fact]
+    public async Task PendingMatchResolutions_GetTheAdminListAndMapTheReason()
+    {
+        var matchId = Guid.Parse("61111111-1111-1111-1111-111111111111");
+        var tournamentId = Guid.Parse("61111111-1111-1111-1111-111111111112");
+        var handler = new RecordingHandler($$"""
+            [{"matchId":"{{matchId}}","tournamentId":"{{tournamentId}}","tournamentName":"Cup",
+              "participant1Name":"Alpha","participant2Name":"Beta","participant1ReportedScore1":2,"participant1ReportedScore2":1,
+              "reason":"MissingOpponentReport","requiredSinceUtc":"2026-10-15T20:00:00Z"},
+             {"matchId":"{{Guid.NewGuid()}}","tournamentId":"{{tournamentId}}","tournamentName":"Cup",
+              "participant1Name":"Gamma","participant2Name":"Delta","reason":"Disputed",
+              "participant1ReportedScore1":1,"participant1ReportedScore2":0,
+              "participant2ReportedScore1":0,"participant2ReportedScore2":1,"requiredSinceUtc":null}]
+            """);
+        using var httpClient = CreateHttpClient(handler);
+        var client = RestService.For<ILANClient>(httpClient, CreateRefitSettings());
+        var service = new TournamentService(client, new ConfigurationBuilder().Build());
+
+        var pending = await service.GetPendingMatchResolutionsAsync();
+
+        Assert.Equal(HttpMethod.Get, handler.Request!.Method);
+        Assert.Equal("/v1/lan/matches/pending-resolution", handler.Request.RequestUri!.AbsolutePath);
+        Assert.Equal(2, pending.Count);
+        Assert.Equal(matchId, pending[0].MatchId);
+        Assert.Equal("Alpha", pending[0].Participant1Name);
+        Assert.Equal(MatchResolutionReason.MissingOpponentReport, pending[0].Reason);
+        Assert.Equal(2, pending[0].Participant1ReportedScore1);
+        Assert.Equal(1, pending[0].Participant1ReportedScore2);
+        Assert.Null(pending[0].Participant2ReportedScore1);
+        Assert.NotNull(pending[0].RequiredSinceUtc);
+        Assert.Equal(MatchResolutionReason.Disputed, pending[1].Reason);
+        Assert.Equal(1, pending[1].Participant2ReportedScore2);
+        Assert.Null(pending[1].RequiredSinceUtc);
+    }
+
+    [Fact]
+    public void TournamentDtos_RequireAnAssignedAdmin()
+    {
+        var create = new CreateTournamentDTO { ParticipationMode = ParticipationMode.Individual };
+        var update = new UpdateTournamentDTO
+        {
+            ParticipationMode = ParticipationMode.Individual,
+            PlannedStartTime = DateTime.UtcNow.AddDays(1)
+        };
+
+        Assert.Contains(
+            create.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(create)),
+            result => result.MemberNames.Contains(nameof(CreateTournamentDTO.AssignedAdminUserId)));
+        Assert.Contains(
+            update.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(update)),
+            result => result.MemberNames.Contains(nameof(UpdateTournamentDTO.AssignedAdminUserId)));
+
+        create.AssignedAdminUserId = Guid.NewGuid();
+        update.AssignedAdminUserId = Guid.NewGuid();
+
+        Assert.DoesNotContain(
+            create.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(create)),
+            result => result.MemberNames.Contains(nameof(CreateTournamentDTO.AssignedAdminUserId)));
+        Assert.DoesNotContain(
+            update.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(update)),
+            result => result.MemberNames.Contains(nameof(UpdateTournamentDTO.AssignedAdminUserId)));
     }
 
     private static HttpClient CreateHttpClient(HttpMessageHandler handler)

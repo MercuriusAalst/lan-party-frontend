@@ -208,6 +208,10 @@ public interface ILANClient
         [AliasAs("rowVersion")] Guid rowVersion,
         CancellationToken cancellationToken = default);
 
+    [Get("/v1/lan/matches/pending-resolution")]
+    Task<List<PendingMatchResolutionDTO>> GetPendingMatchResolutionsAsync(
+        CancellationToken cancellationToken = default);
+
     [Get("/v1/lan/matches/{matchId}")]
     Task<Match> GetMatchByIdAsync(
         Guid matchId,
