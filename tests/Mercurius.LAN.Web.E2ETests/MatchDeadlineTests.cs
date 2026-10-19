@@ -13,7 +13,7 @@ namespace Mercurius.LAN.Web.E2ETests;
 public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 {
     [Fact]
-    public async Task OneSidedReportRequiresAdminResolutionWhenTheConfirmationWindowExpires()
+    public async Task OneSidedReportWaitsForTheAdminWhenTheConfirmationWindowExpires()
     {
         var setup = await StartScoredSingleMatchAsync("deadline-score", report1: 2, report2: 1);
         await MatchE2E.ExpireScoreWindowAsync(app, setup.MatchId);
@@ -22,7 +22,10 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var page = await OpenTournamentAsync(context, setup.TournamentId);
         var dialog = await MatchE2E.OpenMatchAsync(page, setup.First.Username);
 
+        // A lone report is never accepted automatically: the assigned admin decides.
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AdminResolutionStatus })).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("The opponent did not report a score before the window closed.", new() { Exact = false }))
+            .ToBeVisibleAsync();
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.CompletedStatus })).ToHaveCountAsync(0);
         await Expect(MatchE2E.Section(dialog, MatchE2E.DeadlineLabel)).ToHaveCountAsync(0);
 
@@ -46,7 +49,7 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var playerDialog = await MatchE2E.OpenMatchAsync(playerPage, players[0].Username);
 
         await Expect(playerDialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AdminResolutionStatus })).ToBeVisibleAsync();
-        await Expect(playerDialog.GetByText("The correction window expired. An authorized tournament administrator must resolve this result."))
+        await Expect(playerDialog.GetByText("Conflict: the reported scores do not match and the correction window expired. The assigned tournament administrator must resolve this result."))
             .ToBeVisibleAsync();
         await Expect(playerDialog.GetByRole(AriaRole.Button, new() { Name = MatchE2E.SubmitScoreButton })).ToHaveCountAsync(0);
 
@@ -85,7 +88,7 @@ public class MatchDeadlineTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var dialog = await MatchE2E.OpenMatchAsync(page, players[0].Username);
 
         await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = MatchE2E.AwaitingScore })).ToBeVisibleAsync();
-        await Expect(dialog.GetByText("Either side may report the score. After the first report, the other side has five minutes to agree or report a correction; otherwise the reported score becomes final.")).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("Either side may report the score. After the first report, the other side has five minutes to agree or report a correction; otherwise the match goes to the assigned tournament administrator to resolve.")).ToBeVisibleAsync();
 
         await MatchE2E.CloseContextsAsync(app, context);
     }

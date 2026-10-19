@@ -300,7 +300,7 @@ public sealed class ProfilePictureBehaviorTests
     }
 
     [Fact]
-    public async Task FailedUpload_KeepsThePreviousPictureAndThePendingSelection()
+    public async Task FailedUpload_ShowsThePreviousPictureAndReleasesThePendingSelection()
     {
         var page = CreateProfile(out var userClient, out var notifications);
         SetProfileField(page, "_savedPictureUrl", "images/users/saved.png");
@@ -310,10 +310,13 @@ public sealed class ProfilePictureBehaviorTests
         await InvokeProfileTaskAsync(page, "UploadPictureAsync");
 
         Assert.Equal("images/users/saved.png", ReadProfileField<string?>(page, "_savedPictureUrl"));
-        Assert.NotNull(ReadProfileField<object?>(page, "_pendingPicture"));
+        Assert.Null(ReadProfileField<object?>(page, "_pendingPicture"));
         Assert.False(ReadProfileField<bool>(page, "_isPictureBusy"));
         Assert.Equal("Profile could not be saved.", ReadProfileField<string>(page, "_pictureStatusText"));
         Assert.Equal(0, notifications.Notifications);
+
+        var avatar = await RenderAvatarAsync("mockuser", ReadProfileField<string?>(page, "_savedPictureUrl"));
+        Assert.Contains("src=\"https://api.example.test/images/users/saved.png\"", avatar);
     }
 
     [Fact]

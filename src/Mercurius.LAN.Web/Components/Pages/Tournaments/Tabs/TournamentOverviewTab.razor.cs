@@ -8,19 +8,34 @@ using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Models.Tournaments;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Refit;
 
 namespace Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
 
-public partial class TournamentOverviewTab
+public partial class TournamentOverviewTab : IDisposable
 {
+    internal enum AssignedAdminStatus
+    {
+        // Not checked, still loading, failed to load or not applicable: never warn.
+        Unknown,
+        Valid,
+        Revoked
+    }
+
     [Parameter] public TournamentExtended Tournament { get; set; } = null!;
     [Parameter] public EventCallback<TournamentExtended> OnTournamentUpdated { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
     [Inject] private ITournamentService TournamentService { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
 
+    private readonly CancellationTokenSource _lifetime = new();
+    private AssignedAdminStatus _assignedAdminStatus;
+    private Guid? _checkedContactAdminId;
+    private bool _disposed;
     private bool _isEditMode;
     private UpdateTournamentDTO _editTournament = new();
     private EditContext? _editContext;
@@ -48,6 +63,7 @@ public partial class TournamentOverviewTab
         [nameof(UpdateTournamentDTO.PlannedStartTime)] = "Feature.tournaments.plannedStartTime",
         [nameof(UpdateTournamentDTO.AverageGameDurationMinutes)] = "Feature.tournaments.averageGameDuration",
         [nameof(UpdateTournamentDTO.RoundBreakDurationMinutes)] = "Feature.tournaments.roundBreakDuration",
+        [nameof(UpdateTournamentDTO.AssignedAdminUserId)] = "Feature.tournaments.contactAdmin",
         [nameof(UpdateTournamentDTO.FirstPlacePrize)] = "Feature.tournaments.firstPlacePrize",
         [nameof(UpdateTournamentDTO.SecondPlacePrize)] = "Feature.tournaments.secondPlacePrize",
         [nameof(UpdateTournamentDTO.ThirdPlacePrize)] = "Feature.tournaments.thirdPlacePrize"
@@ -55,6 +71,7 @@ public partial class TournamentOverviewTab
 
     private static readonly IReadOnlyDictionary<string, string> ValidationMessageKeys = new Dictionary<string, string>
     {
+        ["An assigned admin is required."] = "form.assignedAdminRequired",
         ["Planned start time is required."] = "form.plannedStartTimeRequired",
         ["Team tournaments require a team size between 1 and 50."] = "form.teamSizeRange",
         ["Leaderboard tournaments require a ranking metric."] = "form.leaderboardMetricRequired",
@@ -64,6 +81,83 @@ public partial class TournamentOverviewTab
     private bool IsLeaderboard => Tournament.BracketType == BracketType.Leaderboard;
 
     private bool IsLeaderboardEdit => _editTournament.BracketType == BracketType.Leaderboard;
+
+    // Only an admin who can still act on the tournament sees this; the markup is additionally role-gated.
+    protected bool ShowAssignedAdminRevokedWarning =>
+        _assignedAdminStatus == AssignedAdminStatus.Revoked &&
+        Tournament.Status is TournamentStatus.Scheduled or TournamentStatus.InProgress;
+
+    // Scheduled tournaments can be edited, so the admin is asked to pick a replacement. An in-progress tournament
+    // has no edit action: the text only explains that waiting matches are shown to every admin.
+    protected string AssignedAdminRevokedWarningKey => Tournament.Status == TournamentStatus.Scheduled
+        ? "Feature.tournaments.assignedAdminRevokedWarning"
+        : "Feature.tournaments.assignedAdminRevokedWarningInProgress";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var contactAdminId = Tournament?.ContactAdmin?.Id;
+        if(contactAdminId == _checkedContactAdminId && _assignedAdminStatus != AssignedAdminStatus.Unknown)
+            return;
+
+        var isAdmin = false;
+        if(AuthenticationStateTask is not null)
+        {
+            try
+            {
+                isAdmin = (await AuthenticationStateTask).User.IsInRole("admin");
+            }
+            catch(OperationCanceledException) when(_disposed)
+            {
+                return;
+            }
+        }
+
+        await EvaluateAssignedAdminAsync(isAdmin);
+    }
+
+    // Compares the tournament contact with the administrator list the picker uses. Only admins ever load that
+    // list; while it loads or when it fails no warning is shown.
+    internal async Task EvaluateAssignedAdminAsync(bool isAdmin)
+    {
+        var contact = Tournament?.ContactAdmin;
+        _checkedContactAdminId = contact?.Id;
+        _assignedAdminStatus = AssignedAdminStatus.Unknown;
+        if(!isAdmin || contact is null || _disposed)
+            return;
+
+        try
+        {
+            var admins = await TournamentService.GetAllAdminUsersAsync(_lifetime.Token);
+            if(_disposed || contact.Id != Tournament?.ContactAdmin?.Id)
+                return;
+
+            _assignedAdminStatus = EvaluateAssignedAdmin(contact, admins);
+        }
+        catch(OperationCanceledException) when(_disposed)
+        {
+        }
+        catch(Exception)
+        {
+            // An unreachable list is not evidence that the admin was revoked.
+            _assignedAdminStatus = AssignedAdminStatus.Unknown;
+        }
+    }
+
+    internal static AssignedAdminStatus EvaluateAssignedAdmin(PublicUserDTO contact, IReadOnlyCollection<PublicUserDTO>? admins)
+    {
+        // An empty list is treated as unusable rather than as "every admin was revoked".
+        if(admins is null || admins.Count == 0)
+            return AssignedAdminStatus.Unknown;
+
+        return admins.Any(admin => admin.Id == contact.Id) ? AssignedAdminStatus.Valid : AssignedAdminStatus.Revoked;
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
 
     internal static string GetContactAdminLabel(PublicUserDTO contactAdmin) =>
         !string.IsNullOrWhiteSpace(contactAdmin.DisplayName) ? contactAdmin.DisplayName
@@ -85,7 +179,8 @@ public partial class TournamentOverviewTab
             PlannedStartTime = Tournament.PlannedStartTime.ToLocalDisplayTime(),
             AverageGameDurationMinutes = Tournament.AverageGameDurationMinutes > 0 ? Tournament.AverageGameDurationMinutes : 30,
             RoundBreakDurationMinutes = Tournament.RoundBreakDurationMinutes > 0 ? Tournament.RoundBreakDurationMinutes : 10,
-            AssignedAdminUserId = Tournament.ContactAdmin?.Id,
+            // Legacy tournaments may have no admin yet: Guid.Empty forces the editor to pick one before saving.
+            AssignedAdminUserId = Tournament.ContactAdmin?.Id ?? Guid.Empty,
             FirstPlacePrize = Tournament.FirstPlacePrize,
             SecondPlacePrize = Tournament.SecondPlacePrize,
             ThirdPlacePrize = Tournament.ThirdPlacePrize
@@ -98,6 +193,16 @@ public partial class TournamentOverviewTab
                 ApplyBracketTypeDefaults();
             _editContext.Validate();
         };
+    }
+
+    private Guid? GetAssignedAdminSelection() =>
+        _editTournament.AssignedAdminUserId == Guid.Empty ? null : _editTournament.AssignedAdminUserId;
+
+    private Task SetAssignedAdmin(Guid? adminId)
+    {
+        _editTournament.AssignedAdminUserId = adminId ?? Guid.Empty;
+        _editContext?.NotifyFieldChanged(_editContext.Field(nameof(UpdateTournamentDTO.AssignedAdminUserId)));
+        return Task.CompletedTask;
     }
 
     internal void ApplyBracketTypeDefaults()

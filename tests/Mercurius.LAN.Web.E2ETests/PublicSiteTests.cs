@@ -563,6 +563,30 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
+    public async Task FooterEventInfoHoldsTheInfoSectionLinksWithoutExploreOrMockCopy()
+    {
+        await using var context = await app.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"{app.BaseUrl}");
+        await page.WaitForInteractiveAsync();
+
+        var footer = page.Locator("footer.footer");
+        var eventInfo = footer.Locator("section.footer-column", new()
+        {
+            Has = page.GetByRole(AriaRole.Heading, new() { Name = "Event Info", Exact = true })
+        });
+
+        await Expect(eventInfo).ToHaveCountAsync(1);
+        await Expect(eventInfo.GetByRole(AriaRole.Link, new() { Name = "When & Where" })).ToHaveAttributeAsync("href", "/info#where");
+        await Expect(eventInfo.GetByRole(AriaRole.Link, new() { Name = "Tickets" })).ToHaveAttributeAsync("href", "/info#tickets");
+        await Expect(eventInfo.GetByRole(AriaRole.Link, new() { Name = "Catering" })).ToHaveAttributeAsync("href", "/info#catering");
+        await Expect(eventInfo.GetByRole(AriaRole.Link, new() { Name = "Contact" })).ToHaveAttributeAsync("href", "/info#contact-info");
+        await Expect(footer.GetByRole(AriaRole.Heading, new() { Name = "Explore" })).ToHaveCountAsync(0);
+        await Expect(footer.GetByText("Offline mock mode")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public async Task HomeFeaturedTournamentsMirrorThePublishedOrderAndOpenTheirDetailPage()
     {
         var admin = await app.CreatePersonaAsync("home-featured-admin", isAdmin: true);

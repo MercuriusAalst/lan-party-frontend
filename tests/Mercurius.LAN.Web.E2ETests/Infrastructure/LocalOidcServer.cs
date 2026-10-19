@@ -252,6 +252,18 @@ internal sealed class LocalOidcServer : IAsyncDisposable
         });
     }
 
+    // Mirrors Auth0's role endpoints: the backend asks whether a user holds the admin role and which users do.
+    private IResult GetRoleUsers(string roleId) =>
+        roleId != AdminRoleId
+            ? Results.NotFound()
+            : Results.Json(new
+            {
+                users = _personas.Values
+                    .Where(persona => persona.Roles.Contains("admin", StringComparer.Ordinal))
+                    .Select(persona => new { user_id = persona.Subject })
+                    .ToArray()
+            });
+
     private IResult GetManagementProfile(string? subject)
     {
         var unescapedSubject = Uri.UnescapeDataString(subject ?? string.Empty);
@@ -277,18 +289,6 @@ internal sealed class LocalOidcServer : IAsyncDisposable
             identities
         });
     }
-
-    // Mirrors Auth0's role endpoints used by backend admin validation.
-    private IResult GetRoleUsers(string roleId) =>
-        roleId != AdminRoleId
-            ? Results.NotFound()
-            : Results.Json(new
-            {
-                users = _personas.Values
-                    .Where(persona => persona.Roles.Contains("admin", StringComparer.Ordinal))
-                    .Select(persona => new { user_id = persona.Subject })
-                    .ToArray()
-            });
 
     private IResult EndSession(HttpRequest request)
     {

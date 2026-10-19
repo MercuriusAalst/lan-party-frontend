@@ -90,6 +90,7 @@ internal static class TournamentE2E
             form.Add(new StringContent(teamSize.Value.ToString()), "TeamSize");
         if (!string.IsNullOrWhiteSpace(rankingMetric))
             form.Add(new StringContent(rankingMetric), "LeaderboardRankingMetric");
+        // The backend requires an assigned admin on every tournament write.
         if (assignedAdminUserId.HasValue)
             form.Add(new StringContent(assignedAdminUserId.Value.ToString()), "AssignedAdminUserId");
 
@@ -158,15 +159,10 @@ internal static class TournamentE2E
         string? rankingMetric = null,
         Guid? assignedAdminUserId = null)
     {
+        // The creating admin is the assigned admin unless a test names another one.
         var assignedAdmin = assignedAdminUserId ?? await CurrentUserIdAsync(admin);
         using var form = TournamentForm(
-            name,
-            bracketType,
-            participationMode,
-            format,
-            finalsFormat,
-            teamSize,
-            rankingMetric,
+            name, bracketType, participationMode, format, finalsFormat, teamSize, rankingMetric,
             assignedAdminUserId: assignedAdmin);
         var response = await admin.PostAsync("v1/lan/tournaments", form);
         var json = await ReadJsonAsync(response);

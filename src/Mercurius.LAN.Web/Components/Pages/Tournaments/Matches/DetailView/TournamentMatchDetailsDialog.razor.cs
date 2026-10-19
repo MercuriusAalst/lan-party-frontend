@@ -286,12 +286,29 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
         MatchLifecycleState.AwaitingEndedConfirmation or MatchLifecycleState.AwaitingScore => Localization["Feature.match.descriptionAwaitingReport"],
         MatchLifecycleState.ScoreConfirmation => Localization["Feature.match.descriptionScoreConfirmation"],
         MatchLifecycleState.Disputed => Localization["Feature.match.descriptionDisputed"],
-        MatchLifecycleState.AdminResolutionRequired => Localization["Feature.match.descriptionAdminResolution"],
+        MatchLifecycleState.AdminResolutionRequired => GetAdminResolutionDescription(),
         MatchLifecycleState.Completed => Localization["Feature.match.descriptionCompleted"],
         MatchLifecycleState.Forfeited => Localization["Feature.match.descriptionForfeited"],
         MatchLifecycleState.Reversed => Localization["Feature.match.descriptionReversed"],
         _ => Localization["Feature.match.descriptionLoading"]
     };
+
+    // The state alone does not say why the admin is needed, so the text states the reason: a conflict, or an
+    // opponent who never reported. The private reports decide only when they are actually present in the action
+    // state; a successful response can still withhold them (unrelated viewer, unassigned global admin), and then the
+    // public ended flags decide: both sides ended means both reported.
+    internal static MatchResolutionReason GetResolutionReason(Match match, MatchActionStateDTO? actionState)
+    {
+        var bothReported = actionState is not null && ShouldRenderAdminReports(actionState)
+            ? actionState.Participant1ReportedScore1.HasValue && actionState.Participant2ReportedScore1.HasValue
+            : match.Participant1Ended && match.Participant2Ended;
+        return bothReported ? MatchResolutionReason.Disputed : MatchResolutionReason.MissingOpponentReport;
+    }
+
+    private string GetAdminResolutionDescription() =>
+        GetResolutionReason(Match, _hasFreshActionState ? _actionState : null) == MatchResolutionReason.Disputed
+            ? Localization["Feature.match.descriptionAdminResolutionDisputed"]
+            : Localization["Feature.match.descriptionAdminResolutionMissingReport"];
 
     private string GetStatusClass() => Match.LifecycleState switch
     {

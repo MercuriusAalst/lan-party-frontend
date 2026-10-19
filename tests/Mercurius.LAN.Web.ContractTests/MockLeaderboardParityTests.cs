@@ -323,6 +323,7 @@ public sealed class MockLeaderboardParityTests
 
         var created = store.CreateTournament(new CreateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Configuration Parity",
             BracketType = BracketType.Leaderboard,
             LeaderboardRankingMetric = LeaderboardRankingMetric.FastestTime,
@@ -339,6 +340,7 @@ public sealed class MockLeaderboardParityTests
 
         Assert.Throws<InvalidOperationException>(() => store.CreateTournament(new CreateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Missing Metric",
             BracketType = BracketType.Leaderboard,
             ParticipationMode = ParticipationMode.Individual,
@@ -349,6 +351,7 @@ public sealed class MockLeaderboardParityTests
 
         Assert.Throws<InvalidOperationException>(() => store.CreateTournament(new CreateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Team Leaderboard",
             BracketType = BracketType.Leaderboard,
             LeaderboardRankingMetric = LeaderboardRankingMetric.HighestScore,
@@ -360,6 +363,7 @@ public sealed class MockLeaderboardParityTests
 
         Assert.Throws<InvalidOperationException>(() => store.CreateTournament(new CreateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Metric On A Bracket",
             BracketType = BracketType.SingleElimination,
             LeaderboardRankingMetric = LeaderboardRankingMetric.HighestScore,
@@ -377,6 +381,7 @@ public sealed class MockLeaderboardParityTests
 
         var updated = store.UpdateTournament(ScoreFixtureTournamentId, new UpdateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Beat Saber Highscore",
             BracketType = BracketType.Leaderboard,
             LeaderboardRankingMetric = LeaderboardRankingMetric.FastestTime,
@@ -392,6 +397,7 @@ public sealed class MockLeaderboardParityTests
 
         Assert.Throws<InvalidOperationException>(() => store.UpdateTournament(ScoreFixtureTournamentId, new UpdateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Beat Saber Highscore",
             BracketType = BracketType.Leaderboard,
             ParticipationMode = ParticipationMode.Individual,
@@ -402,6 +408,7 @@ public sealed class MockLeaderboardParityTests
 
         Assert.Throws<InvalidOperationException>(() => store.UpdateTournament(ScoreFixtureTournamentId, new UpdateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Beat Saber Highscore",
             BracketType = BracketType.SingleElimination,
             LeaderboardRankingMetric = LeaderboardRankingMetric.FastestTime,
@@ -413,6 +420,7 @@ public sealed class MockLeaderboardParityTests
 
         var cleared = store.UpdateTournament(ScoreFixtureTournamentId, new UpdateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Beat Saber Highscore",
             BracketType = BracketType.SingleElimination,
             ParticipationMode = ParticipationMode.Individual,
@@ -434,6 +442,7 @@ public sealed class MockLeaderboardParityTests
 
         Assert.Throws<InvalidOperationException>(() => store.UpdateTournament(TimeFixtureTournamentId, new UpdateTournamentDTO
         {
+            AssignedAdminUserId = Guid.Parse("41111111-1111-1111-1111-111111111121"),
             Name = "Rejected replacement",
             Format = TournamentFormat.BestOf3,
             FinalsFormat = TournamentFormat.BestOf5,

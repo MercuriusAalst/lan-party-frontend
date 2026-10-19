@@ -231,8 +231,12 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
 
         await dialog.Locator(".leaderboard-attempt-item").GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.Delete }).ClickAsync();
         await dialog.Locator(".leaderboard-attempt-item").GetByRole(AriaRole.Button, new() { Name = "Remove attempt" }).ClickAsync();
+        // The backend prunes a guest participant once its last attempt is removed, so the dialog
+        // falls back to the empty-participants state instead of an empty attempt history.
         await Expect(dialog.GetByText("No participants yet. Record a result for a LAN user or a guest to create the first one.")).ToBeVisibleAsync();
         await Expect(dialog.Locator(".leaderboard-attempt-list")).ToHaveCountAsync(0);
+        await Expect(dialog.Locator("#leaderboard-participant")).ToHaveCountAsync(0);
+        await Expect(dialog.GetByText("No attempts recorded yet.")).ToHaveCountAsync(0);
     }
 
     [Fact]
