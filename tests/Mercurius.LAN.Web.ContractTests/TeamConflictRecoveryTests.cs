@@ -1,6 +1,7 @@
 using System.Net;
 using System.Reflection;
 using Blazored.Toast.Services;
+using Microsoft.AspNetCore.Components;
 using Mercurius.LAN.Web.Components.Pages.Teams;
 using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.Services;
@@ -18,6 +19,27 @@ public sealed class TeamConflictRecoveryTests
 {
     private const string TeamChangedKey = "General.TeamManage.TeamChanged";
     private const string TeamChangedRefreshFailedKey = "General.TeamManage.TeamChangedRefreshFailed";
+
+    [Fact]
+    public async Task CreateIntentOpensAfterInteractiveRenderAndReplacesQueryOnlyOnce()
+    {
+        var (component, _) = CreateComponent(
+            CreateTeamService(() => Task.FromResult(new CurrentUserTeamSummaryDTO())),
+            new RecordingNotificationService(),
+            new RecordingRealtimeService());
+        var navigation = new RecordingNavigationManager();
+        SetProperty(component, "NavigationManager", navigation);
+        SetProperty(component, "CreateIntent", true);
+
+        await InvokePrivateAsync(component, "OnAfterRenderAsync", true);
+        await InvokePrivateAsync(component, "OnAfterRenderAsync", true);
+
+        Assert.True(ReadField<bool>(component, "_isCreateTeamDialogOpen"));
+        Assert.True(ReadField<bool>(component, "_createIntentConsumed"));
+        Assert.Single(navigation.Navigations);
+        Assert.Equal("/teams/manage", navigation.Navigations[0].Uri);
+        Assert.True(navigation.Navigations[0].Replace);
+    }
 
     [Fact]
     public async Task ExactTeamChangedConflictRefreshesSummaryAndNotificationsOnceWithoutResendingMutation()
@@ -476,5 +498,15 @@ public sealed class TeamConflictRecoveryTests
             RenderCount++;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class RecordingNavigationManager : NavigationManager
+    {
+        public List<(string Uri, bool Replace)> Navigations { get; } = [];
+
+        public RecordingNavigationManager() => Initialize("http://localhost/", "http://localhost/teams/manage?create=true");
+
+        protected override void NavigateToCore(string uri, NavigationOptions options) =>
+            Navigations.Add((uri, options.ReplaceHistoryEntry));
     }
 }

@@ -22,10 +22,15 @@ public partial class ManageTeams : IAsyncDisposable
     [Inject] private ITeamRealtimeService RealtimeService { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = null!;
+
+    [Parameter, SupplyParameterFromQuery(Name = "create")]
+    public bool CreateIntent { get; set; }
 
     private CurrentUserTeamSummaryDTO _summary = new();
     private bool _isLoading = true;
     private bool _isRealtimeReady;
+    private bool _createIntentConsumed;
     private string? _loadError;
     private Guid? _selectedTeamId;
     private bool _isCreateTeamDialogOpen;
@@ -138,6 +143,13 @@ public partial class ManageTeams : IAsyncDisposable
     {
         if(_disposed)
             return;
+
+        if(firstRender && CreateIntent && !_createIntentConsumed)
+        {
+            _createIntentConsumed = true;
+            _isCreateTeamDialogOpen = true;
+            NavigationManager.NavigateTo("/teams/manage", replace: true);
+        }
 
         if(_confirmation is not null && _confirmationFocusTrap is null)
         {

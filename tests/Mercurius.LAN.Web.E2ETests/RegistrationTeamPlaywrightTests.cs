@@ -10,6 +10,70 @@ public class RegistrationTeamPlaywrightTests : TournamentE2ETestBase
     public RegistrationTeamPlaywrightTests(PlaywrightE2EFixture app) : base(app) { }
 
     [Fact]
+    public async Task CaptainWithoutTeamsCanOpenAndCancelTeamCreationFromRegistration()
+    {
+        var adminApi = App.CreateApiClient(await App.CreatePersonaAsync("reg-empty-team-admin", isAdmin: true));
+        var tournamentId = await CreateTeamTournamentAsync(adminApi, TournamentE2E.Unique("E2E Empty Team"), teamSize: 2);
+        var captain = await App.CreatePersonaAsync("reg-empty-team-captain");
+        var context = await App.NewAuthenticatedContextAsync(captain);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, $"/tournaments/{tournamentId}");
+
+        var registration = page.Locator("#registration");
+        await registration.GetByRole(AriaRole.Button, new() { Name = "Register now" }).ClickAsync();
+        var dialog = page.Locator("div.registration-dialog");
+        await Expect(dialog.GetByRole(AriaRole.Heading, new() { Name = "You don't captain a team yet" })).ToBeVisibleAsync();
+        await Expect(dialog.GetByText("Create your own team and invite players to participate in this tournament.")).ToBeVisibleAsync();
+        await CaptureEmptyTeamStateAsync(page, "desktop-light", 1440, 900, dark: false);
+        await CaptureEmptyTeamStateAsync(page, "mobile-light", 390, 844, dark: false);
+        await CaptureEmptyTeamStateAsync(page, "desktop-dark", 1440, 900, dark: true);
+        await CaptureEmptyTeamStateAsync(page, "mobile-dark", 390, 844, dark: true);
+        await page.SetViewportSizeAsync(1440, 900);
+        await page.EvaluateAsync("document.documentElement.setAttribute('data-theme', 'light')");
+
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Create a team" }).ClickAsync();
+        await Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/teams/manage$"));
+        var createDialog = TeamE2E.CreateTeamDialog(page);
+        await Expect(createDialog).ToBeVisibleAsync();
+        await page.ClickWhenInteractiveAsync(createDialog.GetByRole(AriaRole.Button, new() { Name = "Cancel", Exact = true }));
+        await Expect(createDialog).Not.ToBeVisibleAsync();
+        await Expect(page.GetByText("You do not have a team yet.")).ToBeVisibleAsync();
+
+        using var api = App.CreateApiClient(captain);
+        Assert.Empty((await TeamE2E.GetSummaryAsync(api)).CaptainedTeams);
+    }
+
+    private static async Task CaptureEmptyTeamStateAsync(IPage page, string name, int width, int height, bool dark)
+    {
+        await page.SetViewportSizeAsync(width, height);
+        await page.EvaluateAsync($"document.documentElement.setAttribute('data-theme', '{(dark ? "dark" : "light")}')");
+        var shotsDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.orch/shots"));
+        Directory.CreateDirectory(shotsDirectory);
+        await page.ScreenshotAsync(new() { Path = Path.Combine(shotsDirectory, $"issue-119-{name}.png"), FullPage = true });
+    }
+
+    [Fact]
+    public async Task CaptainWithOnlyUndersizedTeamsGetsManagementGuidance()
+    {
+        var adminApi = App.CreateApiClient(await App.CreatePersonaAsync("reg-small-team-admin", isAdmin: true));
+        var tournamentId = await CreateTeamTournamentAsync(adminApi, TournamentE2E.Unique("E2E Small Team"), teamSize: 2);
+        var captain = await App.CreatePersonaAsync("reg-small-team-captain");
+        var captainApi = App.CreateApiClient(captain);
+        await TournamentE2E.CreateTeamAsync(captainApi, captain.UserId!.Value, TournamentE2E.Unique("E2E Small Squad"));
+        var context = await App.NewAuthenticatedContextAsync(captain);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, $"/tournaments/{tournamentId}");
+
+        var registration = page.Locator("#registration");
+        await registration.GetByRole(AriaRole.Button, new() { Name = "Register now" }).ClickAsync();
+        var dialog = page.Locator("div.registration-dialog");
+        await Expect(dialog.GetByText("Teams with fewer than 2 members are hidden.")).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Manage teams" })).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Create a team" })).ToHaveCountAsync(0);
+        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Choose roster" })).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public async Task CaptainSubmitsRosterAndInvitedMemberAcceptingActivatesTheRegistration()
     {
         var (captain, member, teamId, teamName, tournamentId) = await ArrangeTeamAsync("accept");

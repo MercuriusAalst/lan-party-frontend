@@ -525,6 +525,46 @@ html[data-theme="dark"] .registration-cancel-button {
     font-size: 0.82rem;
 }
 
+.registration-team-empty-state {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    max-width: 34rem;
+    margin: 1rem auto;
+    padding: clamp(1.5rem, 5vw, 2.5rem);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-neutral-soft);
+    text-align: center;
+}
+
+.registration-team-empty-icon {
+    color: var(--color-muted-text);
+    font-size: 2rem;
+}
+
+.registration-team-empty-state h3,
+.registration-team-empty-state p {
+    margin: 0;
+}
+
+.registration-team-empty-action {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    margin-top: 0.25rem;
+}
+
+.registration-team-empty-action .bi-arrow-right {
+    margin-left: auto;
+}
+
+.registration-team-manage-action {
+    align-self: start;
+}
+
 .registration-roster-member {
     display: flex;
     align-items: center;

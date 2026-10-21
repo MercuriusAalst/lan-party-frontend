@@ -37,6 +37,47 @@ public sealed class TeamManagementPageTests : E2ETestBase
     }
 
     [Fact]
+    public async Task CreateIntentOpensDialogOnceAndCancelKeepsManagementState()
+    {
+        var captain = await _app.CreatePersonaAsync(TeamE2E.UniqueLabel("captain-create-intent"));
+        await using var context = await TeamE2E.TeamContext.CreateAsync(_app);
+        var page = await TeamE2E.LoginAndOpenAsync(_app, context, captain, "/teams/manage?create=true");
+        var dialog = TeamE2E.CreateTeamDialog(page);
+
+        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/teams/manage$"));
+        await page.ClickWhenInteractiveAsync(dialog.GetByRole(AriaRole.Button, new() { Name = "Cancel", Exact = true }));
+        await Expect(dialog).Not.ToBeVisibleAsync();
+
+        await page.ReloadAsync();
+        await page.WaitForInteractiveAsync();
+        await Expect(dialog).Not.ToBeVisibleAsync();
+        await Expect(page.GetByText("You do not have a team yet.")).ToBeVisibleAsync();
+
+        using var api = _app.CreateApiClient(captain);
+        Assert.Empty((await TeamE2E.GetSummaryAsync(api)).CaptainedTeams);
+    }
+
+    [Fact]
+    public async Task CreateIntentLeavesCaptainInTeamManagementAfterCreation()
+    {
+        var captain = await _app.CreatePersonaAsync(TeamE2E.UniqueLabel("captain-create-intent-success"));
+        await using var context = await TeamE2E.TeamContext.CreateAsync(_app);
+        var page = await TeamE2E.LoginAndOpenAsync(_app, context, captain, "/teams/manage?create=true");
+        var teamName = TeamE2E.UniqueTeamName();
+        var dialog = TeamE2E.CreateTeamDialog(page);
+
+        await Expect(dialog).ToBeVisibleAsync();
+        await dialog.GetByLabel("Team name").FillAsync(teamName);
+        await page.ClickWhenInteractiveAsync(dialog.GetByRole(AriaRole.Button, new() { Name = "Create team", Exact = true }));
+
+        await Expect(page.GetByText("Team created.")).ToBeVisibleAsync();
+        await Expect(dialog).Not.ToBeVisibleAsync();
+        await Expect(TeamE2E.TeamSelectorItem(page, teamName)).ToBeVisibleAsync();
+        await Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/teams/manage$"));
+    }
+
+    [Fact]
     public async Task CaptainCreatesTeamThroughDialogAndItSurvivesReload()
     {
         var captain = await _app.CreatePersonaAsync(TeamE2E.UniqueLabel("captain-create"));
