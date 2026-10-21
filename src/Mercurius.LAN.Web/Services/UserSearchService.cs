@@ -26,7 +26,8 @@ public sealed class UserSearchService : IUserSearchService
                 DisplayLabel = result.DisplayLabel,
                 SupportingText = result.SupportingText ?? "User",
                 UserId = result.Id,
-                Username = result.Username
+                Username = result.Username,
+                ProfilePictureUrl = result.ProfilePictureUrl
             })
             .ToList();
     }

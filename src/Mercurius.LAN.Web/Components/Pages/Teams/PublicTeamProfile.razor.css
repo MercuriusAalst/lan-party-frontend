@@ -123,20 +123,6 @@
     outline: none;
 }
 
-.public-team-member-avatar {
-    width: 2rem;
-    height: 2rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    background: rgba(57, 201, 101, 0.18);
-    color: var(--color-ink);
-    font-size: 0.82rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-}
-
 .public-team-member-copy {
     display: grid;
     gap: 0.2rem;
@@ -208,11 +194,6 @@
 .public-team-tournament-link:hover {
     border-color: transparent;
     background: var(--color-success-soft);
-}
-
-.public-team-member-avatar {
-    background: var(--color-success-soft);
-    color: var(--color-success);
 }
 
 .public-team-captain-badge {

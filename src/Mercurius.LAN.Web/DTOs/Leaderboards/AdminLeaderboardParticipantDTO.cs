@@ -8,5 +8,6 @@ public class AdminLeaderboardParticipantDTO
     public string DisplayName { get; set; } = string.Empty;
     public LeaderboardParticipantKind ParticipantKind { get; set; }
     public Guid? LinkedUserId { get; set; }
+    public string? ProfilePictureUrl { get; set; }
     public List<LeaderboardAttemptDTO> Attempts { get; set; } = [];
 }

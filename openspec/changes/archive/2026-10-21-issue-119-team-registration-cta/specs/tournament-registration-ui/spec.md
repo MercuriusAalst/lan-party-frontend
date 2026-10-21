@@ -12,8 +12,10 @@ team, while preserving separate guidance for teams that exist but are too small.
   surface and comfortable padding
 - **AND** the card MUST include a recognizable team or people icon, a bold centered title, and
   centered supporting text
-- **AND** it MUST provide a prominent full-width primary `Create a team` button with a plus icon
-  and a suitable forward arrow
+- **AND** it MUST provide a prominent primary `Create a team` button with a plus icon and a
+  suitable forward arrow
+- **AND** the button MUST span the available card width on mobile and use only its content width,
+  centered within the card, on wide screens
 - **AND** choosing the action MUST navigate to `/teams/manage` with a one-time intent to open the
   existing team creation dialog
 - **AND** the create intent MUST be consumed so later renders or navigation do not reopen the dialog

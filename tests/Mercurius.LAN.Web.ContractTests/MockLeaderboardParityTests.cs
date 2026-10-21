@@ -123,6 +123,34 @@ public sealed class MockLeaderboardParityTests
     }
 
     [Fact]
+    public void RemovingFinalAttemptRemovesParticipantButEarlierRemovalRetainsIt()
+    {
+        var store = CreateStore();
+        store.SetTournamentLifecycleState(ScoreFixtureTournamentId, TournamentStatus.InProgress);
+
+        var participant = store.RecordLeaderboardAttempt(
+            ScoreFixtureTournamentId,
+            new RecordLeaderboardAttemptDTO { GuestDisplayName = "Attempt cleanup", Score = 10m });
+        var firstAttempt = participant.Attempts.Single();
+        var withSecondAttempt = store.RecordLeaderboardAttempt(
+            ScoreFixtureTournamentId,
+            new RecordLeaderboardAttemptDTO { ParticipantId = participant.Id, Score = 20m });
+        var secondAttempt = withSecondAttempt.Attempts.Single(attempt => attempt.Id != firstAttempt.Id);
+
+        store.DeleteLeaderboardAttempt(ScoreFixtureTournamentId, firstAttempt.Id, firstAttempt.RowVersion);
+
+        var retained = store.GetAdminLeaderboard(ScoreFixtureTournamentId).Participants.Single();
+        Assert.Equal(participant.Id, retained.Id);
+        Assert.Equal(secondAttempt.Id, Assert.Single(retained.Attempts).Id);
+
+        store.DeleteLeaderboardAttempt(ScoreFixtureTournamentId, secondAttempt.Id, secondAttempt.RowVersion);
+
+        Assert.DoesNotContain(
+            store.GetAdminLeaderboard(ScoreFixtureTournamentId).Participants,
+            candidate => candidate.Id == participant.Id);
+    }
+
+    [Fact]
     public void EqualGuestDisplayNamesStayDistinctParticipants()
     {
         var store = CreateStore();

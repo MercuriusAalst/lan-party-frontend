@@ -130,7 +130,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
                 Lastname = profile.Lastname,
                 DiscordId = profile.DiscordId,
                 SteamId = profile.SteamId,
-                RiotId = profile.RiotId
+                RiotId = profile.RiotId,
+                ProfilePictureUrl = profile.ProfilePictureUrl
             };
         }
         catch(OperationCanceledException) when(cancellation.IsCancellationRequested)

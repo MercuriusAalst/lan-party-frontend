@@ -35,6 +35,7 @@ public class RegistrationTeamPlaywrightTests : TournamentE2ETestBase
         await Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/teams/manage$"));
         var createDialog = TeamE2E.CreateTeamDialog(page);
         await Expect(createDialog).ToBeVisibleAsync();
+        await CaptureDialogAsync(createDialog, "issue-119-create-dialog.png");
         await page.ClickWhenInteractiveAsync(createDialog.GetByRole(AriaRole.Button, new() { Name = "Cancel", Exact = true }));
         await Expect(createDialog).Not.ToBeVisibleAsync();
         await Expect(page.GetByText("You do not have a team yet.")).ToBeVisibleAsync();
@@ -49,7 +50,24 @@ public class RegistrationTeamPlaywrightTests : TournamentE2ETestBase
         await page.EvaluateAsync($"document.documentElement.setAttribute('data-theme', '{(dark ? "dark" : "light")}')");
         var shotsDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.orch/shots"));
         Directory.CreateDirectory(shotsDirectory);
-        await page.ScreenshotAsync(new() { Path = Path.Combine(shotsDirectory, $"issue-119-{name}.png"), FullPage = true });
+        await page.Locator("div.registration-dialog").ScreenshotAsync(new() { Path = Path.Combine(shotsDirectory, $"issue-119-{name}.png") });
+        var card = page.Locator(".registration-team-empty-state");
+        var button = card.GetByRole(AriaRole.Button, new() { Name = "Create a team" });
+        var cardBox = await card.BoundingBoxAsync();
+        var buttonBox = await button.BoundingBoxAsync();
+        Assert.NotNull(cardBox);
+        Assert.NotNull(buttonBox);
+        if (name.StartsWith("mobile", StringComparison.Ordinal))
+            Assert.True(buttonBox.Width >= cardBox.Width * 0.8, "The mobile CTA should use the available card width.");
+        else
+            Assert.True(buttonBox.Width < cardBox.Width * 0.7, "The wide-screen CTA should stay content-width and centered.");
+    }
+
+    private static async Task CaptureDialogAsync(ILocator dialog, string filename)
+    {
+        var shotsDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.orch/shots"));
+        Directory.CreateDirectory(shotsDirectory);
+        await dialog.ScreenshotAsync(new() { Path = Path.Combine(shotsDirectory, filename) });
     }
 
     [Fact]
@@ -68,9 +86,16 @@ public class RegistrationTeamPlaywrightTests : TournamentE2ETestBase
         await registration.GetByRole(AriaRole.Button, new() { Name = "Register now" }).ClickAsync();
         var dialog = page.Locator("div.registration-dialog");
         await Expect(dialog.GetByText("Teams with fewer than 2 members are hidden.")).ToBeVisibleAsync();
-        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Manage teams" })).ToBeVisibleAsync();
+        var manageTeams = dialog.GetByRole(AriaRole.Button, new() { Name = "Manage teams" });
+        await Expect(manageTeams).ToBeVisibleAsync();
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Create a team" })).ToHaveCountAsync(0);
         await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Choose roster" })).ToHaveCountAsync(0);
+        await CaptureDialogAsync(dialog, "issue-119-undersized-desktop.png");
+        var dialogBox = await dialog.BoundingBoxAsync();
+        var manageTeamsBox = await manageTeams.BoundingBoxAsync();
+        Assert.NotNull(dialogBox);
+        Assert.NotNull(manageTeamsBox);
+        Assert.True(manageTeamsBox.Width < dialogBox.Width * 0.7, "The wide-screen Manage teams action should stay content-width.");
     }
 
     [Fact]

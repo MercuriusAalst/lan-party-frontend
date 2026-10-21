@@ -9,4 +9,5 @@ public class GlobalSearchResultDTO
     public string? Username { get; set; }
     public string? TeamName { get; set; }
     public Guid? TournamentId { get; set; }
+    public string? ProfilePictureUrl { get; set; }
 }

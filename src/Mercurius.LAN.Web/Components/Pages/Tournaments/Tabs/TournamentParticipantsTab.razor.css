@@ -561,6 +561,23 @@ html[data-theme="dark"] .registration-cancel-button {
     margin-left: auto;
 }
 
+@media (min-width: 641px) {
+    .registration-team-empty-action {
+        width: auto;
+    }
+
+    .registration-team-empty-action .bi-arrow-right {
+        margin-left: 0;
+    }
+
+    .registration-team-manage-action {
+        flex: 0 0 auto;
+        justify-self: start;
+        width: max-content;
+        max-width: 100%;
+    }
+}
+
 .registration-team-manage-action {
     align-self: start;
 }
@@ -601,6 +618,12 @@ html[data-theme="dark"] .registration-cancel-button {
 .registration-roster-member-name strong {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+.registration-roster-member ::deep .user-avatar,
+.registration-review-member ::deep .user-avatar,
+.registration-review-player-name ::deep .user-avatar {
+    flex: 0 0 auto;
 }
 
 .registration-candidate-reason {

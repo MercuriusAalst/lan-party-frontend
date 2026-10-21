@@ -490,8 +490,10 @@ team, while preserving separate guidance for teams that exist but are too small.
   surface and comfortable padding
 - **AND** the card MUST include a recognizable team or people icon, a bold centered title, and
   centered supporting text
-- **AND** it MUST provide a prominent full-width primary `Create a team` button with a plus icon
-  and a suitable forward arrow
+- **AND** it MUST provide a prominent primary `Create a team` button with a plus icon and a
+  suitable forward arrow
+- **AND** the button MUST span the available card width on mobile and use only its content width,
+  centered within the card, on wide screens
 - **AND** choosing the action MUST navigate to `/teams/manage` with a one-time intent to open the
   existing team creation dialog
 - **AND** the create intent MUST be consumed so later renders or navigation do not reopen the dialog
@@ -536,4 +538,30 @@ team, while preserving separate guidance for teams that exist but are too small.
 - **AND** cancelling MUST leave team and tournament-registration state unchanged
 - **AND** neither outcome MUST carry tournament context, reopen registration, select the new team,
   automatically register it, or return to the tournament
+
+### Requirement: Started elimination registrations cannot be removed by administrators
+
+For single and double elimination tournaments, administrators MUST NOT remove individual or team registrations after the tournament leaves Scheduled. This restriction MUST be enforced in the admin interface and by the backend. It MUST NOT change leaderboard removal behavior.
+
+#### Scenario: Administrator opens a started elimination tournament
+
+- **WHEN** an administrator views individual or team registrations for a single or double elimination tournament whose status is not Scheduled
+- **THEN** the participant list remains visible
+- **AND** removal controls are disabled
+- **AND** the page explains that registrations are locked after the tournament starts
+
+#### Scenario: Administrator attempts removal after the tournament leaves Scheduled
+
+- **WHEN** an administrator attempts to remove an individual or team registration from a single or double elimination tournament whose status is not Scheduled
+- **THEN** the registration MUST remain unchanged
+
+#### Scenario: Administrator removes a scheduled elimination registration
+
+- **WHEN** an administrator removes an individual or team registration from a Scheduled single or double elimination tournament
+- **THEN** the existing removal behavior remains available
+
+#### Scenario: Administrator removes a leaderboard registration
+
+- **WHEN** an administrator removes a leaderboard participant after the tournament leaves Scheduled
+- **THEN** existing leaderboard removal behavior remains unchanged
 

@@ -25,6 +25,7 @@
             </button>
 
             <header class="user-info-dialog-header">
+                <UserAvatar Name="@GetDialogTitle(user)" PictureUrl="@user.ProfilePictureUrl" Size="prominent" Decorative="true" />
                 <span class="user-info-dialog-eyebrow">@Localization["shared.playerDetails"]</span>
                 <h2 id="@DialogTitleId">@GetDialogTitle(user)</h2>
                 <p id="@DialogDescriptionId">@Localization["shared.sharedDetailsOnly"]</p>

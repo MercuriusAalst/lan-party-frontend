@@ -1,0 +1,13 @@
+<span class="@ContainerClass"
+      role="@(IsDecorative ? null : "img")"
+      aria-label="@AriaLabel"
+      aria-hidden="@(IsDecorative ? "true" : null)">
+    @if(HasImage)
+    {
+        <img src="@ResolvedUrl" alt="" class="user-avatar-image" @onerror="HandleImageError" />
+    }
+    else
+    {
+        @Initials
+    }
+</span>

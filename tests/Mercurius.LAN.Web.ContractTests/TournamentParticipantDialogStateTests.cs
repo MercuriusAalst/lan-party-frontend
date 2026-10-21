@@ -3,6 +3,7 @@ using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Localization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -67,6 +68,7 @@ public sealed class TournamentParticipantDialogStateTests
     {
         await using var services = new ServiceCollection()
             .AddLogging()
+            .AddSingleton<IConfiguration>(new ConfigurationBuilder().Build())
             .AddSingleton<ILocalizationService>(TestLocalizationService.Instance)
             .BuildServiceProvider();
         await using var renderer = new HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>());

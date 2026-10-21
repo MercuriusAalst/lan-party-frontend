@@ -46,7 +46,10 @@
                             @foreach(var participant in placement.LeaderboardParticipants)
                             {
                                 <div class="placement-leaderboard-row">
-                                    <span>@participant.DisplayName</span>
+                                        <span class="placement-leaderboard-identity">
+                                            <UserAvatar Name="@participant.DisplayName" PictureUrl="@participant.ProfilePictureUrl" Size="compact" Decorative="true" />
+                                            <span>@participant.DisplayName</span>
+                                        </span>
                                     <span class="placement-leaderboard-value">@FormatLeaderboardParticipantValue(participant)</span>
                                 </div>
                             }
@@ -86,7 +89,10 @@
                             @foreach(var participant in placement.LeaderboardParticipants)
                             {
                                 <li class="participant-item placement-leaderboard-row">
-                                    <span>@participant.DisplayName</span>
+                                        <span class="placement-leaderboard-identity">
+                                            <UserAvatar Name="@participant.DisplayName" PictureUrl="@participant.ProfilePictureUrl" Size="compact" Decorative="true" />
+                                            <span>@participant.DisplayName</span>
+                                        </span>
                                     <span class="placement-leaderboard-value">@FormatLeaderboardParticipantValue(participant)</span>
                                 </li>
                             }

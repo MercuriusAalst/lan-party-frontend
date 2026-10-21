@@ -43,6 +43,8 @@ public partial class NavMenu : IAsyncDisposable
     [Inject]
     private ITeamService TeamService { get; set; } = null!;
     [Inject]
+    private ICurrentUserProfileNotifier CurrentUserProfileNotifier { get; set; } = null!;
+    [Inject]
     private ITournamentService TournamentService { get; set; } = null!;
 
     [CascadingParameter]
@@ -70,6 +72,7 @@ public partial class NavMenu : IAsyncDisposable
     private ElementReference _adminMenuTrigger;
     private string? _loadedIdentityKey;
     private string? _currentProfileUsername;
+    private string? _currentProfilePictureUrl;
     private readonly CancellationTokenSource _lifetimeCancellationTokenSource = new();
     private CancellationTokenSource? _authenticatedNavigationCancellationTokenSource;
     private Task? _authenticatedNavigationTask;
@@ -108,6 +111,7 @@ public partial class NavMenu : IAsyncDisposable
     {
         NotificationService.Changed += HandleNotificationsChangedAsync;
         TeamRealtimeService.TeamStateInvalidated += RefreshNotificationsFromSignalAsync;
+        CurrentUserProfileNotifier.Changed += HandleCurrentUserProfileChangedAsync;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -139,6 +143,7 @@ public partial class NavMenu : IAsyncDisposable
             _pendingAuthenticatedNavigationIdentityKey = null;
             _loadedIdentityKey = null;
             _currentProfileUsername = null;
+            _currentProfilePictureUrl = null;
             return;
         }
 
@@ -148,6 +153,7 @@ public partial class NavMenu : IAsyncDisposable
 
         _loadedIdentityKey = identityKey;
         _currentProfileUsername = null;
+        _currentProfilePictureUrl = null;
         CancelAuthenticatedNavigation();
         _pendingAuthenticatedNavigationIdentityKey = identityKey;
     }
@@ -176,6 +182,7 @@ public partial class NavMenu : IAsyncDisposable
                 return;
 
             _currentProfileUsername = profile.User?.Username?.Trim();
+            _currentProfilePictureUrl = profile.User?.ProfilePictureUrl;
             await NotificationService.RefreshAsync(cancellationToken);
             if(!IsCurrentAuthenticatedNavigation(identityKey, navigationVersion, cancellationToken))
                 return;
@@ -793,6 +800,7 @@ public partial class NavMenu : IAsyncDisposable
         _lifetimeCancellationTokenSource.Cancel();
         NotificationService.Changed -= HandleNotificationsChangedAsync;
         TeamRealtimeService.TeamStateInvalidated -= RefreshNotificationsFromSignalAsync;
+        CurrentUserProfileNotifier.Changed -= HandleCurrentUserProfileChangedAsync;
         CancelPendingSearch();
         await DisposeSearchOutsideClickListenerAsync();
         await DisposeAccountMenuOutsideClickListenerAsync();
@@ -865,6 +873,32 @@ public partial class NavMenu : IAsyncDisposable
         finally
         {
             _pendingNotificationActionIds.Remove(notification.Id);
+        }
+    }
+
+    private async Task HandleCurrentUserProfileChangedAsync()
+    {
+        if(_disposed || string.IsNullOrWhiteSpace(_loadedIdentityKey))
+            return;
+
+        try
+        {
+            var profile = await UserClient.GetCurrentUserProfileAsync();
+            await InvokeAsync(() =>
+            {
+                if(_disposed)
+                    return;
+
+                _currentProfileUsername = profile.User?.Username?.Trim();
+                _currentProfilePictureUrl = profile.User?.ProfilePictureUrl;
+                StateHasChanged();
+            });
+        }
+        catch(OperationCanceledException) when(_disposed)
+        {
+        }
+        catch(Exception)
+        {
         }
     }
 

@@ -58,6 +58,7 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         // The final is generated with two empty slots until the semi-finals produce winners.
         await Expect(bracket.GetByText("TBD")).ToHaveCountAsync(2);
+        await AssertParticipantRowsFitBracketMatchesAsync(bracket);
 
         await MatchE2E.CloseContextsAsync(app, context);
     }
@@ -130,6 +131,7 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Grand final") })).ToBeVisibleAsync();
 
         await Expect(shell.Locator(".bracket-root")).ToBeVisibleAsync();
+        await AssertParticipantRowsFitBracketMatchesAsync(shell);
 
         var upperTab = tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Upper bracket") });
         var lowerTab = tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Lower bracket") });
@@ -139,6 +141,7 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await MatchE2E.ClickAsync(lowerTab);
         await Expect(shell.Locator("#double-elimination-bracket-root")).ToBeVisibleAsync();
+        await AssertParticipantRowsFitBracketMatchesAsync(shell);
         await Expect(lowerTab).ToHaveAttributeAsync("aria-selected", "true");
         await Expect(lowerTab).ToHaveClassAsync(new Regex("double-elimination-tab--active"));
         await Expect(upperTab).ToHaveAttributeAsync("aria-selected", "false");
@@ -171,8 +174,35 @@ public class MatchBracketViewTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await MatchE2E.ClickAsync(tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Grand final") }));
         await Expect(shell.Locator(".double-elimination-finals-card .bracket-match")).ToBeVisibleAsync();
+        await AssertParticipantRowsFitBracketMatchesAsync(shell);
+
+        await MatchE2E.ClickAsync(tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Upper bracket") }));
+        await Expect(tabs.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Upper bracket") }))
+            .ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(shell.Locator(".bracket-root")).ToBeVisibleAsync();
+        await AssertParticipantRowsFitBracketMatchesAsync(shell);
 
         await MatchE2E.CloseContextsAsync(app, context);
+    }
+
+    private static async Task AssertParticipantRowsFitBracketMatchesAsync(ILocator container)
+    {
+        var rows = container.Locator(".bracket-match:visible .participant-row:visible");
+        var rowCount = await rows.CountAsync();
+        Assert.True(rowCount > 0, "Expected visible participant rows in the bracket.");
+        for (var index = 0; index < rowCount; index++)
+        {
+            var row = rows.Nth(index);
+            var rowBounds = await row.BoundingBoxAsync();
+            var match = row.Locator("xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' bracket-match ')][1]");
+            var matchBounds = await match.BoundingBoxAsync();
+
+            Assert.NotNull(rowBounds);
+            Assert.NotNull(matchBounds);
+            Assert.True(rowBounds.Y >= matchBounds.Y - 1, "Participant row starts above its bracket card.");
+            Assert.True(rowBounds.Y + rowBounds.Height <= matchBounds.Y + matchBounds.Height + 1,
+                "Participant row extends below its bracket card.");
+        }
     }
 
     [Fact]

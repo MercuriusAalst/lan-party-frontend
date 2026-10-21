@@ -9,7 +9,15 @@
         }
         else
         {
-            @ParticipantName
+            @if (Participant?.User is { } user)
+            {
+                <UserAvatar Name="@ParticipantName" PictureUrl="@user.ProfilePictureUrl" Size="compact" Decorative="true" />
+                <span>@ParticipantName</span>
+            }
+            else
+            {
+                <span>@ParticipantName</span>
+            }
         }
     </span>
     <span class="participant-score">@CalculateParticipantScore(Match, SequenceNumber)</span>

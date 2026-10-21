@@ -178,7 +178,8 @@ internal sealed class MockBackendStore
                     DisplayLabel = user.Username!,
                     SupportingText = "User",
                     UserId = user.Id,
-                    Username = user.Username
+                    Username = user.Username,
+                    ProfilePictureUrl = user.ProfilePictureUrl
                 });
 
             var teamResults = _document.Teams
@@ -233,7 +234,8 @@ internal sealed class MockBackendStore
 
             return new PublicUserProfileDTO
             {
-                Username = user.Username!
+                Username = user.Username!,
+                ProfilePictureUrl = user.ProfilePictureUrl
             };
         }
     }
@@ -258,7 +260,8 @@ internal sealed class MockBackendStore
                 .GroupBy(member => member.Username!, StringComparer.OrdinalIgnoreCase)
                 .Select(group => new PublicTeamMemberDTO
                 {
-                    Username = group.First().Username!
+                    Username = group.First().Username!,
+                    ProfilePictureUrl = group.First().ProfilePictureUrl
                 })
                 .OrderBy(member => member.Username, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -934,8 +937,11 @@ internal sealed class MockBackendStore
             if(rowVersion != attempt.RowVersion)
                 throw new LeaderboardConflictException();
 
-            foreach(var participant in GetLeaderboardParticipants(tournament.Id))
-                participant.Attempts.RemoveAll(candidate => candidate.Id == attemptId);
+            var participants = GetLeaderboardParticipants(tournament.Id);
+            var participant = participants.First(candidate => candidate.Attempts.Any(item => item.Id == attemptId));
+            participant.Attempts.RemoveAll(candidate => candidate.Id == attemptId);
+            if(participant.Attempts.Count == 0)
+                participants.Remove(participant);
         }
     }
 
@@ -1076,7 +1082,8 @@ internal sealed class MockBackendStore
                 Lastname = user.Lastname,
                 DiscordId = user.DiscordId,
                 SteamId = user.SteamId,
-                RiotId = user.RiotId
+                RiotId = user.RiotId,
+                ProfilePictureUrl = user.ProfilePictureUrl
             };
         }
     }
@@ -2281,6 +2288,7 @@ internal sealed class MockBackendStore
         lock(_syncRoot)
         {
             var tournament = GetRequiredTournament(tournamentId);
+            EnsureAdminRegistrationRemovalAllowed(tournament);
             var registrations = GetRegistrationDetails(tournament);
             var registration = registrations.FirstOrDefault(candidate =>
                 candidate.Kind == TournamentRegistrationKind.Individual && candidate.User?.Id == userId);
@@ -2297,6 +2305,7 @@ internal sealed class MockBackendStore
         lock(_syncRoot)
         {
             var tournament = GetRequiredTournament(tournamentId);
+            EnsureAdminRegistrationRemovalAllowed(tournament);
             var registrations = GetRegistrationDetails(tournament);
             var registration = registrations.FirstOrDefault(candidate =>
                 candidate.Kind == TournamentRegistrationKind.Team && candidate.Team?.Id == teamId);
@@ -2306,6 +2315,13 @@ internal sealed class MockBackendStore
             registrations.Remove(registration);
             UpdatePublicRegistrationProjection(tournament, registrations);
         }
+    }
+
+    private static void EnsureAdminRegistrationRemovalAllowed(TournamentExtended tournament)
+    {
+        if(tournament.Status != TournamentStatus.Scheduled &&
+           tournament.BracketType is (BracketType.SingleElimination or BracketType.DoubleElimination))
+            throw new InvalidOperationException("registration_locked_after_start");
     }
 
     private void InitializeRegistrationDetails()
@@ -2926,6 +2942,57 @@ internal sealed class MockBackendStore
         {
             return UpdateCurrentProfileCore(persona, request.Username, request.Firstname, request.Lastname, request.DiscordId, request.SteamId, request.RiotId, isComplete: true);
         }
+    }
+
+    public CurrentUserProfileResponse SetCurrentProfilePicture(string persona, string fileName)
+    {
+        lock(_syncRoot)
+        {
+            var (profileRecord, userId) = GetCurrentProfileRecord(persona);
+            var pictureUrl = $"/mock-data-local/users/{userId:N}{Path.GetExtension(fileName)}";
+
+            ApplyProfilePicture(userId, pictureUrl);
+            return Clone(profileRecord.Profile)!;
+        }
+    }
+
+    public CurrentUserProfileResponse ClearCurrentProfilePicture(string persona)
+    {
+        lock(_syncRoot)
+        {
+            var (profileRecord, userId) = GetCurrentProfileRecord(persona);
+
+            ApplyProfilePicture(userId, null);
+            return Clone(profileRecord.Profile)!;
+        }
+    }
+
+    private void ApplyProfilePicture(Guid userId, string? pictureUrl)
+    {
+        foreach(var profileRecord in _document.Profiles)
+        {
+            if(profileRecord.Profile.User?.Id == userId)
+                profileRecord.Profile.User.ProfilePictureUrl = pictureUrl;
+        }
+
+        foreach(var user in _document.Users.Where(user => user.Id == userId))
+            user.ProfilePictureUrl = pictureUrl;
+
+        foreach(var member in _document.Teams.SelectMany(team => team.Members).Where(member => member.Id == userId))
+            member.ProfilePictureUrl = pictureUrl;
+    }
+
+    private (MockProfileRecord Record, Guid UserId) GetCurrentProfileRecord(string persona)
+    {
+        var normalizedPersona = NormalizePersona(persona);
+        var profileRecord = _document.Profiles.FirstOrDefault(candidate =>
+            string.Equals(candidate.Persona, normalizedPersona, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException($"Mock profile for persona '{normalizedPersona}' was not found.");
+
+        if(profileRecord.Profile.User is null)
+            throw new InvalidOperationException("Mock profile does not have a user.");
+
+        return (profileRecord, profileRecord.Profile.User.Id);
     }
 
     public UserProfileDTO UpdateCurrentProfile(string persona, UpdateUserProfileRequest request)
@@ -4363,7 +4430,7 @@ internal sealed class MockBackendStore
             .FirstOrDefault(attempt => attempt.Id == attemptId)
         ?? throw new InvalidOperationException("The leaderboard attempt was not found for this tournament.");
 
-    private static List<LeaderboardRowDTO> BuildLeaderboardRows(
+    private List<LeaderboardRowDTO> BuildLeaderboardRows(
         TournamentExtended tournament,
         IReadOnlyList<MockLeaderboardParticipant> participants)
     {
@@ -4398,6 +4465,7 @@ internal sealed class MockBackendStore
                 DisplayName = entry.Participant.DisplayName,
                 ParticipantKind = entry.Participant.Kind,
                 LinkedUserId = entry.Participant.LinkedUserId,
+                ProfilePictureUrl = ResolveLinkedUserPictureUrl(entry.Participant.LinkedUserId),
                 Score = metric == LeaderboardRankingMetric.HighestScore ? entry.Best.Score : null,
                 DurationMilliseconds = metric == LeaderboardRankingMetric.FastestTime
                     ? entry.Best.DurationMilliseconds
@@ -4440,7 +4508,7 @@ internal sealed class MockBackendStore
         };
     }
 
-    private static AdminLeaderboardParticipantDTO ToAdminLeaderboardParticipantDTO(
+    private AdminLeaderboardParticipantDTO ToAdminLeaderboardParticipantDTO(
         MockLeaderboardParticipant participant) =>
         new()
         {
@@ -4448,12 +4516,18 @@ internal sealed class MockBackendStore
             DisplayName = participant.DisplayName,
             ParticipantKind = participant.Kind,
             LinkedUserId = participant.LinkedUserId,
+            ProfilePictureUrl = ResolveLinkedUserPictureUrl(participant.LinkedUserId),
             Attempts = participant.Attempts
                 .OrderByDescending(attempt => attempt.CreatedAtUtc)
                 .ThenBy(attempt => attempt.Id)
                 .Select(ToLeaderboardAttemptDTO)
                 .ToList()
         };
+
+    private string? ResolveLinkedUserPictureUrl(Guid? linkedUserId) =>
+        linkedUserId.HasValue
+            ? _document.Users.FirstOrDefault(user => user.Id == linkedUserId.Value)?.ProfilePictureUrl
+            : null;
 
     private static LeaderboardAttemptDTO ToLeaderboardAttemptDTO(MockLeaderboardAttempt attempt) =>
         new()
@@ -4517,6 +4591,10 @@ internal sealed class MockBackendStore
 
     private void UpsertUserPublicFields(PublicUserDTO member)
     {
+        var profileRecord = _document.Profiles.FirstOrDefault(profile => profile.Profile.User?.Id == member.Id);
+        var profilePictureUrl = profileRecord is null
+            ? member.ProfilePictureUrl
+            : profileRecord.Profile.User?.ProfilePictureUrl;
         var userIndex = _document.Users.FindIndex(existing => existing.Id == member.Id);
         if(userIndex >= 0)
         {
@@ -4527,6 +4605,7 @@ internal sealed class MockBackendStore
             existingUser.DiscordId = member.DiscordId;
             existingUser.SteamId = member.SteamId;
             existingUser.RiotId = member.RiotId;
+            existingUser.ProfilePictureUrl = profilePictureUrl;
             existingUser.DisplayName = string.IsNullOrWhiteSpace(member.DisplayName)
                 ? BuildDisplayName(existingUser.Firstname, existingUser.Lastname, existingUser.Username)
                 : member.DisplayName;
@@ -4545,6 +4624,7 @@ internal sealed class MockBackendStore
             DiscordId = member.DiscordId,
             SteamId = member.SteamId,
             RiotId = member.RiotId,
+            ProfilePictureUrl = profilePictureUrl,
             DisplayName = string.IsNullOrWhiteSpace(member.DisplayName)
                 ? BuildDisplayName(member.Firstname, member.Lastname, member.Username)
                 : member.DisplayName,

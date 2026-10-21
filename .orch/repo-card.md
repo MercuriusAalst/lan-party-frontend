@@ -2,7 +2,7 @@
 STACK: .NET 10, Blazor, xUnit, Playwright
 BUILD: dotnet build Mercurius.LAN.sln -c Release
 CHECK_FAST: dotnet test tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj --filter FullyQualifiedName~DeleteAccountAnonymizesTheProfileAndEndsTheSession
-VERIFY: dotnet build Mercurius.LAN.sln -c Release -m:1 -nr:false -p:UseSharedCompilation=false && dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj -c Release --no-restore && dotnet test tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj -c Release --no-restore
+VERIFY: dotnet build Mercurius.LAN.sln -c Release -m:1 -nr:false -p:UseSharedCompilation=false && dotnet test tests/Mercurius.LAN.Web.ContractTests/Mercurius.LAN.Web.ContractTests.csproj -c Release --no-restore && dotnet build tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj -c Release --no-restore && dotnet test tests/Mercurius.LAN.Web.E2ETests/Mercurius.LAN.Web.E2ETests.csproj -c Release --no-build --no-restore
 UI_SHOTS: none
 SPEC_WORKFLOW: openspec
 SPEC_PROFILE: mercurius-lan

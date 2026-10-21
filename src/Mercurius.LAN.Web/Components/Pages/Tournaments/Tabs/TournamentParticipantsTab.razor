@@ -350,6 +350,7 @@
                                     @foreach(var member in currentTeam.RosterMembers)
                                     {
                                         <span class="registration-review-member @(member.ConfirmationStatus == RosterMemberConfirmationStatus.Pending ? "registration-review-member--pending" : "registration-review-member--confirmed")">
+                                            @if(member.User is not null){<UserAvatar Name="@GetUserLabel(member.User)" PictureUrl="@member.User.ProfilePictureUrl" Size="compact" Decorative="true" />}
                                             @if(member.IsCaptain){<span class="registration-captain-chip">@Localization["Feature.tournaments.captain"]</span>}@GetUserLabel(member.User): @GetConfirmationLabel(member.ConfirmationStatus)
                                         </span>
                                     }
@@ -402,6 +403,7 @@
                                     @foreach(var member in currentTeam.RosterMembers)
                                     {
                                         <span class="registration-review-member @(member.ConfirmationStatus == RosterMemberConfirmationStatus.Pending ? "registration-review-member--pending" : "registration-review-member--confirmed")">
+                                            @if(member.User is not null){<UserAvatar Name="@GetUserLabel(member.User)" PictureUrl="@member.User.ProfilePictureUrl" Size="compact" Decorative="true" />}
                                             @if(member.IsCaptain){<span class="registration-captain-chip">@Localization["Feature.tournaments.captain"]</span>}@GetUserLabel(member.User): @GetConfirmationLabel(member.ConfirmationStatus)
                                         </span>
                                     }
@@ -505,6 +507,7 @@
                                                                disabled="@(_isSubmitting || _isLoadingRegistration || _isLoadingRoster || unavailable)"
                                                                aria-label='@GetRosterMemberAriaLabel(member, unavailable)'
                                                                @onchange="args => ToggleRosterMemberAsync(member.Id, args)" />
+                                                        <UserAvatar Name="@GetUserLabel(member)" PictureUrl="@member.ProfilePictureUrl" Size="compact" Decorative="true" />
                                                         <span class="registration-roster-member-copy">
                                                             <span class="registration-roster-member-name">
                                                                 <strong>@GetUserLabel(member)</strong>
@@ -558,6 +561,7 @@
                                                         : RosterMemberConfirmationStatus.Pending;
                                                     <div class="registration-review-player @(confirmationStatus == RosterMemberConfirmationStatus.Pending ? "registration-review-player--pending" : "registration-review-player--confirmed")">
                                                         <span class="registration-review-player-name">
+                                                            <UserAvatar Name="@GetUserLabel(selectedMember)" PictureUrl="@selectedMember.ProfilePictureUrl" Size="compact" Decorative="true" />
                                                             <strong>@GetUserLabel(selectedMember)</strong>
                                                             @if(selectedMember.Id == SelectedTeam.CaptainUserId){<span class="registration-captain-chip">@Localization["Feature.tournaments.captain"]</span>}
                                                         </span>
@@ -639,6 +643,10 @@
                     }
                 </div>
 
+                @if(IsAdminRemovalLocked)
+                {
+                    <p class="registration-message" role="status">@Localization["Feature.tournaments.adminRemovalLocked"]</p>
+                }
                 @if(_adminError is not null)
                 {
                     <p class="registration-message registration-message--error" role="alert">@_adminError</p>
@@ -664,7 +672,7 @@
                                     <strong>@registrationLabel</strong>
                                 <span>@GetRegistrationKindLabel(registration.Kind) · @GetRegistrationStatusLabel(registration.Status)</span>
                                 </div>
-                                <button type="button" class="button-secondary" disabled="@(_pendingAdminRemovalRegistrationId.HasValue || _isLoadingRegistration)" @onclick="() => RemoveAdminRegistrationAsync(registration)">@Localization["team.remove"]</button>
+                                <button type="button" class="button-secondary" disabled="@(IsAdminRemovalLocked || _pendingAdminRemovalRegistrationId.HasValue || _isLoadingRegistration)" @onclick="() => RemoveAdminRegistrationAsync(registration)">@Localization["team.remove"]</button>
                             </div>
                         }
                     </div>

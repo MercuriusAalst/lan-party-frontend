@@ -15,6 +15,7 @@ using Mercurius.LAN.Web.Models.Sponsors;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http;
+using Refit;
 using ModelTournamentStatus = Mercurius.LAN.Web.Models.Tournaments.TournamentStatus;
 
 namespace Mercurius.LAN.Web.Mock;
@@ -622,6 +623,21 @@ internal sealed class MockUserClient : IUserClient
     {
         var persona = await GetCurrentPersonaAsync();
         return _store.UpdateCurrentProfile(persona, request);
+    }
+
+    public async Task<CurrentUserProfileResponse> UploadCurrentUserProfilePictureAsync(
+        StreamPart picture,
+        CancellationToken cancellationToken = default)
+    {
+        var persona = await GetCurrentPersonaAsync();
+        return _store.SetCurrentProfilePicture(persona, picture.FileName ?? "picture.png");
+    }
+
+    public async Task<CurrentUserProfileResponse> RemoveCurrentUserProfilePictureAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var persona = await GetCurrentPersonaAsync();
+        return _store.ClearCurrentProfilePicture(persona);
     }
 
     public async Task<UsernameAvailabilityResponse> CheckUsernameAvailabilityAsync(string username)
