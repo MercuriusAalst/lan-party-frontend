@@ -14,19 +14,24 @@
 
         <div class="home-hero-shell">
             <div class="home-hero-media" aria-hidden="true">
-                @if(primaryHeroImage is not null)
+                @if (primaryHeroImage is not null || secondaryHeroImage is not null || tertiaryHeroImage is not null)
                 {
-                    <img src="@primaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--primary" />
-                }
+                    <div class="home-hero-media-art">
+                        @if(primaryHeroImage is not null)
+                        {
+                            <img src="@primaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--primary" />
+                        }
 
-                @if(secondaryHeroImage is not null)
-                {
-                    <img src="@secondaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--secondary" />
-                }
+                        @if(secondaryHeroImage is not null)
+                        {
+                            <img src="@secondaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--secondary" />
+                        }
 
-                @if(tertiaryHeroImage is not null)
-                {
-                    <img src="@tertiaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--tertiary" />
+                        @if(tertiaryHeroImage is not null)
+                        {
+                            <img src="@tertiaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--tertiary" />
+                        }
+                    </div>
                 }
 
                 <div class="home-hero-media-glow home-hero-media-glow--green"></div>
