@@ -1,9 +1,9 @@
 # FE #118 F1 elapsed duration entry
 
-## Problem
+## Why
 Fastest-time leaderboard administrators currently enter raw milliseconds, while leaderboard results display as elapsed durations. This makes entry and correction harder to read and invites unit mistakes.
 
-## Change
+## What Changes
 Accept human-readable `m:ss.fff` and `h:mm:ss.fff` values in the existing result dialog, while keeping the API contract as exact positive integer `durationMilliseconds`. Format existing attempts as elapsed durations when editing and localize the labels and guidance in en-US and nl-BE.
 
 ## Scenarios
