@@ -321,14 +321,14 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         error = null;
 
         var raw = rawValue.Trim();
-        if(raw.Length == 0)
-        {
-            error = Localization["Feature.leaderboard.validationValueRequired"];
-            return false;
-        }
-
         if(RankingMetric == LeaderboardRankingMetric.HighestScore)
         {
+            if(raw.Length == 0)
+            {
+                error = Localization["Feature.leaderboard.validationValueRequired"];
+                return false;
+            }
+
             var normalized = raw.Replace(',', '.');
             if(!decimal.TryParse(
                    normalized,
@@ -361,19 +361,64 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
     {
         durationMilliseconds = 0;
 
-        // Duration input is whole milliseconds; separators like "1.5" or "1,5" must be rejected untouched.
-        if(!long.TryParse(
-               rawValue?.Trim(),
-               NumberStyles.Integer,
-               CultureInfo.InvariantCulture,
-               out var parsedDuration) ||
-           parsedDuration <= 0)
+        var fields = rawValue?.Trim().Split(':');
+        if(fields is not { Length: 2 or 3 })
+            return false;
+
+        var hasHours = fields.Length == 3;
+        var minuteField = hasHours ? fields[1].AsSpan() : fields[0].AsSpan();
+        var secondField = fields[^1].AsSpan();
+        var firstField = hasHours ? fields[0].AsSpan() : ReadOnlySpan<char>.Empty;
+        var dot = secondField.IndexOf('.');
+        if(dot != 2 || secondField.Length - dot != 4 ||
+           (hasHours && minuteField.Length != 2) ||
+           !TryParseAsciiInteger(minuteField, out var minutes) ||
+           !TryParseAsciiInteger(secondField[..dot], out var seconds) ||
+           !TryParseAsciiInteger(secondField[(dot + 1)..], out var milliseconds) ||
+           seconds > 59 || (hasHours && minutes > 59))
         {
             return false;
         }
 
-        durationMilliseconds = parsedDuration;
-        return true;
+        long hours = 0;
+        if(hasHours && !TryParseAsciiInteger(firstField, out hours))
+            return false;
+
+        try
+        {
+            durationMilliseconds = checked(checked(checked(hours * 60 + minutes) * 60 + seconds) * 1000 + milliseconds);
+            return durationMilliseconds > 0;
+        }
+        catch(OverflowException)
+        {
+            durationMilliseconds = 0;
+            return false;
+        }
+    }
+
+    private static bool TryParseAsciiInteger(ReadOnlySpan<char> value, out long number)
+    {
+        number = 0;
+        if(value.IsEmpty)
+            return false;
+
+        try
+        {
+            foreach(var character in value)
+            {
+                if(character is < '0' or > '9')
+                    return false;
+
+                number = checked(number * 10 + character - '0');
+            }
+
+            return true;
+        }
+        catch(OverflowException)
+        {
+            number = 0;
+            return false;
+        }
     }
 
     private void BeginAttemptEdit(LeaderboardAttemptDTO attempt)
@@ -383,7 +428,9 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         _editingAttemptId = attempt.Id;
         _editValueInput = attempt.Score.HasValue
             ? LeaderboardFormattingExtensions.FormatLeaderboardScore(attempt.Score.Value)
-            : attempt.DurationMilliseconds?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            : attempt.DurationMilliseconds is { } durationMilliseconds
+                ? LeaderboardFormattingExtensions.FormatLeaderboardDuration(durationMilliseconds)
+                : string.Empty;
     }
 
     private void CancelAttemptEdit()

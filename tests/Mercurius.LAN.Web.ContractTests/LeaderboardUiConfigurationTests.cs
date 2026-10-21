@@ -26,13 +26,21 @@ namespace Mercurius.LAN.Web.ContractTests;
 public sealed class LeaderboardUiConfigurationTests
 {
     [Theory]
-    [InlineData("1.5")]
-    [InlineData("1,5")]
-    [InlineData("15,0")]
-    [InlineData("0")]
-    [InlineData("-1500")]
-    [InlineData("abc")]
-    public void DurationInputRejectsAnythingButPositiveWholeMilliseconds(string input)
+    [InlineData("", 0L)]
+    [InlineData("0:00.000", 0L)]
+    [InlineData("1500", 0L)]
+    [InlineData("+1:00.000", 0L)]
+    [InlineData("-1:00.000", 0L)]
+    [InlineData("1:60.000", 0L)]
+    [InlineData("1:2.000", 0L)]
+    [InlineData("1:02.00", 0L)]
+    [InlineData("1:02.0000", 0L)]
+    [InlineData("1:60:03.004", 0L)]
+    [InlineData("1:2:03.004", 0L)]
+    [InlineData("١:02.003", 0L)]
+    [InlineData("153722867280912:55.808", 0L)]
+    [InlineData("abc", 0L)]
+    public void DurationInputRejectsInvalidElapsedDurations(string input, long _)
     {
         var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
 
@@ -44,17 +52,70 @@ public sealed class LeaderboardUiConfigurationTests
         Assert.Equal("Feature.leaderboard.validationDuration", error);
     }
 
-    [Fact]
-    public void DurationInputKeepsWholeMillisecondsUntouched()
+    [Theory]
+    [InlineData("1:23.456", 83_456L)]
+    [InlineData("0:58.032", 58_032L)]
+    [InlineData("12:05.789", 725_789L)]
+    [InlineData("1:02:03.004", 3_723_004L)]
+    [InlineData("60:00.000", 3_600_000L)]
+    [InlineData("  1:23.456  ", 83_456L)]
+    [InlineData("2562047788:00.000", 153_722_867_280_000L)]
+    [InlineData("153722867280912:55.807", long.MaxValue)]
+    public void DurationInputConvertsElapsedTimeToExactMilliseconds(string input, long expectedMilliseconds)
     {
         var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
 
-        var accepted = dialog.TryBuildValue("1500", out var score, out var durationMilliseconds, out var error);
+        var accepted = dialog.TryBuildValue(input, out var score, out var durationMilliseconds, out var error);
 
         Assert.True(accepted);
         Assert.Null(score);
-        Assert.Equal(1500, durationMilliseconds);
+        Assert.Equal(expectedMilliseconds, durationMilliseconds);
         Assert.Null(error);
+    }
+
+    [Fact]
+    public void DurationInputBuildsRequestWithExactIntegerMillisecondsAndEditPrefillsElapsedText()
+    {
+        var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
+        SetField(dialog, "_mode", Enum.Parse(GetNestedEnum(dialog.GetType(), "EntryMode"), "Guest"));
+        SetField(dialog, "_guestName", "Duration Guest");
+        SetField(dialog, "_valueInput", "1:02:03.004");
+        var method = FindMethod(dialog.GetType(), "TryBuildRequest")!;
+        var args = new object?[] { null, null };
+
+        Assert.True((bool)method.Invoke(dialog, args)!);
+        Assert.Equal(3_723_004L, ((RecordLeaderboardAttemptDTO)args[0]!).DurationMilliseconds);
+
+        var attempt = new LeaderboardAttemptDTO { Id = Guid.NewGuid(), DurationMilliseconds = 3_723_004L };
+        FindMethod(dialog.GetType(), "BeginAttemptEdit")!.Invoke(dialog, [attempt]);
+        Assert.Equal("1:02:03.004", GetField<string>(dialog, "_editValueInput"));
+        Assert.True(dialog.TryBuildValue(GetField<string>(dialog, "_editValueInput"), out _, out var editedMilliseconds, out _));
+        Assert.Equal(attempt.DurationMilliseconds, editedMilliseconds);
+    }
+
+    [Fact]
+    public async Task RecordingAndCorrectingElapsedDurationSendExactIntegerMilliseconds()
+    {
+        var createDialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
+        SetField(createDialog, "_mode", Enum.Parse(GetNestedEnum(createDialog.GetType(), "EntryMode"), "Guest"));
+        SetField(createDialog, "_guestName", "Duration Guest");
+        SetField(createDialog, "_valueInput", "1:23.456");
+        SetPrivateProperty(createDialog, "TournamentService", CreateRecordingTournamentService(out var createCalls, out var createArguments));
+
+        await InvokePrivateTask(createDialog, "SubmitAttemptAsync");
+
+        Assert.Contains(nameof(ITournamentService.RecordLeaderboardAttemptAsync), createCalls);
+        Assert.Equal(83_456L, ((RecordLeaderboardAttemptDTO)createArguments.Single()![1]!).DurationMilliseconds);
+
+        var editDialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
+        SetField(editDialog, "_editValueInput", "1:02:03.004");
+        SetPrivateProperty(editDialog, "TournamentService", CreateRecordingTournamentService(out var editCalls, out var editArguments));
+        var attempt = new LeaderboardAttemptDTO { Id = Guid.NewGuid(), DurationMilliseconds = 3_723_004L, RowVersion = Guid.NewGuid() };
+
+        await InvokePrivateTask(editDialog, "SaveAttemptEditAsync", attempt);
+
+        Assert.Contains(nameof(ITournamentService.UpdateLeaderboardAttemptAsync), editCalls);
+        Assert.Equal(3_723_004L, ((UpdateLeaderboardAttemptDTO)editArguments.Single()![2]!).DurationMilliseconds);
     }
 
     [Fact]
@@ -479,11 +540,15 @@ public sealed class LeaderboardUiConfigurationTests
         declaringType.GetNestedType(enumName, BindingFlags.NonPublic)
         ?? throw new InvalidOperationException($"Nested enum '{enumName}' was not found.");
 
-    private static ITournamentService CreateRecordingTournamentService(out List<string> calls)
+    private static ITournamentService CreateRecordingTournamentService(out List<string> calls) =>
+        CreateRecordingTournamentService(out calls, out _);
+
+    private static ITournamentService CreateRecordingTournamentService(out List<string> calls, out List<object?[]?> arguments)
     {
         var proxy = DispatchProxy.Create<ITournamentService, RecordingTournamentServiceProxy>();
         var recording = (RecordingTournamentServiceProxy)(object)proxy;
         calls = recording.Calls;
+        arguments = recording.Arguments;
         return proxy;
     }
 
@@ -622,10 +687,12 @@ public sealed class LeaderboardUiConfigurationTests
     public class RecordingTournamentServiceProxy : DispatchProxy
     {
         public List<string> Calls { get; } = [];
+        public List<object?[]?> Arguments { get; } = [];
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
             Calls.Add(targetMethod?.Name ?? "<unknown>");
+            Arguments.Add(args);
             throw new NotSupportedException($"Unexpected tournament service call: {targetMethod?.Name}");
         }
     }

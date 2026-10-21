@@ -33,6 +33,31 @@ public class LeaderboardValidationPlaywrightTests : TournamentE2ETestBase
         await Expect(dialog.Locator(".leaderboard-dialog-error")).ToHaveTextAsync("Enter a result value.");
     }
 
+
+    [Fact]
+    public async Task FastestTimeEntryExplainsElapsedFormatAndRejectsRawMilliseconds()
+    {
+        var admin = await App.CreatePersonaAsync("board-duration-admin", isAdmin: true);
+        var adminApi = App.CreateApiClient(admin);
+        var id = await CreateLeaderboardTournamentAsync(adminApi, TournamentE2E.Unique("E2E Board Duration"), "FastestTime");
+        await TournamentE2E.SetLifecycleAsync(adminApi, id, "InProgress");
+
+        var context = await App.NewAuthenticatedContextAsync(admin);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, $"/tournaments/{id}");
+        await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
+
+        var dialog = page.Locator("div.leaderboard-dialog");
+        var value = dialog.Locator("#leaderboard-attempt-value");
+        await Expect(value).ToHaveAttributeAsync("type", "text");
+        await Expect(dialog.GetByText("Example: 1:23.456")).ToBeVisibleAsync();
+        await dialog.Locator("#leaderboard-guest-name").FillAsync(TournamentE2E.Unique("Guest Duration"));
+        await value.FillAsync("83456");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();
+        await Expect(dialog.Locator(".leaderboard-dialog-error"))
+            .ToHaveTextAsync("Enter a valid positive elapsed time as m:ss.fff or h:mm:ss.fff.");
+    }
+
     [Fact]
     public async Task ScoreEntryRejectsNegativeValues()
     {

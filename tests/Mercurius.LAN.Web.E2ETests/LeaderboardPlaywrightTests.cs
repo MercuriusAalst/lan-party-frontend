@@ -176,7 +176,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         await Expect(rows.First).ToContainTextAsync("0:30.000");
         await Expect(rows.Nth(1)).ToContainTextAsync(slower);
 
-        // The dialog for a time-based leaderboard asks for whole milliseconds and previews the value.
+        // The dialog for a time-based leaderboard asks for elapsed duration and previews the value.
         await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
         var dialog = page.Locator("div.leaderboard-dialog");
         await Expect(dialog).ToBeVisibleAsync();
@@ -186,7 +186,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         await dialog.GetByRole(AriaRole.Button, new() { Name = "New guest" }).ClickAsync();
         await Expect(dialog.GetByLabel("Time (milliseconds)")).ToBeVisibleAsync();
         await dialog.Locator("#leaderboard-guest-name").FillAsync(TournamentE2E.Unique("Guest Time"));
-        await dialog.Locator("#leaderboard-attempt-value").FillAsync("5000");
+        await dialog.Locator("#leaderboard-attempt-value").FillAsync("0:05.000");
         // The duration preview is rendered from _valueInput, which the input binds on `onchange`.
         // Playwright's Fill only fires `input`, so commit the value the way a user does before
         // asserting on anything the component derives from it.

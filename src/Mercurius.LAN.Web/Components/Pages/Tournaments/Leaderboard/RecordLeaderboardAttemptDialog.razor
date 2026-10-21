@@ -142,12 +142,12 @@
                         else
                         {
                             <input id="leaderboard-attempt-value"
-                                   type="number"
-                                   min="1"
-                                   step="1"
-                                   inputmode="numeric"
+                                   type="text"
+                                   inputmode="text"
                                    class="form-control"
                                    @bind="_valueInput" />
+                            <small class="form-help">@Localization["Feature.leaderboard.durationHelp"]</small>
+                            <small class="form-help">@Localization["Feature.leaderboard.durationExample"]</small>
                             <small class="form-help">@GetDurationPreview()</small>
                         }
                     </div>
@@ -188,8 +188,13 @@
                                             <div class="leaderboard-attempt-edit">
                                                 <input type="text"
                                                        class="form-control"
-                                                       aria-label='@Localization["Feature.leaderboard.editAttemptValue"]'
+                                                       inputmode="text"
+                                                       aria-label='@(RankingMetric == LeaderboardRankingMetric.FastestTime ? Localization["Feature.leaderboard.durationLabel"] : Localization["Feature.leaderboard.editAttemptValue"])'
                                                        @bind="_editValueInput" />
+                                                @if(RankingMetric == LeaderboardRankingMetric.FastestTime)
+                                                {
+                                                    <small class="form-help">@Localization["Feature.leaderboard.durationHelp"] @Localization["Feature.leaderboard.durationExample"]</small>
+                                                }
                                                 <button type="button" class="button-primary" disabled="@_isSavingAttempt" @onclick="() => SaveAttemptEditAsync(attempt)">
                                                     @Localization["Feature.leaderboard.saveAttemptEdit"]
                                                 </button>
