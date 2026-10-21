@@ -42,6 +42,7 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
     [Inject] private ITeamNotificationService NotificationService { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = null!;
 
     private readonly List<ParticipantViewModel> _participants = [];
     private readonly List<AdminTournamentRegistrationDTO> _adminRegistrations = [];
@@ -98,6 +99,10 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
 
     private IReadOnlyList<TeamManagementSummaryDTO> CaptainedTeams =>
         _teamSummary?.CaptainedTeams ?? [];
+
+    private void NavigateToTeamCreation() => NavigationManager.NavigateTo("/teams/manage?create=true");
+
+    private void NavigateToTeamManagement() => NavigationManager.NavigateTo("/teams/manage");
 
     private IReadOnlyList<TeamManagementSummaryDTO> RegistrableCaptainedTeams =>
         FilterCaptainedTeamsByRequiredSize(CaptainedTeams, RequiredTeamSize);

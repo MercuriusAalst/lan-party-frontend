@@ -341,10 +341,6 @@
                     }
                     else if(!RegistrableCaptainedTeams.Any())
                     {
-                        @if(HasUndersizedCaptainedTeams)
-                        {
-                            <p class="registration-team-filter-note" role="status">@Localization.Get("Feature.tournaments.undersizedTeamsHidden", RequiredTeamSize)</p>
-                        }
                         @if(CurrentTeamRegistration is { Team: not null } currentTeam && !HasCaptainManagedRegistration)
                         {
                             <div class="registration-message registration-message--warning" role="status">
@@ -361,9 +357,26 @@
                                 </div>
                             </div>
                         }
+                        @if(CaptainedTeams.Count == 0)
+                        {
+                            <section class="registration-team-empty-state" aria-labelledby="registration-team-empty-title">
+                                <span class="bi bi-people-fill registration-team-empty-icon" aria-hidden="true"></span>
+                                <h3 id="registration-team-empty-title">@Localization["Feature.tournaments.noCaptainedTeamTitle"]</h3>
+                                <p>@Localization["Feature.tournaments.noCaptainedTeamHelp"]</p>
+                                <button type="button" class="button-primary registration-team-empty-action" @onclick="NavigateToTeamCreation">
+                                    <span class="bi bi-plus-lg" aria-hidden="true"></span>
+                                    @Localization["Feature.tournaments.createTeam"]
+                                    <span class="bi bi-arrow-right" aria-hidden="true"></span>
+                                </button>
+                            </section>
+                        }
                         else
                         {
-                            <p class="registration-message registration-message--warning">@Localization["Feature.tournaments.noTeamAvailable"]</p>
+                            <p class="registration-team-filter-note" role="status">@Localization.Get("Feature.tournaments.undersizedTeamsHidden", RequiredTeamSize)</p>
+                            <button type="button" class="button-secondary registration-team-manage-action" @onclick="NavigateToTeamManagement">
+                                @Localization["Feature.tournaments.manageTeams"]
+                                <span class="bi bi-arrow-right" aria-hidden="true"></span>
+                            </button>
                         }
 
                         @if(CanCancelCaptainManagedRegistration && CurrentCaptainManagedRegistration?.Team is { } managedTeam)
