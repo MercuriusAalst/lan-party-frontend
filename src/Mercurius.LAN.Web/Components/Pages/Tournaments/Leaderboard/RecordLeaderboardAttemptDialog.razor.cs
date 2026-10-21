@@ -15,7 +15,7 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
 {
     private const int UserSearchDebounceMilliseconds = 300;
     private const int MinimumUserSearchLength = 3;
-    private static readonly string[] DurationUnitNames = ["Hours", "Minutes", "Seconds", "Milliseconds"];
+    private const long MillisecondsPerDay = 86_400_000;
 
     private enum EntryMode
     {
@@ -50,11 +50,12 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
     private CancellationTokenSource? _userSearchCancellation;
     private string _guestName = string.Empty;
     private string _valueInput = string.Empty;
-    private string[] _durationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+    private string _durationInput = string.Empty;
 
     private Guid? _editingAttemptId;
     private string _editValueInput = string.Empty;
-    private string[] _editDurationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+    private string _editDurationInput = string.Empty;
+    private long? _editUnrepresentableDurationMilliseconds;
     private bool _isSavingAttempt;
     private Guid? _pendingRemovalAttemptId;
     private Guid? _removingAttemptId;
@@ -119,7 +120,7 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         _isSearchingUsers = false;
         _guestName = string.Empty;
         _valueInput = string.Empty;
-        _durationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+        _durationInput = string.Empty;
         _editingAttemptId = null;
         _pendingRemovalAttemptId = null;
         _submitError = null;
@@ -233,7 +234,7 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
             var participant = await TournamentService.RecordLeaderboardAttemptAsync(TournamentId, request!);
             _hasChanges = true;
             _valueInput = string.Empty;
-            _durationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+            _durationInput = string.Empty;
             ToastService.ShowSuccess(Localization["Feature.leaderboard.attemptRecorded"]);
 
             if(participant is not null && participant.Id != Guid.Empty)
@@ -365,16 +366,51 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         return true;
     }
 
-    internal static bool TryBuildDurationMilliseconds(string[] inputs, out long durationMilliseconds)
+    internal static bool TryBuildDurationMilliseconds(string? input, out long durationMilliseconds)
     {
         durationMilliseconds = 0;
-        if(inputs.Length != 4 ||
-           !TryParseAsciiInteger(inputs[0].AsSpan(), out var hours, allowEmpty: true) ||
-           !TryParseAsciiInteger(inputs[1].AsSpan(), out var minutes, allowEmpty: true) || minutes > 59 ||
-           !TryParseAsciiInteger(inputs[2].AsSpan(), out var seconds, allowEmpty: true) || seconds > 59 ||
-           !TryParseAsciiInteger(inputs[3].AsSpan(), out var milliseconds, allowEmpty: true) || milliseconds > 999)
+        var value = (input ?? string.Empty).Trim().AsSpan();
+
+        // Native time inputs yield HH:mm, HH:mm:ss or HH:mm:ss.f[ff]; zero seconds and milliseconds may be omitted.
+        if(value.Length < 5 || value[2] != ':' ||
+           !TryParseTwoDigits(value[..2], out var hours) || hours > 23 ||
+           !TryParseTwoDigits(value.Slice(3, 2), out var minutes) || minutes > 59)
         {
             return false;
+        }
+
+        long seconds = 0;
+        long milliseconds = 0;
+        var rest = value[5..];
+        if(!rest.IsEmpty)
+        {
+            if(rest.Length < 3 || rest[0] != ':' ||
+               !TryParseTwoDigits(rest.Slice(1, 2), out seconds) || seconds > 59)
+            {
+                return false;
+            }
+
+            rest = rest[3..];
+            if(!rest.IsEmpty)
+            {
+                if(rest.Length is < 2 or > 4 || rest[0] != '.')
+                    return false;
+
+                var fraction = rest[1..];
+                for(var i = 0; i < 3; i++)
+                {
+                    var digit = 0;
+                    if(i < fraction.Length)
+                    {
+                        if(fraction[i] is < '0' or > '9')
+                            return false;
+
+                        digit = fraction[i] - '0';
+                    }
+
+                    milliseconds = milliseconds * 10 + digit;
+                }
+            }
         }
 
         try
@@ -389,29 +425,25 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         }
     }
 
-    private static bool TryParseAsciiInteger(ReadOnlySpan<char> value, out long number, bool allowEmpty = false)
+    internal static string FormatTimeInputValue(long durationMilliseconds)
+    {
+        if(durationMilliseconds <= 0 || durationMilliseconds >= MillisecondsPerDay)
+            return string.Empty;
+
+        var totalSeconds = durationMilliseconds / 1000;
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{totalSeconds / 3600:00}:{totalSeconds / 60 % 60:00}:{totalSeconds % 60:00}.{durationMilliseconds % 1000:000}");
+    }
+
+    private static bool TryParseTwoDigits(ReadOnlySpan<char> value, out long number)
     {
         number = 0;
-        if(value.IsEmpty)
-            return allowEmpty;
-
-        try
-        {
-            foreach(var character in value)
-            {
-                if(character is < '0' or > '9')
-                    return false;
-
-                number = checked(number * 10 + character - '0');
-            }
-
-            return true;
-        }
-        catch(OverflowException)
-        {
-            number = 0;
+        if(value.Length != 2 || value[0] is < '0' or > '9' || value[1] is < '0' or > '9')
             return false;
-        }
+
+        number = (value[0] - '0') * 10 + (value[1] - '0');
+        return true;
     }
 
     private void BeginAttemptEdit(LeaderboardAttemptDTO attempt)
@@ -419,35 +451,35 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         _submitError = null;
         _pendingRemovalAttemptId = null;
         _editingAttemptId = attempt.Id;
+        _editUnrepresentableDurationMilliseconds = null;
         if(attempt.Score.HasValue)
         {
             _editValueInput = LeaderboardFormattingExtensions.FormatLeaderboardScore(attempt.Score.Value);
-            _editDurationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+            _editDurationInput = string.Empty;
         }
         else if(attempt.DurationMilliseconds is { } durationMilliseconds)
         {
-            var totalSeconds = durationMilliseconds / 1000;
-            _editDurationInput =
-            [
-                (totalSeconds / 3600).ToString(CultureInfo.InvariantCulture),
-                (totalSeconds / 60 % 60).ToString(CultureInfo.InvariantCulture),
-                (totalSeconds % 60).ToString(CultureInfo.InvariantCulture),
-                (durationMilliseconds % 1000).ToString(CultureInfo.InvariantCulture)
-            ];
+            // Values a time input cannot show (24 hours or more) prefill blank and are kept while the input stays blank.
+            _editDurationInput = FormatTimeInputValue(durationMilliseconds);
+            _editUnrepresentableDurationMilliseconds = _editDurationInput.Length == 0 && durationMilliseconds > 0
+                ? durationMilliseconds
+                : null;
             _editValueInput = string.Empty;
         }
         else
         {
             _editValueInput = string.Empty;
-            _editDurationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+            _editDurationInput = string.Empty;
         }
+
     }
 
     private void CancelAttemptEdit()
     {
         _editingAttemptId = null;
         _editValueInput = string.Empty;
-        _editDurationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+        _editDurationInput = string.Empty;
+        _editUnrepresentableDurationMilliseconds = null;
     }
 
     private async Task SaveAttemptEditAsync(LeaderboardAttemptDTO attempt)
@@ -462,9 +494,16 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         if(RankingMetric == LeaderboardRankingMetric.FastestTime)
         {
             score = null;
-            if(!TryBuildDurationMilliseconds(_editDurationInput, out var parsedDuration))
-                error = Localization["Feature.leaderboard.validationDuration"];
-            durationMilliseconds = parsedDuration;
+            if(string.IsNullOrEmpty(_editDurationInput) && _editUnrepresentableDurationMilliseconds is { } preserved)
+            {
+                durationMilliseconds = preserved;
+            }
+            else
+            {
+                if(!TryBuildDurationMilliseconds(_editDurationInput, out var parsedDuration))
+                    error = Localization["Feature.leaderboard.validationDuration"];
+                durationMilliseconds = parsedDuration;
+            }
         }
         else if(!TryBuildValue(_editValueInput, out score, out durationMilliseconds, out error))
         {

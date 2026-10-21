@@ -141,24 +141,16 @@
                         }
                         else
                         {
-                            <fieldset class="leaderboard-duration-fields">
-                                <legend>@Localization["Feature.leaderboard.durationLabel"]</legend>
-                                @for(var i = 0; i < DurationUnitNames.Length; i++)
-                                {
-                                    var unitIndex = i;
-                                    <div class="leaderboard-duration-unit">
-                                        <label for="leaderboard-duration-@unitIndex">@Localization[$"Feature.leaderboard.duration{DurationUnitNames[unitIndex]}"]</label>
-                                        <input id="leaderboard-duration-@unitIndex"
-                                               type="number"
-                                               min="0"
-                                               max="@(unitIndex is 1 or 2 ? "59" : unitIndex == 3 ? "999" : null)"
-                                               step="1"
-                                               inputmode="numeric"
-                                               class="form-control"
-                                               @bind="_durationInput[unitIndex]" />
-                                    </div>
-                                }
-                            </fieldset>
+                            <label for="leaderboard-duration">@Localization["Feature.leaderboard.durationLabel"]</label>
+                            <input id="leaderboard-duration"
+                                   type="time"
+                                   step="0.001"
+                                   min="00:00:00.001"
+                                   max="23:59:59.999"
+                                   required
+                                   class="form-control"
+                                   value="@_durationInput"
+                                   @onchange="e => _durationInput = e.Value?.ToString() ?? string.Empty" />
                         }
                     </div>
 
@@ -198,24 +190,18 @@
                                             <div class="leaderboard-attempt-edit">
                                                 @if(RankingMetric == LeaderboardRankingMetric.FastestTime)
                                                 {
-                                                    <fieldset class="leaderboard-duration-fields">
-                                                        <legend>@Localization["Feature.leaderboard.durationLabel"]</legend>
-                                                        @for(var i = 0; i < DurationUnitNames.Length; i++)
-                                                        {
-                                                            var unitIndex = i;
-                                                            <div class="leaderboard-duration-unit">
-                                                                <label for="leaderboard-edit-duration-@unitIndex">@Localization[$"Feature.leaderboard.duration{DurationUnitNames[unitIndex]}"]</label>
-                                                                <input id="leaderboard-edit-duration-@unitIndex"
-                                                                       type="number"
-                                                                       min="0"
-                                                                       max="@(unitIndex is 1 or 2 ? "59" : unitIndex == 3 ? "999" : null)"
-                                                                       step="1"
-                                                                       inputmode="numeric"
-                                                                       class="form-control"
-                                                                       @bind="_editDurationInput[unitIndex]" />
-                                                            </div>
-                                                        }
-                                                    </fieldset>
+                                                    <div class="leaderboard-field leaderboard-edit-duration">
+                                                        <label for="leaderboard-edit-duration">@Localization["Feature.leaderboard.durationLabel"]</label>
+                                                        <input id="leaderboard-edit-duration"
+                                                               type="time"
+                                                               step="0.001"
+                                                               min="00:00:00.001"
+                                                               max="23:59:59.999"
+                                                               required
+                                                               class="form-control"
+                                                               value="@_editDurationInput"
+                                                               @onchange="e => _editDurationInput = e.Value?.ToString() ?? string.Empty" />
+                                                    </div>
                                                 }
                                                 else
                                                 {

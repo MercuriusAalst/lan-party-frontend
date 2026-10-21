@@ -35,7 +35,7 @@ public class LeaderboardValidationPlaywrightTests : TournamentE2ETestBase
 
 
     [Fact]
-    public async Task FastestTimeEntryUsesUnitFieldsAndRejectsInvalidFractions()
+    public async Task FastestTimeEntryUsesOneTimeInputAndRejectsEmptyAndZeroValues()
     {
         var admin = await App.CreatePersonaAsync("board-duration-admin", isAdmin: true);
         var adminApi = App.CreateApiClient(admin);
@@ -48,14 +48,18 @@ public class LeaderboardValidationPlaywrightTests : TournamentE2ETestBase
         await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
 
         var dialog = page.Locator("div.leaderboard-dialog");
-        var value = dialog.GetByLabel("Milliseconds", new() { Exact = true });
-        await Expect(value).ToHaveAttributeAsync("type", "number");
-        await Expect(value).ToHaveAttributeAsync("step", "1");
+        var value = dialog.GetByLabel("Elapsed time", new() { Exact = true });
+        const string message = "Enter a positive elapsed time between 00:00:00.001 and 23:59:59.999.";
+        await Expect(value).ToHaveAttributeAsync("type", "time");
+        await Expect(value).ToHaveAttributeAsync("step", "0.001");
         await dialog.Locator("#leaderboard-guest-name").FillAsync(TournamentE2E.Unique("Guest Duration"));
-        await value.FillAsync("1.5");
+
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();
-        await Expect(dialog.Locator(".leaderboard-dialog-error"))
-            .ToHaveTextAsync("Enter a positive elapsed time using whole numbers. Minutes and seconds must be 0–59; milliseconds must be 0–999.");
+        await Expect(dialog.Locator(".leaderboard-dialog-error")).ToHaveTextAsync(message);
+
+        await value.FillAsync("00:00:00.000");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();
+        await Expect(dialog.Locator(".leaderboard-dialog-error")).ToHaveTextAsync(message);
     }
 
     [Fact]

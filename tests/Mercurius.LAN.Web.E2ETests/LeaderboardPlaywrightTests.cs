@@ -176,7 +176,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         await Expect(rows.First).ToContainTextAsync("0:30.000");
         await Expect(rows.Nth(1)).ToContainTextAsync(slower);
 
-        // The dialog for a time-based leaderboard collects each elapsed-time unit separately.
+        // The dialog for a time-based leaderboard collects the elapsed time in one native time input.
         await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
         var dialog = page.Locator("div.leaderboard-dialog");
         await Expect(dialog).ToBeVisibleAsync();
@@ -184,17 +184,26 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         // Two participants already exist, so the dialog defaults to the existing-participant mode:
         // switch to the guest mode before the guest fields render.
         await dialog.GetByRole(AriaRole.Button, new() { Name = "New guest" }).ClickAsync();
-        await Expect(dialog.GetByRole(AriaRole.Group, new() { Name = "Elapsed time" })).ToBeVisibleAsync();
-        await Expect(dialog.GetByLabel("Hours", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(dialog.GetByLabel("Minutes", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(dialog.GetByLabel("Seconds", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(dialog.GetByLabel("Milliseconds", new() { Exact = true })).ToBeVisibleAsync();
+        var duration = dialog.GetByLabel("Elapsed time", new() { Exact = true });
+        await Expect(duration).ToHaveCountAsync(1);
+        await Expect(duration).ToHaveAttributeAsync("type", "time");
+        await Expect(duration).ToHaveAttributeAsync("step", "0.001");
+        await Expect(dialog.GetByLabel("Hours", new() { Exact = true })).ToHaveCountAsync(0);
+        await Expect(dialog.GetByLabel("Milliseconds", new() { Exact = true })).ToHaveCountAsync(0);
         await dialog.Locator("#leaderboard-guest-name").FillAsync(TournamentE2E.Unique("Guest Time"));
-        await dialog.GetByLabel("Minutes", new() { Exact = true }).FillAsync("0");
-        await dialog.GetByLabel("Seconds", new() { Exact = true }).FillAsync("5");
-        await dialog.GetByLabel("Milliseconds", new() { Exact = true }).FillAsync("0");
+        await dialog.Locator("#leaderboard-duration").FillAsync("00:00:05.123");
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();
-        await Expect(dialog.Locator(".leaderboard-attempt-item")).ToContainTextAsync("0:05.000");
+        var attempt = dialog.Locator(".leaderboard-attempt-item");
+        await Expect(attempt).ToContainTextAsync("0:05.123");
+
+        // Correcting the attempt uses the same native time input, prefilled from the stored value.
+        await attempt.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.Edit }).ClickAsync();
+        var editDuration = dialog.Locator("#leaderboard-edit-duration");
+        await Expect(editDuration).ToHaveAttributeAsync("type", "time");
+        await Expect(editDuration).ToHaveValueAsync("00:00:05.123");
+        await editDuration.FillAsync("00:01:07.250");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Save change" }).ClickAsync();
+        await Expect(attempt).ToContainTextAsync("1:07.250");
     }
 
     [Fact]
