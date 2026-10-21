@@ -2,11 +2,13 @@
 
 ## Result
 
-Issue 120 remains unresolved; no product change is supported by these measurements. Against the deployment shown in the reproduction video (`https://dev-lan.mercurius-aalst.be`), the reported lag was not reproduced as repeated RAF intervals above 16.7ms in the 1920px baseline sample. One-at-a-time CSS controls did not show a repeatable improvement in p95 RAF interval, so no candidate was selected as a fix.
+Issue 120 is resolved with a measured rendering optimization: the three animated hero images now share one `blur(12px)` wrapper instead of each owning a blur filter. In interleaved 900×800, DPR 2 Chromium runs, the Chrome GPU-process `STEP_DRAW_AND_SWAP` mean decreased 13% on the deployed homepage and 9–15% on the local app with live API assets. This is pipeline-stage duration, not hardware GPU-busy time; the reported Edge/iGPU laptop was not available for direct validation. [Current measurements, reproduction commands, per-trial data and screenshots](issue-120/profile-results.md).
+
+The 1920px RAF investigation below is historical. Its smooth frame intervals did not expose the reported issue and did not select this fix; the later matched pipeline-stage measurements did.
 
 The first diagnostic run incorrectly reported `animationName=none`: the profiler injected each candidate override before reading the original computed style. That ordering is fixed. The corrected 1920px run loaded all three hero images and 20 sponsor logos, and all seven controls passed their before/after style assertions. The old unexplained mismatch was a harness defect, not evidence of a homepage issue.
 
-## 1920px comparison
+## Historical 1920px RAF comparison
 
 Each case used headed Chromium 148.0.7778.96 on Windows 11 build 26200, DPR 1, a 4x DevTools CPU throttle, and the same deployment. The table shows p95 RAF callback intervals (milliseconds) during three-second idle and actual wheel-scroll samples. It is descriptive, not proof of physical display pacing.
 
@@ -25,7 +27,7 @@ The lower idle p95 for marquee and view-timeline controls did not carry through 
 
 The earlier live-site capture also produced baseline traces and screenshots at 390, 768, 900, and 1440px. Its metrics summary was lost when the then-broken control aborted; no measurements from those widths are claimed. Raw live captures and the corrected 1920px summary are retained locally in `docs/performance/homepage-issue-site/` and `docs/performance/homepage-issue-site-1920-controls/`, not committed.
 
-## Reproduction
+## Historical 1920px RAF reproduction
 
 Ensure Node can resolve the installed `playwright` package and set `CHROME_EXECUTABLE_PATH` to an installed Chromium executable. For representative artwork, use the deployment URL; the local Development mock has missing hero and sponsor assets.
 
@@ -42,4 +44,4 @@ $env:HOMEPAGE_DIAGNOSTIC_WIDTHS = '1920'
 node scripts/profile-homepage.cjs
 ```
 
-For baseline-only captures, set `HOMEPAGE_DIAGNOSTIC_WIDTHS='0'`. The script checkpoints its JSON summary after every completed case and records an optional diagnostic failure without discarding prior results. It closes Chromium on success or failure. No OpenSpec delta was needed because no product behavior changed.
+For baseline-only captures, set `HOMEPAGE_DIAGNOSTIC_WIDTHS='0'`. The script checkpoints its JSON summary after every completed case and records an optional diagnostic failure without discarding prior results. It closes Chromium on success or failure. These commands reproduce the historical RAF investigation, not the selected fix measurements. The implementation consolidates existing blur rendering without changing the visual or motion contract, so no OpenSpec delta was needed.

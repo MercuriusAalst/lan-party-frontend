@@ -1,0 +1,273 @@
+{
+  "metric": {
+    "event": "Chrome GPU-process Graphics.Pipeline / STEP_DRAW_AND_SWAP",
+    "units": "milliseconds per event/swap",
+    "interpretation": "GPU-process pipeline-stage duration; not hardware GPU-busy time",
+    "sampleMode": "same-page interleaved baseline/treatment, CSS document-timeline phase reset, warm decoded assets"
+  },
+  "runs": [
+    {
+      "name": "deployed-900x800-dpr2",
+      "sourceSummary": "docs/performance/live-real-gpu-900-dpr2-single-image-blur-surface-same-page-v3/summary.json",
+      "url": "https://dev-lan.mercurius-aalst.be",
+      "browserVersion": "148.0.7778.96",
+      "browserExecutable": "C:\\Users\\svenp\\AppData\\Local\\ms-playwright\\chromium-1223\\chrome-win64\\chrome.exe",
+      "viewport": {
+        "widthCssPx": 900,
+        "heightCssPx": 800,
+        "dpr": 2
+      },
+      "sample": {
+        "repeats": 3,
+        "durationMs": 1400,
+        "action": "idle",
+        "control": "single-image-blur-surface",
+        "localPatchedMarkup": null
+      },
+      "trials": [
+        {
+          "label": "01-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.474,
+          "drawAndSwapEventCount": 296,
+          "presentedFrameP95Ms": 5.06,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "02-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.413,
+          "drawAndSwapEventCount": 296,
+          "presentedFrameP95Ms": 5.08,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "03-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.416,
+          "drawAndSwapEventCount": 294,
+          "presentedFrameP95Ms": 5.05,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "04-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.47,
+          "drawAndSwapEventCount": 293,
+          "presentedFrameP95Ms": 5.06,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "05-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.481,
+          "drawAndSwapEventCount": 294,
+          "presentedFrameP95Ms": 5.05,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "06-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.409,
+          "drawAndSwapEventCount": 298,
+          "presentedFrameP95Ms": 5.06,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        }
+      ]
+    },
+    {
+      "name": "local-live-api-run-1-900x800-dpr2",
+      "sourceSummary": "docs/performance/issue-120-local-live-api-900-dpr2/summary.json",
+      "url": "http://127.0.0.1:5186",
+      "browserVersion": "148.0.7778.96",
+      "browserExecutable": "C:\\Users\\svenp\\AppData\\Local\\ms-playwright\\chromium-1223\\chrome-win64\\chrome.exe",
+      "viewport": {
+        "widthCssPx": 900,
+        "heightCssPx": 800,
+        "dpr": 2
+      },
+      "sample": {
+        "repeats": 4,
+        "durationMs": 1400,
+        "action": "idle",
+        "control": "single-image-blur-surface",
+        "localPatchedMarkup": true
+      },
+      "trials": [
+        {
+          "label": "01-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.584,
+          "drawAndSwapEventCount": 287,
+          "presentedFrameP95Ms": 5.05,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "02-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.465,
+          "drawAndSwapEventCount": 291,
+          "presentedFrameP95Ms": 5.07,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "03-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.474,
+          "drawAndSwapEventCount": 290,
+          "presentedFrameP95Ms": 5.11,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "04-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.585,
+          "drawAndSwapEventCount": 290,
+          "presentedFrameP95Ms": 5.12,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "05-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.537,
+          "drawAndSwapEventCount": 290,
+          "presentedFrameP95Ms": 5.06,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "06-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.476,
+          "drawAndSwapEventCount": 288,
+          "presentedFrameP95Ms": 5.11,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "07-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.483,
+          "drawAndSwapEventCount": 290,
+          "presentedFrameP95Ms": 5.11,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "08-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.534,
+          "drawAndSwapEventCount": 285,
+          "presentedFrameP95Ms": 5.09,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        }
+      ]
+    },
+    {
+      "name": "local-live-api-run-2-900x800-dpr2",
+      "sourceSummary": "docs/performance/issue-120-local-live-api-900-dpr2-final/summary.json",
+      "url": "http://127.0.0.1:5186",
+      "browserVersion": "148.0.7778.96",
+      "browserExecutable": "C:\\Users\\svenp\\AppData\\Local\\ms-playwright\\chromium-1223\\chrome-win64\\chrome.exe",
+      "viewport": {
+        "widthCssPx": 900,
+        "heightCssPx": 800,
+        "dpr": 2
+      },
+      "sample": {
+        "repeats": 3,
+        "durationMs": 1400,
+        "action": "idle",
+        "control": "single-image-blur-surface",
+        "localPatchedMarkup": true
+      },
+      "trials": [
+        {
+          "label": "01-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.557,
+          "drawAndSwapEventCount": 290,
+          "presentedFrameP95Ms": 5.1,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "02-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.51,
+          "drawAndSwapEventCount": 288,
+          "presentedFrameP95Ms": 5.13,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "03-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.468,
+          "drawAndSwapEventCount": 288,
+          "presentedFrameP95Ms": 5.01,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "04-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.542,
+          "drawAndSwapEventCount": 286,
+          "presentedFrameP95Ms": 5.02,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "05-home-baseline",
+          "case": "baseline",
+          "drawAndSwapMeanMs": 0.563,
+          "drawAndSwapEventCount": 291,
+          "presentedFrameP95Ms": 5.09,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        },
+        {
+          "label": "06-home-single-image-blur-surface",
+          "case": "single-image-blur-surface",
+          "drawAndSwapMeanMs": 0.714,
+          "drawAndSwapEventCount": 289,
+          "presentedFrameP95Ms": 5.1,
+          "presentedIntervalsOver16_7Ms": 0,
+          "decodedImages": 36,
+          "decodedSponsorImages": 25
+        }
+      ]
+    }
+  ]
+}

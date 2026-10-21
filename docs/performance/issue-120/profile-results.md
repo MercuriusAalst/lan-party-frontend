@@ -8,6 +8,8 @@ Chromium 148.0.7778.96, visible browser, NVIDIA RTX 5070 Ti, 900×800 CSS pixels
 
 The reported metric is the mean duration of Chrome GPU-process `Graphics.Pipeline` events whose step is `STEP_DRAW_AND_SWAP`, divided by that step’s event count (equal to swap count in these samples). This is CPU-side GPU-process pipeline duration, not hardware GPU-busy time. It measures the same named non-overlapping pipeline stage in every sample.
 
+The compact [per-trial dataset](per-trial-summary.json) contains every measured trial, event count, presented-frame p95, missed-frame count, environment, and source summary path for the repeated 900px comparisons. The raw CDP traces remain local and are not required to audit the values summarized here.
+
 | Page | Original separate image blurs | Shared blur surface | Change |
 | --- | ---: | ---: | ---: |
 | Deployed homepage | 0.47, 0.47, 0.48 ms/swap | 0.41, 0.42, 0.41 ms/swap | 13% lower median |
@@ -40,6 +42,60 @@ At each width, baseline and treatment had identical document and client widths, 
 The 390px reduced-motion capture confirms the existing hero image animations remain stopped under `prefers-reduced-motion: reduce`; the shared blur does not add animation. The wider responsive figures are one short A/B pair each and are directional checks, not precise performance estimates.
 
 The affected device was reported as Edge on an Intel i7-1255U with integrated graphics. This host has an RTX 5070 Ti and Chromium, and Edge is not installed. The change is measured on real GPU-enabled Chromium here, but the reported laptop and browser still need a direct confirmation. No CPU/GPU throttling was applied.
+
+## Reproduction commands
+
+These PowerShell commands use the captured Chromium and Node locations from the measurement host. Replace `CHROME_EXECUTABLE_PATH` with the installed Chromium executable and `NODE_PATH`/`$nodeExe` with the installed Node runtime and its Playwright package path on another machine. The runner opens headed Chromium with GPU enabled, decodes the homepage assets before measurement, sets dark theme, resets document-timeline CSS animations to 3000 ms, then alternates baseline and treatment in the same page. It writes a `summary.json`, screenshots, and compressed raw traces under each profile directory.
+
+Run the deployed comparison from the repository worktree:
+
+```powershell
+Set-Location 'D:\Github Repositories\lan-party\.worktrees\homepage-rendering-performance'
+$env:NODE_PATH = 'C:\Users\svenp\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules'
+$nodeExe = 'C:\Users\svenp\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'
+$env:CHROME_EXECUTABLE_PATH = 'C:\Users\svenp\AppData\Local\ms-playwright\chromium-1223\chrome-win64\chrome.exe'
+$env:HOMEPAGE_URL = 'https://dev-lan.mercurius-aalst.be'
+$env:HOMEPAGE_PROFILE_DIR = 'docs/performance/issue-120-repro-deployed'
+$env:HOMEPAGE_WIDTH = '900'
+$env:HOMEPAGE_HEIGHT = '800'
+$env:HOMEPAGE_DPR = '2'
+$env:HOMEPAGE_REPEATS = '3'
+$env:HOMEPAGE_SAMPLE_MS = '1400'
+$env:HOMEPAGE_ACTION = 'idle'
+$env:HOMEPAGE_CONTROL = 'single-image-blur-surface'
+& $nodeExe scripts/profile-homepage-live.cjs
+```
+
+For the local run, start the patched app in a separate PowerShell window, configured to use the same live API records and image assets rather than the local mock data:
+
+```powershell
+Set-Location 'D:\Github Repositories\lan-party\.worktrees\homepage-rendering-performance'
+$env:MercuriusAPI__BaseAddress = 'https://dev-api.mercurius-aalst.be/'
+$env:ASPNETCORE_URLS = 'http://127.0.0.1:5186'
+dotnet build src/Mercurius.LAN.Web/Mercurius.LAN.Web.csproj -c Release
+dotnet run --project src/Mercurius.LAN.Web/Mercurius.LAN.Web.csproj -c Release --no-build --no-launch-profile
+```
+
+In another PowerShell window, use the same browser and sampling settings with the local page and a separate output directory:
+
+```powershell
+Set-Location 'D:\Github Repositories\lan-party\.worktrees\homepage-rendering-performance'
+$env:NODE_PATH = 'C:\Users\svenp\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules'
+$nodeExe = 'C:\Users\svenp\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'
+$env:CHROME_EXECUTABLE_PATH = 'C:\Users\svenp\AppData\Local\ms-playwright\chromium-1223\chrome-win64\chrome.exe'
+$env:HOMEPAGE_URL = 'http://127.0.0.1:5186'
+$env:HOMEPAGE_PROFILE_DIR = 'docs/performance/issue-120-repro-local'
+$env:HOMEPAGE_WIDTH = '900'
+$env:HOMEPAGE_HEIGHT = '800'
+$env:HOMEPAGE_DPR = '2'
+$env:HOMEPAGE_REPEATS = '3'
+$env:HOMEPAGE_SAMPLE_MS = '1400'
+$env:HOMEPAGE_ACTION = 'idle'
+$env:HOMEPAGE_CONTROL = 'single-image-blur-surface'
+& $nodeExe scripts/profile-homepage-live.cjs
+```
+
+The local run requires the app to be reachable at port 5186 before starting the profiler. `MercuriusAPI__BaseAddress` is .NET environment-variable syntax for `MercuriusAPI:BaseAddress`.
 
 ## Screenshots
 
