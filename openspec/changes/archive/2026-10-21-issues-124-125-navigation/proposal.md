@@ -7,7 +7,13 @@ collapse before its controls collide, places the existing theme control in the
 footer, and dismisses Info on outside pointer input or Escape without blocking
 the action under the pointer.
 
-## Scope
+## Why
+
+The shared header overlapped at intermediate desktop widths, the theme control
+was separated from the footer language selector, and the Info menu used a
+full-screen overlay that blocked outside actions.
+
+## What Changes
 
 - Synchronize the responsive navigation breakpoint and preserve usable controls.
 - Place the existing theme preference control alongside the footer language
