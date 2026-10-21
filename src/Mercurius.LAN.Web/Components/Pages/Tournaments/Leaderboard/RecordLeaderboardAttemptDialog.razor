@@ -129,9 +129,9 @@
                     }
 
                     <div class="leaderboard-field">
-                        <label for="leaderboard-attempt-value">@GetValueLabel()</label>
                         @if(RankingMetric == LeaderboardRankingMetric.HighestScore)
                         {
+                            <label for="leaderboard-attempt-value">@GetValueLabel()</label>
                             <input id="leaderboard-attempt-value"
                                    type="text"
                                    inputmode="decimal"
@@ -141,13 +141,23 @@
                         }
                         else
                         {
-                            <input id="leaderboard-attempt-value"
-                                   type="text"
-                                   inputmode="text"
-                                   class="form-control"
-                                   placeholder='@Localization["Feature.leaderboard.durationExample"]'
-                                   @bind="_valueInput" />
-                            <small class="form-help">@GetDurationPreview()</small>
+                            <fieldset class="leaderboard-duration-fields">
+                                <legend>@Localization["Feature.leaderboard.durationLabel"]</legend>
+                                @for(var i = 0; i < DurationUnitNames.Length; i++)
+                                {
+                                    <div class="leaderboard-duration-unit">
+                                        <label for="leaderboard-duration-@i">@Localization[$"Feature.leaderboard.duration{DurationUnitNames[i]}"]</label>
+                                        <input id="leaderboard-duration-@i"
+                                               type="number"
+                                               min="0"
+                                               max="@(i is 1 or 2 ? "59" : i == 3 ? "999" : null)"
+                                               step="1"
+                                               inputmode="numeric"
+                                               class="form-control"
+                                               @bind="_durationInput[i]" />
+                                    </div>
+                                }
+                            </fieldset>
                         }
                     </div>
 
@@ -185,15 +195,33 @@
                                         @if(_editingAttemptId == attempt.Id)
                                         {
                                             <div class="leaderboard-attempt-edit">
-                                                <input type="text"
-                                                       class="form-control"
-                                                       inputmode="text"
-                                                       placeholder='@(RankingMetric == LeaderboardRankingMetric.FastestTime ? Localization["Feature.leaderboard.durationExample"] : string.Empty)'
-                                                       aria-label='@(RankingMetric == LeaderboardRankingMetric.FastestTime ? Localization["Feature.leaderboard.durationLabel"] : Localization["Feature.leaderboard.editAttemptValue"])'
-                                                       @bind="_editValueInput" />
                                                 @if(RankingMetric == LeaderboardRankingMetric.FastestTime)
                                                 {
-                                                    <small class="form-help">@Localization["Feature.leaderboard.durationHelp"]</small>
+                                                    <fieldset class="leaderboard-duration-fields">
+                                                        <legend>@Localization["Feature.leaderboard.durationLabel"]</legend>
+                                                        @for(var i = 0; i < DurationUnitNames.Length; i++)
+                                                        {
+                                                            <div class="leaderboard-duration-unit">
+                                                                <label for="leaderboard-edit-duration-@i">@Localization[$"Feature.leaderboard.duration{DurationUnitNames[i]}"]</label>
+                                                                <input id="leaderboard-edit-duration-@i"
+                                                                       type="number"
+                                                                       min="0"
+                                                                       max="@(i is 1 or 2 ? "59" : i == 3 ? "999" : null)"
+                                                                       step="1"
+                                                                       inputmode="numeric"
+                                                                       class="form-control"
+                                                                       @bind="_editDurationInput[i]" />
+                                                            </div>
+                                                        }
+                                                    </fieldset>
+                                                }
+                                                else
+                                                {
+                                                    <input type="text"
+                                                           class="form-control"
+                                                           inputmode="decimal"
+                                                           aria-label='@Localization["Feature.leaderboard.editAttemptValue"]'
+                                                           @bind="_editValueInput" />
                                                 }
                                                 <button type="button" class="button-primary" disabled="@_isSavingAttempt" @onclick="() => SaveAttemptEditAsync(attempt)">
                                                     @Localization["Feature.leaderboard.saveAttemptEdit"]

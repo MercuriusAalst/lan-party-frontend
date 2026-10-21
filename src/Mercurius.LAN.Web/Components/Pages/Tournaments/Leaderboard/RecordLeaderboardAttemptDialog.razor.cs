@@ -15,6 +15,7 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
 {
     private const int UserSearchDebounceMilliseconds = 300;
     private const int MinimumUserSearchLength = 3;
+    private static readonly string[] DurationUnitNames = ["Hours", "Minutes", "Seconds", "Milliseconds"];
 
     private enum EntryMode
     {
@@ -49,9 +50,11 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
     private CancellationTokenSource? _userSearchCancellation;
     private string _guestName = string.Empty;
     private string _valueInput = string.Empty;
+    private string[] _durationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
 
     private Guid? _editingAttemptId;
     private string _editValueInput = string.Empty;
+    private string[] _editDurationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
     private bool _isSavingAttempt;
     private Guid? _pendingRemovalAttemptId;
     private Guid? _removingAttemptId;
@@ -116,6 +119,7 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         _isSearchingUsers = false;
         _guestName = string.Empty;
         _valueInput = string.Empty;
+        _durationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
         _editingAttemptId = null;
         _pendingRemovalAttemptId = null;
         _submitError = null;
@@ -229,6 +233,7 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
             var participant = await TournamentService.RecordLeaderboardAttemptAsync(TournamentId, request!);
             _hasChanges = true;
             _valueInput = string.Empty;
+            _durationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
             ToastService.ShowSuccess(Localization["Feature.leaderboard.attemptRecorded"]);
 
             if(participant is not null && participant.Id != Guid.Empty)
@@ -296,8 +301,23 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
                 return false;
         }
 
-        if(!TryBuildValue(_valueInput, out var score, out var durationMilliseconds, out error))
+        decimal? score;
+        long? durationMilliseconds;
+        if(RankingMetric == LeaderboardRankingMetric.FastestTime)
+        {
+            score = null;
+            if(!TryBuildDurationMilliseconds(_durationInput, out var parsedDuration))
+            {
+                error = Localization["Feature.leaderboard.validationDuration"];
+                return false;
+            }
+
+            durationMilliseconds = parsedDuration;
+        }
+        else if(!TryBuildValue(_valueInput, out score, out durationMilliseconds, out error))
+        {
             return false;
+        }
 
         request = new RecordLeaderboardAttemptDTO
         {
@@ -321,68 +341,41 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         error = null;
 
         var raw = rawValue.Trim();
-        if(RankingMetric == LeaderboardRankingMetric.HighestScore)
+        if(raw.Length == 0)
         {
-            if(raw.Length == 0)
-            {
-                error = Localization["Feature.leaderboard.validationValueRequired"];
-                return false;
-            }
-
-            var normalized = raw.Replace(',', '.');
-            if(!decimal.TryParse(
-                   normalized,
-                   NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
-                   CultureInfo.InvariantCulture,
-                   out var parsedScore) ||
-               parsedScore < 0 ||
-               decimal.Round(parsedScore, 6) != parsedScore ||
-               parsedScore >= 1000000000000m)
-            {
-                error = Localization["Feature.leaderboard.validationScore"];
-                return false;
-            }
-
-            score = parsedScore;
-            return true;
-        }
-
-        if(!TryParseDurationMilliseconds(raw, out var parsedDuration))
-        {
-            error = Localization["Feature.leaderboard.validationDuration"];
+            error = Localization["Feature.leaderboard.validationValueRequired"];
             return false;
         }
 
-        durationMilliseconds = parsedDuration;
+        var normalized = raw.Replace(',', '.');
+        if(!decimal.TryParse(
+               normalized,
+               NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
+               CultureInfo.InvariantCulture,
+               out var parsedScore) ||
+           parsedScore < 0 ||
+           decimal.Round(parsedScore, 6) != parsedScore ||
+           parsedScore >= 1000000000000m)
+        {
+            error = Localization["Feature.leaderboard.validationScore"];
+            return false;
+        }
+
+        score = parsedScore;
         return true;
     }
 
-    internal static bool TryParseDurationMilliseconds(string? rawValue, out long durationMilliseconds)
+    internal static bool TryBuildDurationMilliseconds(string[] inputs, out long durationMilliseconds)
     {
         durationMilliseconds = 0;
-
-        var fields = rawValue?.Trim().Split(':');
-        if(fields is not { Length: 2 or 3 })
-            return false;
-
-        var hasHours = fields.Length == 3;
-        var minuteField = hasHours ? fields[1].AsSpan() : fields[0].AsSpan();
-        var secondField = fields[^1].AsSpan();
-        var firstField = hasHours ? fields[0].AsSpan() : ReadOnlySpan<char>.Empty;
-        var dot = secondField.IndexOf('.');
-        if(dot != 2 || secondField.Length - dot != 4 ||
-           (hasHours && minuteField.Length != 2) ||
-           !TryParseAsciiInteger(minuteField, out var minutes) ||
-           !TryParseAsciiInteger(secondField[..dot], out var seconds) ||
-           !TryParseAsciiInteger(secondField[(dot + 1)..], out var milliseconds) ||
-           seconds > 59 || (hasHours && minutes > 59))
+        if(inputs.Length != 4 ||
+           !TryParseAsciiInteger(inputs[0].AsSpan(), out var hours, allowEmpty: true) ||
+           !TryParseAsciiInteger(inputs[1].AsSpan(), out var minutes, allowEmpty: true) || minutes > 59 ||
+           !TryParseAsciiInteger(inputs[2].AsSpan(), out var seconds, allowEmpty: true) || seconds > 59 ||
+           !TryParseAsciiInteger(inputs[3].AsSpan(), out var milliseconds, allowEmpty: true) || milliseconds > 999)
         {
             return false;
         }
-
-        long hours = 0;
-        if(hasHours && !TryParseAsciiInteger(firstField, out hours))
-            return false;
 
         try
         {
@@ -396,11 +389,11 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         }
     }
 
-    private static bool TryParseAsciiInteger(ReadOnlySpan<char> value, out long number)
+    private static bool TryParseAsciiInteger(ReadOnlySpan<char> value, out long number, bool allowEmpty = false)
     {
         number = 0;
         if(value.IsEmpty)
-            return false;
+            return allowEmpty;
 
         try
         {
@@ -426,17 +419,35 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
         _submitError = null;
         _pendingRemovalAttemptId = null;
         _editingAttemptId = attempt.Id;
-        _editValueInput = attempt.Score.HasValue
-            ? LeaderboardFormattingExtensions.FormatLeaderboardScore(attempt.Score.Value)
-            : attempt.DurationMilliseconds is { } durationMilliseconds
-                ? LeaderboardFormattingExtensions.FormatLeaderboardDuration(durationMilliseconds)
-                : string.Empty;
+        if(attempt.Score.HasValue)
+        {
+            _editValueInput = LeaderboardFormattingExtensions.FormatLeaderboardScore(attempt.Score.Value);
+            _editDurationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+        }
+        else if(attempt.DurationMilliseconds is { } durationMilliseconds)
+        {
+            var totalSeconds = durationMilliseconds / 1000;
+            _editDurationInput =
+            [
+                (totalSeconds / 3600).ToString(CultureInfo.InvariantCulture),
+                (totalSeconds / 60 % 60).ToString(CultureInfo.InvariantCulture),
+                (totalSeconds % 60).ToString(CultureInfo.InvariantCulture),
+                (durationMilliseconds % 1000).ToString(CultureInfo.InvariantCulture)
+            ];
+            _editValueInput = string.Empty;
+        }
+        else
+        {
+            _editValueInput = string.Empty;
+            _editDurationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
+        }
     }
 
     private void CancelAttemptEdit()
     {
         _editingAttemptId = null;
         _editValueInput = string.Empty;
+        _editDurationInput = [string.Empty, string.Empty, string.Empty, string.Empty];
     }
 
     private async Task SaveAttemptEditAsync(LeaderboardAttemptDTO attempt)
@@ -445,7 +456,22 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
             return;
 
         _submitError = null;
-        if(!TryBuildValue(_editValueInput, out var score, out var durationMilliseconds, out var error))
+        decimal? score;
+        long? durationMilliseconds;
+        string? error = null;
+        if(RankingMetric == LeaderboardRankingMetric.FastestTime)
+        {
+            score = null;
+            if(!TryBuildDurationMilliseconds(_editDurationInput, out var parsedDuration))
+                error = Localization["Feature.leaderboard.validationDuration"];
+            durationMilliseconds = parsedDuration;
+        }
+        else if(!TryBuildValue(_editValueInput, out score, out durationMilliseconds, out error))
+        {
+            _submitError = error;
+            return;
+        }
+        if(error is not null)
         {
             _submitError = error;
             return;
@@ -588,21 +614,7 @@ public partial class RecordLeaderboardAttemptDialog : IDisposable
             ? Localization.Get("Feature.leaderboard.guestParticipantLabel", participant.DisplayName)
             : participant.DisplayName;
 
-    private string GetValueLabel() => RankingMetric == LeaderboardRankingMetric.HighestScore
-        ? Localization["Feature.leaderboard.scoreLabel"]
-        : Localization["Feature.leaderboard.durationLabel"];
-
-    private string GetDurationPreview()
-    {
-        if(TryParseDurationMilliseconds(_valueInput, out var durationMilliseconds))
-        {
-            return Localization.Get(
-                "Feature.leaderboard.durationPreview",
-                LeaderboardFormattingExtensions.FormatLeaderboardDuration(durationMilliseconds));
-        }
-
-        return Localization["Feature.leaderboard.durationHelp"];
-    }
+    private string GetValueLabel() => Localization["Feature.leaderboard.scoreLabel"];
 
     private Task RequestClose()
     {

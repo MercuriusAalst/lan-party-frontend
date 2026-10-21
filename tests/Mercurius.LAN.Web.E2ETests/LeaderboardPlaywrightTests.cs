@@ -176,7 +176,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         await Expect(rows.First).ToContainTextAsync("0:30.000");
         await Expect(rows.Nth(1)).ToContainTextAsync(slower);
 
-        // The dialog for a time-based leaderboard asks for elapsed duration and previews the value.
+        // The dialog for a time-based leaderboard collects each elapsed-time unit separately.
         await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
         var dialog = page.Locator("div.leaderboard-dialog");
         await Expect(dialog).ToBeVisibleAsync();
@@ -184,14 +184,15 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         // Two participants already exist, so the dialog defaults to the existing-participant mode:
         // switch to the guest mode before the guest fields render.
         await dialog.GetByRole(AriaRole.Button, new() { Name = "New guest" }).ClickAsync();
-        await Expect(dialog.GetByLabel("Elapsed time (m:ss.fff or h:mm:ss.fff)")).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Elapsed time")).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Hours")).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Minutes")).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Seconds")).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Milliseconds")).ToBeVisibleAsync();
         await dialog.Locator("#leaderboard-guest-name").FillAsync(TournamentE2E.Unique("Guest Time"));
-        await dialog.Locator("#leaderboard-attempt-value").FillAsync("0:05.000");
-        // The duration preview is rendered from _valueInput, which the input binds on `onchange`.
-        // Playwright's Fill only fires `input`, so commit the value the way a user does before
-        // asserting on anything the component derives from it.
-        await dialog.Locator("#leaderboard-attempt-value").PressAsync("Tab");
-        await Expect(dialog.GetByText("Recorded as 0:05.000")).ToBeVisibleAsync();
+        await dialog.GetByLabel("Minutes").FillAsync("0");
+        await dialog.GetByLabel("Seconds").FillAsync("5");
+        await dialog.GetByLabel("Milliseconds").FillAsync("0");
     }
 
     [Fact]

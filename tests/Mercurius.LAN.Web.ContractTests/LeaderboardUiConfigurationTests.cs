@@ -26,98 +26,60 @@ namespace Mercurius.LAN.Web.ContractTests;
 public sealed class LeaderboardUiConfigurationTests
 {
     [Theory]
-    [InlineData("")]
-    [InlineData("0:00.000")]
-    [InlineData("1500")]
-    [InlineData("+1:00.000")]
-    [InlineData("-1:00.000")]
-    [InlineData("1:60.000")]
-    [InlineData("1:2.000")]
-    [InlineData("1:02.00")]
-    [InlineData("1:02.0000")]
-    [InlineData("1:60:03.004")]
-    [InlineData("1:2:03.004")]
-    [InlineData("١:02.003")]
-    [InlineData("153722867280912:55.808")]
-    [InlineData("abc")]
-    public void DurationInputRejectsInvalidElapsedDurations(string input)
+    [InlineData("", "", "", "1", 1L)]
+    [InlineData("", "1", "23", "456", 83_456L)]
+    [InlineData("0", "1", "23", "456", 83_456L)]
+    [InlineData("1", "2", "3", "4", 3_723_004L)]
+    [InlineData("2562047788015", "12", "55", "807", long.MaxValue)]
+    public void DurationUnitsConvertToExactMilliseconds(string hours, string minutes, string seconds, string milliseconds, long expected)
     {
-        var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
-
-        var accepted = dialog.TryBuildValue(input, out var score, out var durationMilliseconds, out var error);
-
-        Assert.False(accepted);
-        Assert.Null(score);
-        Assert.Null(durationMilliseconds);
-        Assert.Equal("Feature.leaderboard.validationDuration", error);
+        Assert.True(RecordLeaderboardAttemptDialog.TryBuildDurationMilliseconds([hours, minutes, seconds, milliseconds], out var result));
+        Assert.Equal(expected, result);
     }
 
     [Theory]
-    [InlineData("1:23.456", 83_456L)]
-    [InlineData("01:23.456", 83_456L)]
-    [InlineData("0:00.001", 1L)]
-    [InlineData("0:58.032", 58_032L)]
-    [InlineData("12:05.789", 725_789L)]
-    [InlineData("59:59.999", 3_599_999L)]
-    [InlineData("1:00:00.000", 3_600_000L)]
-    [InlineData("1:02:03.004", 3_723_004L)]
-    [InlineData("60:00.000", 3_600_000L)]
-    [InlineData("  1:23.456  ", 83_456L)]
-    [InlineData("2562047788:00.000", 153_722_867_280_000L)]
-    [InlineData("153722867280912:55.807", long.MaxValue)]
-    [InlineData("2562047788015:12:55.807", long.MaxValue)]
-    public void DurationInputConvertsElapsedTimeToExactMilliseconds(string input, long expectedMilliseconds)
+    [InlineData("", "", "", "")]
+    [InlineData("-1", "0", "0", "1")]
+    [InlineData("1.5", "0", "0", "1")]
+    [InlineData("", "60", "0", "1")]
+    [InlineData("", "0", "60", "1")]
+    [InlineData("", "0", "0", "1000")]
+    [InlineData("9223372036854775808", "0", "0", "0")]
+    [InlineData("2562047788015", "12", "55", "808")]
+    public void InvalidDurationUnitsAreRejected(string hours, string minutes, string seconds, string milliseconds)
     {
-        var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
-
-        var accepted = dialog.TryBuildValue(input, out var score, out var durationMilliseconds, out var error);
-
-        Assert.True(accepted);
-        Assert.Null(score);
-        Assert.Equal(expectedMilliseconds, durationMilliseconds);
-        Assert.Null(error);
-    }
-
-    [Fact]
-    public void MaximumFormattedDurationParsesBackToTheExactLongValue()
-    {
-        var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
-        var formatted = Mercurius.LAN.Web.Extensions.LeaderboardFormattingExtensions.FormatLeaderboardDuration(long.MaxValue);
-
-        Assert.True(dialog.TryBuildValue(formatted, out _, out var parsed, out _));
-        Assert.Equal(long.MaxValue, parsed);
+        Assert.False(RecordLeaderboardAttemptDialog.TryBuildDurationMilliseconds([hours, minutes, seconds, milliseconds], out _));
     }
 
     [Theory]
-    [InlineData("translations.en-US.json", "Elapsed time (m:ss.fff or h:mm:ss.fff)", "Example: 1:23.456")]
-    [InlineData("translations.nl-BE.json", "Verstreken tijd (m:ss.fff of h:mm:ss.fff)", "Bijvoorbeeld: 1:23.456")]
-    public void DurationGuidanceIsLocalized(string localeFile, string expectedLabel, string expectedExample)
+    [InlineData("translations.en-US.json", "Elapsed time", "Hours", "Minutes", "Seconds", "Milliseconds")]
+    [InlineData("translations.nl-BE.json", "Verstreken tijd", "Uren", "Minuten", "Seconden", "Milliseconden")]
+    public void DurationUnitLabelsAreLocalized(string localeFile, params string[] expected)
     {
         var path = FindRepositoryFile(Path.Combine("src", "Mercurius.LAN.Web", "wwwroot", "locales", localeFile));
         var translations = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path))!;
+        var keys = new[] { "durationLabel", "durationHours", "durationMinutes", "durationSeconds", "durationMilliseconds" };
 
-        Assert.Equal(expectedLabel, translations["Feature.leaderboard.durationLabel"]);
-        Assert.Equal(expectedExample, translations["Feature.leaderboard.durationExample"]);
-        Assert.Contains("m:ss.fff", translations["Feature.leaderboard.validationDuration"]);
+        Assert.Equal(expected, keys.Select(key => translations[$"Feature.leaderboard.{key}"]));
     }
 
     [Fact]
-    public void DurationInputBuildsRequestWithExactIntegerMillisecondsAndEditPrefillsElapsedText()
+    public void DurationInputBuildsRequestAndEditPrefillsUnitsExactly()
     {
         var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
         SetField(dialog, "_mode", Enum.Parse(GetNestedEnum(dialog.GetType(), "EntryMode"), "Guest"));
         SetField(dialog, "_guestName", "Duration Guest");
-        SetField(dialog, "_valueInput", "1:02:03.004");
+        SetField(dialog, "_durationInput", new[] { "1", "2", "3", "4" });
         var method = FindMethod(dialog.GetType(), "TryBuildRequest")!;
         var args = new object?[] { null, null };
 
         Assert.True((bool)method.Invoke(dialog, args)!);
         Assert.Equal(3_723_004L, ((RecordLeaderboardAttemptDTO)args[0]!).DurationMilliseconds);
 
-        var attempt = new LeaderboardAttemptDTO { Id = Guid.NewGuid(), DurationMilliseconds = 3_723_004L };
+        var attempt = new LeaderboardAttemptDTO { Id = Guid.NewGuid(), DurationMilliseconds = long.MaxValue };
         FindMethod(dialog.GetType(), "BeginAttemptEdit")!.Invoke(dialog, [attempt]);
-        Assert.Equal("1:02:03.004", GetField<string>(dialog, "_editValueInput"));
-        Assert.True(dialog.TryBuildValue(GetField<string>(dialog, "_editValueInput"), out _, out var editedMilliseconds, out _));
+        Assert.Equal(new[] { "2562047788015", "12", "55", "807" }, GetField<string[]>(dialog, "_editDurationInput"));
+        Assert.True(RecordLeaderboardAttemptDialog.TryBuildDurationMilliseconds(GetField<string[]>(dialog, "_editDurationInput"), out var editedMilliseconds));
         Assert.Equal(attempt.DurationMilliseconds, editedMilliseconds);
     }
 
@@ -127,7 +89,7 @@ public sealed class LeaderboardUiConfigurationTests
         var createDialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
         SetField(createDialog, "_mode", Enum.Parse(GetNestedEnum(createDialog.GetType(), "EntryMode"), "Guest"));
         SetField(createDialog, "_guestName", "Duration Guest");
-        SetField(createDialog, "_valueInput", "1:23.456");
+        SetField(createDialog, "_durationInput", new[] { "", "1", "23", "456" });
         SetPrivateProperty(createDialog, "TournamentService", CreateRecordingTournamentService(out var createCalls, out var createArguments));
 
         await InvokePrivateTask(createDialog, "SubmitAttemptAsync");
@@ -136,7 +98,7 @@ public sealed class LeaderboardUiConfigurationTests
         Assert.Equal(83_456L, ((RecordLeaderboardAttemptDTO)createArguments.Single()![1]!).DurationMilliseconds);
 
         var editDialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
-        SetField(editDialog, "_editValueInput", "1:02:03.004");
+        SetField(editDialog, "_editDurationInput", new[] { "1", "2", "3", "4" });
         SetPrivateProperty(editDialog, "TournamentService", CreateRecordingTournamentService(out var editCalls, out var editArguments));
         var attempt = new LeaderboardAttemptDTO { Id = Guid.NewGuid(), DurationMilliseconds = 3_723_004L, RowVersion = Guid.NewGuid() };
 
@@ -152,7 +114,7 @@ public sealed class LeaderboardUiConfigurationTests
         var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
         SetField(dialog, "_mode", Enum.Parse(GetNestedEnum(dialog.GetType(), "EntryMode"), "Guest"));
         SetField(dialog, "_guestName", "Fractional Guest");
-        SetField(dialog, "_valueInput", "1.5");
+        SetField(dialog, "_durationInput", new[] { "", "", "", "1.5" });
         var tournamentService = CreateRecordingTournamentService(out var calls);
         SetPrivateProperty(dialog, "TournamentService", tournamentService);
 
@@ -167,7 +129,7 @@ public sealed class LeaderboardUiConfigurationTests
     public async Task CorrectingToAFractionalDurationNeverReachesTheBackend()
     {
         var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
-        SetField(dialog, "_editValueInput", "1.5");
+        SetField(dialog, "_editDurationInput", new[] { "", "", "", "1.5" });
         var tournamentService = CreateRecordingTournamentService(out var calls);
         SetPrivateProperty(dialog, "TournamentService", tournamentService);
         var attempt = new LeaderboardAttemptDTO
