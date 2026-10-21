@@ -184,7 +184,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         // Two participants already exist, so the dialog defaults to the existing-participant mode:
         // switch to the guest mode before the guest fields render.
         await dialog.GetByRole(AriaRole.Button, new() { Name = "New guest" }).ClickAsync();
-        await Expect(dialog.GetByLabel("Elapsed time")).ToBeVisibleAsync();
+        await Expect(dialog.GetByRole(AriaRole.Group, new() { Name = "Elapsed time" })).ToBeVisibleAsync();
         await Expect(dialog.GetByLabel("Hours")).ToBeVisibleAsync();
         await Expect(dialog.GetByLabel("Minutes")).ToBeVisibleAsync();
         await Expect(dialog.GetByLabel("Seconds")).ToBeVisibleAsync();
@@ -193,6 +193,8 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         await dialog.GetByLabel("Minutes").FillAsync("0");
         await dialog.GetByLabel("Seconds").FillAsync("5");
         await dialog.GetByLabel("Milliseconds").FillAsync("0");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();
+        await Expect(dialog.Locator(".leaderboard-attempt-item")).ToContainTextAsync("0:05.000");
     }
 
     [Fact]

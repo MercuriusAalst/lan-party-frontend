@@ -29,6 +29,8 @@ public sealed class LeaderboardUiConfigurationTests
     [InlineData("", "", "", "1", 1L)]
     [InlineData("", "1", "23", "456", 83_456L)]
     [InlineData("0", "1", "23", "456", 83_456L)]
+    [InlineData("", "59", "59", "999", 3_599_999L)]
+    [InlineData("1", "", "", "", 3_600_000L)]
     [InlineData("1", "2", "3", "4", 3_723_004L)]
     [InlineData("2562047788015", "12", "55", "807", long.MaxValue)]
     public void DurationUnitsConvertToExactMilliseconds(string hours, string minutes, string seconds, string milliseconds, long expected)

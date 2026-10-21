@@ -308,26 +308,25 @@ While a leaderboard tournament is not in progress, the administrator result-entr
 - **AND** the unavailable explanation MUST NOT be shown
 
 ### Requirement: Fastest-time attempts use elapsed duration input
-Fastest-time leaderboard entry and correction MUST accept elapsed durations in `m:ss.fff` or `h:mm:ss.fff` form and MUST send the exact positive integer number of milliseconds in the existing `durationMilliseconds` API field. Input MUST use ASCII digits; the `m:ss.fff` minute field MUST contain one or more digits, seconds MUST contain exactly two digits, and the fraction MUST contain exactly three digits. In `h:mm:ss.fff`, the hour field MUST contain one or more digits and minutes MUST be 00-59. Values MUST be converted without rounding or loss of millisecond precision. Outer whitespace MAY be trimmed. The interface MUST describe the elapsed-time format and report format-specific validation, including for empty duration input. Editing MUST prefill the formatted elapsed duration, using `m:ss.fff` below one hour and `h:mm:ss.fff` at or above one hour. Score entry and validation MUST remain unchanged.
+Fastest-time leaderboard entry and correction MUST use separate labeled numeric fields for hours, minutes, seconds, and milliseconds. Each unit MAY be blank and MUST then count as zero; the total duration MUST be positive. Input MUST use whole non-negative ASCII integers, with minutes and seconds limited to 0-59 and milliseconds limited to 0-999. Values MUST be converted without rounding or loss of millisecond precision and MUST send the exact positive integer number of milliseconds in the existing `durationMilliseconds` API field. Editing MUST prefill all four units so saving an unchanged attempt preserves the exact duration. Display formatting MUST remain `m:ss.fff` below one hour and `h:mm:ss.fff` at or above one hour. Score entry and validation MUST remain unchanged.
 
 #### Scenario: Record a minute duration
-- **WHEN** an administrator records `1:23.456`
+- **WHEN** an administrator records 1 minute, 23 seconds, and 456 milliseconds
 - **THEN** the request MUST carry `durationMilliseconds: 83456`
 
 #### Scenario: Record a long duration
-- **WHEN** an administrator records `1:02:03.004`
+- **WHEN** an administrator records 1 hour, 2 minutes, 3 seconds, and 4 milliseconds
 - **THEN** the request MUST carry `durationMilliseconds: 3723004`
 
-#### Scenario: Reject invalid duration text
-- **WHEN** an administrator enters zero, raw milliseconds, a sign, malformed fields, non-ASCII digits, an out-of-range seconds/minute field, extra precision, or an overflowing duration
-- **THEN** the form MUST show duration-format validation
+#### Scenario: Reject invalid duration units
+- **WHEN** an administrator enters zero total, a negative, fractional, non-ASCII, out-of-range, or overflowing unit value
+- **THEN** the form MUST show duration validation
 - **AND** it MUST NOT submit a request
 
 #### Scenario: Correct an attempt without changing its duration
-- **WHEN** an administrator edits an existing duration and saves the prefilled value
-- **THEN** the interface MUST show an elapsed duration
-- **AND** the request MUST preserve the original integer milliseconds exactly
+- **WHEN** an administrator edits an existing duration and saves the prefilled units
+- **THEN** the request MUST preserve the original integer milliseconds exactly
 
-#### Scenario: Localize elapsed-time guidance
+#### Scenario: Localize elapsed-time labels and validation
 - **WHEN** the result dialog is shown in en-US or nl-BE
-- **THEN** the elapsed-time label, example, help, and validation MUST use that locale
+- **THEN** the elapsed-time and four unit labels, and validation MUST use that locale

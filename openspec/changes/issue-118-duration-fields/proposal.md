@@ -1,6 +1,6 @@
 # Change: Use unit fields for leaderboard elapsed time
 
-Fastest-time result entry and correction should use labeled hours, minutes, seconds, and milliseconds fields. The dialog will convert those values to the existing positive integer millisecond API value.
+Fastest-time result entry and correction should use labeled hours, minutes, seconds, and milliseconds fields. Any unit may be blank and counts as zero, but the total must be positive. The dialog will convert those values to the existing positive integer millisecond API value.
 
 ## Motivation
 

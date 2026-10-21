@@ -145,16 +145,17 @@
                                 <legend>@Localization["Feature.leaderboard.durationLabel"]</legend>
                                 @for(var i = 0; i < DurationUnitNames.Length; i++)
                                 {
+                                    var unitIndex = i;
                                     <div class="leaderboard-duration-unit">
-                                        <label for="leaderboard-duration-@i">@Localization[$"Feature.leaderboard.duration{DurationUnitNames[i]}"]</label>
-                                        <input id="leaderboard-duration-@i"
+                                        <label for="leaderboard-duration-@unitIndex">@Localization[$"Feature.leaderboard.duration{DurationUnitNames[unitIndex]}"]</label>
+                                        <input id="leaderboard-duration-@unitIndex"
                                                type="number"
                                                min="0"
-                                               max="@(i is 1 or 2 ? "59" : i == 3 ? "999" : null)"
+                                               max="@(unitIndex is 1 or 2 ? "59" : unitIndex == 3 ? "999" : null)"
                                                step="1"
                                                inputmode="numeric"
                                                class="form-control"
-                                               @bind="_durationInput[i]" />
+                                               @bind="_durationInput[unitIndex]" />
                                     </div>
                                 }
                             </fieldset>
@@ -201,16 +202,17 @@
                                                         <legend>@Localization["Feature.leaderboard.durationLabel"]</legend>
                                                         @for(var i = 0; i < DurationUnitNames.Length; i++)
                                                         {
+                                                            var unitIndex = i;
                                                             <div class="leaderboard-duration-unit">
-                                                                <label for="leaderboard-edit-duration-@i">@Localization[$"Feature.leaderboard.duration{DurationUnitNames[i]}"]</label>
-                                                                <input id="leaderboard-edit-duration-@i"
+                                                                <label for="leaderboard-edit-duration-@unitIndex">@Localization[$"Feature.leaderboard.duration{DurationUnitNames[unitIndex]}"]</label>
+                                                                <input id="leaderboard-edit-duration-@unitIndex"
                                                                        type="number"
                                                                        min="0"
-                                                                       max="@(i is 1 or 2 ? "59" : i == 3 ? "999" : null)"
+                                                                       max="@(unitIndex is 1 or 2 ? "59" : unitIndex == 3 ? "999" : null)"
                                                                        step="1"
                                                                        inputmode="numeric"
                                                                        class="form-control"
-                                                                       @bind="_editDurationInput[i]" />
+                                                                       @bind="_editDurationInput[unitIndex]" />
                                                             </div>
                                                         }
                                                     </fieldset>
