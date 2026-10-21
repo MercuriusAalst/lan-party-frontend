@@ -13,7 +13,7 @@ Each case used headed Chromium 148.0.7778.96 on Windows 11 build 26200, DPR 1, a
 | Case | Verified style change | Idle p95 | Wheel p95 | Intervals over 16.7ms (idle / wheel) |
 | --- | --- | ---: | ---: | ---: |
 | Baseline | — | 6.7 | 6.6 | 0 / 0 |
-| Freeze hero motion | `home-hero-shift` → `none` | 6.7 | 6.8 | 0 / 0 |
+| Freeze hero motion | `home-hero-shift` → `none` | 6.7 | 6.8 | 1 / 0 |
 | Remove hero-image blur | `blur(12px)` → `none` | 6.7 | 6.8 | 0 / 0 |
 | Remove glow blur and animation | `blur(22px)` → `none` | 6.7 | 6.8 | 0 / 0 |
 | Stop hero fade animation | `home-hero-fade-breathe` → `none` | 6.7 | 6.7 | 0 / 1 |
