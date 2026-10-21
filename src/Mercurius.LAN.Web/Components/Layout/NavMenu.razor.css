@@ -65,6 +65,21 @@
     transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
+.brand-auth-actions {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.brand-auth-actions .brand-utility-button,
+.brand-auth-actions .brand-dev-link {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.brand-auth-actions .brand-utility-button {
+    min-width: 7.5rem;
+}
+
 .brand-utility-button:hover {
     border-color: var(--color-primary-green);
     background: var(--color-surface-muted);
@@ -479,7 +494,7 @@
     color: var(--color-ink);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1399px) {
     .brand-nav-shell,
     .brand-nav-links,
     .brand-nav-actions {

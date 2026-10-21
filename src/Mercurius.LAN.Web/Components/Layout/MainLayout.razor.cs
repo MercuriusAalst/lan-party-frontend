@@ -163,6 +163,8 @@ public partial class MainLayout : IDisposable
         _sidebarOpen = false;
         await _menuToggle.FocusAsync();
     }
+
+    private Task HandleMenuEscape() => HandleHeaderKeyDown(new KeyboardEventArgs { Key = "Escape" });
  
     private void HandleOutsideClick()
     {

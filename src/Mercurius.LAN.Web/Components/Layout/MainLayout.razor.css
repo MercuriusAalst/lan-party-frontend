@@ -39,6 +39,12 @@
     display: block;
 }
 
+@media (min-width: 1400px) {
+    .brand-header-inner.brand-container {
+        width: min(calc(100% - 2rem), calc(var(--site-max-width) + 2rem));
+    }
+}
+
 .brand-nav-panel {
     display: flex;
     align-items: center;
@@ -121,6 +127,13 @@
     position: relative;
     width: fit-content;
     max-width: 100%;
+}
+
+.footer-preference-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
 .footer-language-select-shell::after {
@@ -313,7 +326,7 @@ html[data-theme="dark"] .footer-logo-image--theme-dark {
     }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1399px) {
     .menu-toggle {
         display: inline-flex;
     }
