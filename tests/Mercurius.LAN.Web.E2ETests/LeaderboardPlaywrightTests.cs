@@ -185,14 +185,14 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         // switch to the guest mode before the guest fields render.
         await dialog.GetByRole(AriaRole.Button, new() { Name = "New guest" }).ClickAsync();
         await Expect(dialog.GetByRole(AriaRole.Group, new() { Name = "Elapsed time" })).ToBeVisibleAsync();
-        await Expect(dialog.GetByLabel("Hours")).ToBeVisibleAsync();
-        await Expect(dialog.GetByLabel("Minutes")).ToBeVisibleAsync();
-        await Expect(dialog.GetByLabel("Seconds")).ToBeVisibleAsync();
-        await Expect(dialog.GetByLabel("Milliseconds")).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Hours", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Minutes", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Seconds", new() { Exact = true })).ToBeVisibleAsync();
+        await Expect(dialog.GetByLabel("Milliseconds", new() { Exact = true })).ToBeVisibleAsync();
         await dialog.Locator("#leaderboard-guest-name").FillAsync(TournamentE2E.Unique("Guest Time"));
-        await dialog.GetByLabel("Minutes").FillAsync("0");
-        await dialog.GetByLabel("Seconds").FillAsync("5");
-        await dialog.GetByLabel("Milliseconds").FillAsync("0");
+        await dialog.GetByLabel("Minutes", new() { Exact = true }).FillAsync("0");
+        await dialog.GetByLabel("Seconds", new() { Exact = true }).FillAsync("5");
+        await dialog.GetByLabel("Milliseconds", new() { Exact = true }).FillAsync("0");
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();
         await Expect(dialog.Locator(".leaderboard-attempt-item")).ToContainTextAsync("0:05.000");
     }
