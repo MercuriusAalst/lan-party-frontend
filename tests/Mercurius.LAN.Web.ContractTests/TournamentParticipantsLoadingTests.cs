@@ -65,25 +65,31 @@ public sealed class TournamentParticipantsLoadingTests
         var initialContent = tab.RenderMarkupText();
         Assert.Contains("Feature.tournaments.checkingYourOptions", initialContent);
         Assert.DoesNotContain("Feature.tournaments.signInRegistration", initialContent);
-        Assert.DoesNotContain("Feature.tournaments.noTeamAvailable", initialContent);
+        Assert.DoesNotContain("Feature.tournaments.noCaptainedTeamTitle", initialContent);
+        Assert.DoesNotContain("Feature.tournaments.createTeam", initialContent);
 
         SetPrivateField(tab, "_registrationLoadRequested", false);
         var signedOutContent = tab.RenderMarkupText();
         Assert.Contains("Feature.tournaments.signInRegistration", signedOutContent);
         Assert.DoesNotContain("Feature.tournaments.checkingYourOptions", signedOutContent);
+        Assert.DoesNotContain("Feature.tournaments.noCaptainedTeamTitle", signedOutContent);
+        Assert.DoesNotContain("Feature.tournaments.createTeam", signedOutContent);
 
         SetPrivateField(tab, "_isLoadingRegistration", true);
         SetPrivateField(tab, "_isAuthenticated", true);
         var loadingContent = tab.RenderMarkupText();
         Assert.Contains("Feature.tournaments.checkingYourOptions", loadingContent);
         Assert.DoesNotContain("Feature.tournaments.signInRegistration", loadingContent);
-        Assert.DoesNotContain("Feature.tournaments.noTeamAvailable", loadingContent);
+        Assert.DoesNotContain("Feature.tournaments.noCaptainedTeamTitle", loadingContent);
+        Assert.DoesNotContain("Feature.tournaments.createTeam", loadingContent);
         Assert.DoesNotContain("Feature.tournaments.selectTeam", loadingContent);
 
         SetPrivateField(tab, "_isLoadingRegistration", false);
         SetPrivateField(tab, "_teamSummary", new CurrentUserTeamSummaryDTO());
         var resolvedContent = tab.RenderMarkupText();
-        Assert.Contains("Feature.tournaments.noTeamAvailable", resolvedContent);
+        Assert.Contains("Feature.tournaments.noCaptainedTeamTitle", resolvedContent);
+        Assert.Contains("Feature.tournaments.createTeam", resolvedContent);
+        Assert.DoesNotContain("Feature.tournaments.noTeamAvailable", resolvedContent);
         Assert.DoesNotContain("Feature.tournaments.checkingYourOptions", resolvedContent);
         Assert.DoesNotContain("Feature.tournaments.signInRegistration", resolvedContent);
 
@@ -91,6 +97,12 @@ public sealed class TournamentParticipantsLoadingTests
         var failedContent = tab.RenderMarkupText();
         Assert.Contains("Registration context failed.", failedContent);
         Assert.DoesNotContain("Feature.tournaments.checkingYourOptions", failedContent);
+
+        SetPrivateField(tab, "_teamSummaryUnavailable", true);
+        var teamLoadFailedContent = tab.RenderMarkupText();
+        Assert.Contains("Feature.tournaments.teamsUnavailable", teamLoadFailedContent);
+        Assert.DoesNotContain("Feature.tournaments.noCaptainedTeamTitle", teamLoadFailedContent);
+        Assert.DoesNotContain("Feature.tournaments.createTeam", teamLoadFailedContent);
     }
 
     [Fact]
