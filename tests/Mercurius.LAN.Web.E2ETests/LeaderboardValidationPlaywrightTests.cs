@@ -50,7 +50,7 @@ public class LeaderboardValidationPlaywrightTests : TournamentE2ETestBase
         var dialog = page.Locator("div.leaderboard-dialog");
         var value = dialog.Locator("#leaderboard-attempt-value");
         await Expect(value).ToHaveAttributeAsync("type", "text");
-        await Expect(dialog.GetByText("Example: 1:23.456")).ToBeVisibleAsync();
+        await Expect(value).ToHaveAttributeAsync("placeholder", "Example: 1:23.456");
         await dialog.Locator("#leaderboard-guest-name").FillAsync(TournamentE2E.Unique("Guest Duration"));
         await value.FillAsync("83456");
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();

@@ -121,7 +121,7 @@ While a leaderboard tournament is in progress, an authenticated administrator MU
 
 #### Scenario: Invalid metric value is rejected before submission
 
-- **WHEN** an administrator enters a negative or over-precise score, or a non-positive or non-integral duration
+- **WHEN** an administrator enters a negative or over-precise score, or a duration that cannot be represented as positive integral milliseconds on the API
 - **THEN** the form MUST show inline validation feedback for that ranking metric
 - **AND** the invalid value MUST NOT be submitted as a recorded attempt
 
@@ -308,7 +308,7 @@ While a leaderboard tournament is not in progress, the administrator result-entr
 - **AND** the unavailable explanation MUST NOT be shown
 
 ### Requirement: Fastest-time attempts use elapsed duration input
-Fastest-time leaderboard entry and correction MUST accept elapsed durations in `m:ss.fff` or `h:mm:ss.fff` form and MUST send the exact positive integer number of milliseconds in the existing `durationMilliseconds` API field. Input MUST use ASCII digits, exactly two second digits and three fractional digits; hour-form minutes MUST be 00-59. Outer whitespace MAY be trimmed. The interface MUST describe the elapsed-time format and report format-specific validation, including for empty duration input. Editing MUST prefill the formatted elapsed duration. Score entry and validation MUST remain unchanged.
+Fastest-time leaderboard entry and correction MUST accept elapsed durations in `m:ss.fff` or `h:mm:ss.fff` form and MUST send the exact positive integer number of milliseconds in the existing `durationMilliseconds` API field. Input MUST use ASCII digits; the `m:ss.fff` minute field MUST contain one or more digits, seconds MUST contain exactly two digits, and the fraction MUST contain exactly three digits. In `h:mm:ss.fff`, the hour field MUST contain one or more digits and minutes MUST be 00-59. Values MUST be converted without rounding or loss of millisecond precision. Outer whitespace MAY be trimmed. The interface MUST describe the elapsed-time format and report format-specific validation, including for empty duration input. Editing MUST prefill the formatted elapsed duration, using `m:ss.fff` below one hour and `h:mm:ss.fff` at or above one hour. Score entry and validation MUST remain unchanged.
 
 #### Scenario: Record a minute duration
 - **WHEN** an administrator records `1:23.456`

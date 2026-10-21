@@ -26,21 +26,21 @@ namespace Mercurius.LAN.Web.ContractTests;
 public sealed class LeaderboardUiConfigurationTests
 {
     [Theory]
-    [InlineData("", 0L)]
-    [InlineData("0:00.000", 0L)]
-    [InlineData("1500", 0L)]
-    [InlineData("+1:00.000", 0L)]
-    [InlineData("-1:00.000", 0L)]
-    [InlineData("1:60.000", 0L)]
-    [InlineData("1:2.000", 0L)]
-    [InlineData("1:02.00", 0L)]
-    [InlineData("1:02.0000", 0L)]
-    [InlineData("1:60:03.004", 0L)]
-    [InlineData("1:2:03.004", 0L)]
-    [InlineData("١:02.003", 0L)]
-    [InlineData("153722867280912:55.808", 0L)]
-    [InlineData("abc", 0L)]
-    public void DurationInputRejectsInvalidElapsedDurations(string input, long _)
+    [InlineData("")]
+    [InlineData("0:00.000")]
+    [InlineData("1500")]
+    [InlineData("+1:00.000")]
+    [InlineData("-1:00.000")]
+    [InlineData("1:60.000")]
+    [InlineData("1:2.000")]
+    [InlineData("1:02.00")]
+    [InlineData("1:02.0000")]
+    [InlineData("1:60:03.004")]
+    [InlineData("1:2:03.004")]
+    [InlineData("١:02.003")]
+    [InlineData("153722867280912:55.808")]
+    [InlineData("abc")]
+    public void DurationInputRejectsInvalidElapsedDurations(string input)
     {
         var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
 
@@ -54,13 +54,18 @@ public sealed class LeaderboardUiConfigurationTests
 
     [Theory]
     [InlineData("1:23.456", 83_456L)]
+    [InlineData("01:23.456", 83_456L)]
+    [InlineData("0:00.001", 1L)]
     [InlineData("0:58.032", 58_032L)]
     [InlineData("12:05.789", 725_789L)]
+    [InlineData("59:59.999", 3_599_999L)]
+    [InlineData("1:00:00.000", 3_600_000L)]
     [InlineData("1:02:03.004", 3_723_004L)]
     [InlineData("60:00.000", 3_600_000L)]
     [InlineData("  1:23.456  ", 83_456L)]
     [InlineData("2562047788:00.000", 153_722_867_280_000L)]
     [InlineData("153722867280912:55.807", long.MaxValue)]
+    [InlineData("2562047788015:12:55.807", long.MaxValue)]
     public void DurationInputConvertsElapsedTimeToExactMilliseconds(string input, long expectedMilliseconds)
     {
         var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
@@ -71,6 +76,29 @@ public sealed class LeaderboardUiConfigurationTests
         Assert.Null(score);
         Assert.Equal(expectedMilliseconds, durationMilliseconds);
         Assert.Null(error);
+    }
+
+    [Fact]
+    public void MaximumFormattedDurationParsesBackToTheExactLongValue()
+    {
+        var dialog = CreateDialog(LeaderboardRankingMetric.FastestTime);
+        var formatted = Mercurius.LAN.Web.Extensions.LeaderboardFormattingExtensions.FormatLeaderboardDuration(long.MaxValue);
+
+        Assert.True(dialog.TryBuildValue(formatted, out _, out var parsed, out _));
+        Assert.Equal(long.MaxValue, parsed);
+    }
+
+    [Theory]
+    [InlineData("translations.en-US.json", "Elapsed time (m:ss.fff or h:mm:ss.fff)", "Example: 1:23.456")]
+    [InlineData("translations.nl-BE.json", "Verstreken tijd (m:ss.fff of h:mm:ss.fff)", "Bijvoorbeeld: 1:23.456")]
+    public void DurationGuidanceIsLocalized(string localeFile, string expectedLabel, string expectedExample)
+    {
+        var path = FindRepositoryFile(Path.Combine("src", "Mercurius.LAN.Web", "wwwroot", "locales", localeFile));
+        var translations = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path))!;
+
+        Assert.Equal(expectedLabel, translations["Feature.leaderboard.durationLabel"]);
+        Assert.Equal(expectedExample, translations["Feature.leaderboard.durationExample"]);
+        Assert.Contains("m:ss.fff", translations["Feature.leaderboard.validationDuration"]);
     }
 
     [Fact]
@@ -404,6 +432,18 @@ public sealed class LeaderboardUiConfigurationTests
         replacementResults.SetResult([]);
         await replacementSearch;
         dialog.Dispose();
+    }
+
+    private static string FindRepositoryFile(string relativePath)
+    {
+        for(var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var path = Path.Combine(directory.FullName, relativePath);
+            if(File.Exists(path))
+                return path;
+        }
+
+        throw new InvalidOperationException($"Could not locate repository file '{relativePath}'.");
     }
 
     private static RecordLeaderboardAttemptDialog CreateDialog(LeaderboardRankingMetric rankingMetric)
