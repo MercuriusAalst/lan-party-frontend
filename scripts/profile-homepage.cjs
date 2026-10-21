@@ -15,6 +15,7 @@ const reducedMotion = process.env.HOMEPAGE_REDUCED_MOTION === '1';
 const browserPath = process.env.CHROME_EXECUTABLE_PATH || chromium.executablePath();
 let results;
 let activeCase;
+let browser;
 const cases = [
   { name: 'baseline' },
   { name: 'frozen-hero', selector: '.home-hero-media-image', css: '.home-hero-media-image{animation:none!important}', property: 'animationName', before: value => value !== 'none', after: value => value === 'none' },
@@ -31,7 +32,7 @@ async function sample(page, scroll = false) {
     const deltas = [];
     const longTasks = [];
     const observer = new PerformanceObserver(list => longTasks.push(...list.getEntries().map(e => e.duration)));
-    try { observer.observe({ type: 'longtask', buffered: true }); } catch {}
+    try { observer.observe({ type: 'longtask' }); } catch {}
     let previous;
     const start = performance.now();
     function frame(now) {
@@ -72,8 +73,9 @@ async function sample(page, scroll = false) {
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
-  const browser = await chromium.launch({ headless, executablePath: browserPath, args: ['--enable-gpu'] });
+  browser = await chromium.launch({ headless, executablePath: browserPath, args: ['--enable-gpu'] });
   results = { url: baseUrl, browser: await browser.version(), browserPath, headless, cpuThrottle, reducedMotion, platform: `${os.platform()} ${os.release()}`, cpu: os.cpus()[0]?.model, logicalCpus: os.cpus().length, widths: {} };
+  try {
   for (const width of widths) {
     results.widths[width] = {};
     for (const testCase of (diagnosticWidths.includes(width) ? cases : cases.slice(0, 1))) {
@@ -98,7 +100,6 @@ async function main() {
           return { dpr: devicePixelRatio, renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : 'unavailable', vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : 'unavailable', hardwareConcurrency: navigator.hardwareConcurrency };
         });
       }
-      if (css) await page.addStyleTag({ content: css });
       const tracePath = path.join(output, `${width}-baseline.json`);
       if (name === 'baseline') await cdp.send('Tracing.start', { categories: 'devtools.timeline,blink.user_timing', transferMode: 'ReturnAsStream' });
       const pageState = await page.evaluate(() => ({ heroImagesLoaded: [...document.querySelectorAll('.home-hero-media-image')].filter(image => image.complete && image.naturalWidth > 0).length, sponsorCount: document.querySelectorAll('.sponsor-scroller__track--marquee .sponsor-scroller__logo').length, marqueeDisplay: getComputedStyle(document.querySelector('.sponsor-scroller__track--marquee')).display }));
@@ -137,7 +138,9 @@ async function main() {
       activeCase = null;
     }
   }
-  await browser.close();
+  } finally {
+    await browser.close();
+  }
   fs.writeFileSync(path.join(output, 'summary.json'), JSON.stringify(results, null, 2));
   console.log(JSON.stringify(results, null, 2));
 }
@@ -147,6 +150,7 @@ main().catch(error => {
     results.diagnosticFailure = { ...activeCase, error: error.message };
     fs.writeFileSync(path.join(output, 'summary.json'), JSON.stringify(results, null, 2));
   }
+  if (browser?.isConnected()) browser.close().catch(() => {});
   console.error(error);
   process.exitCode = 1;
 });
