@@ -1,5 +1,6 @@
-using System.Text.RegularExpressions;
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 using Xunit;
@@ -348,6 +349,7 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
     public async Task DeleteAccountAnonymizesTheProfileAndEndsTheSession()
     {
         var member = await app.CreatePersonaAsync("profile-delete");
+        using var staleMemberApi = app.CreateApiClient(member);
 
         await using var context = await app.NewAuthenticatedContextAsync(member);
         var page = await context.NewPageAsync();
@@ -361,6 +363,25 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
             .ToBeVisibleAsync();
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
         Assert.DoesNotContain("accountDeletion", page.Url, StringComparison.OrdinalIgnoreCase);
+
+        using(var staleProfile = await staleMemberApi.GetAsync("v1/lan/users/me"))
+            Assert.Equal(HttpStatusCode.Gone, staleProfile.StatusCode);
+
+        using var staleUpdateRequest = new HttpRequestMessage(HttpMethod.Put, "v1/lan/users/me")
+        {
+            Content = JsonContent.Create(new
+            {
+                username = member.Username,
+                firstname = "Stale",
+                lastname = "Replay"
+            })
+        };
+        using(var staleUpdate = await staleMemberApi.SendAsync(staleUpdateRequest))
+        {
+            Assert.True(
+                staleUpdate.StatusCode is HttpStatusCode.Gone or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden,
+                $"Expected the deleted account replay to be rejected, but received {(int)staleUpdate.StatusCode}.");
+        }
 
         await using (var db = app.CreateDbContext())
         {
