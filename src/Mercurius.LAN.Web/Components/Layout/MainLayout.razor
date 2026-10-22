@@ -8,7 +8,7 @@
 <MudSnackbarProvider />
 
 <div class="layout-shell flex min-h-[100dvh] flex-col" data-theme-state="@(_isDarkMode ? "dark" : "light")">
-    <header class="brand-header sticky top-0 z-[1100]" @onkeydown="HandleHeaderKeyDown">
+    <header class="brand-header sticky top-0 z-[1100]">
         <div class="brand-header-inner brand-container flex items-center justify-between gap-4">
             <a class="brand-logo-link inline-flex shrink-0 items-center" href="/" aria-label='@Localization["brand.homeAria"]'>
                 <img src="/img/lan_logo_wide_dark.svg" alt="Mercurius LAN" class="brand-logo-image brand-logo-image--theme-light" />
@@ -16,7 +16,7 @@
             </a>
 
             <div class="brand-nav-actions">
-                <button @ref="_menuToggle" class="menu-toggle @(_sidebarOpen ? "open" : null)" @onclick="ToggleSidebar" aria-label='@Localization["nav.toggle"]' aria-expanded="@(_sidebarOpen ? "true" : "false")" aria-controls="primary-navigation">
+                <button @ref="_menuToggle" class="menu-toggle @(_sidebarOpen ? "open" : null)" @onclick="ToggleSidebar" @onkeydown="HandleHeaderKeyDown" aria-label='@Localization["nav.toggle"]' aria-expanded="@(_sidebarOpen ? "true" : "false")" aria-controls="primary-navigation">
                     <span class="menu-toggle-inner">
                         <span class="bar"></span>
                         <span class="bar"></span>
@@ -25,17 +25,9 @@
                 </button>
 
                 <div id="primary-navigation" class="brand-nav-panel flex flex-1 items-center justify-end @(_sidebarOpen ? "open" : null)">
-                    <NavMenu OnNavigationSelected="OnNavigationSelected" />
+                    <NavMenu OnNavigationSelected="OnNavigationSelected" OnEscape="HandleMenuEscape" />
                 </div>
 
-                <button type="button"
-                        class="theme-toggle"
-                        @onclick="ToggleThemeAsync"
-                        aria-pressed="@(_isDarkMode ? "true" : "false")"
-                        aria-label="@ThemeToggleLabel"
-                        title="@ThemeToggleLabel">
-                    <span class="bi @(_isDarkMode ? "bi-sun" : "bi-moon-stars")" aria-hidden="true"></span>
-                </button>
             </div>
         </div>
     </header>
@@ -80,14 +72,24 @@
 
             <section class="footer-column footer-language-control" aria-label='@Localization["language.label"]'>
                 <label class="visually-hidden" for="footer-language-select">@Localization["language.select"]</label>
-                <div class="footer-language-select-shell">
-                    <span class="bi bi-translate footer-language-icon" aria-hidden="true"></span>
-                    <select id="footer-language-select"
-                            value="@Localization.CurrentLanguage"
-                            @onchange="async args => await ChangeLanguageAsync(args.Value?.ToString() ?? ILocalizationService.DefaultLanguage)">
-                        <option value="en-US">@Localization["language.english"]</option>
-                        <option value="nl-BE">@Localization["language.dutch"]</option>
-                    </select>
+                <div class="footer-preference-controls">
+                    <div class="footer-language-select-shell">
+                        <span class="bi bi-translate footer-language-icon" aria-hidden="true"></span>
+                        <select id="footer-language-select"
+                                value="@Localization.CurrentLanguage"
+                                @onchange="async args => await ChangeLanguageAsync(args.Value?.ToString() ?? ILocalizationService.DefaultLanguage)">
+                            <option value="en-US">@Localization["language.english"]</option>
+                            <option value="nl-BE">@Localization["language.dutch"]</option>
+                        </select>
+                    </div>
+                    <button type="button"
+                            class="theme-toggle"
+                            @onclick="ToggleThemeAsync"
+                            aria-pressed="@(_isDarkMode ? "true" : "false")"
+                            aria-label="@ThemeToggleLabel"
+                            title="@ThemeToggleLabel">
+                        <span class="bi @(_isDarkMode ? "bi-sun" : "bi-moon-stars")" aria-hidden="true"></span>
+                    </button>
                 </div>
             </section>
         </div>

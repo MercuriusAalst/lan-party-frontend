@@ -4,7 +4,7 @@
     <button type="button" class="nav-overlay" @onclick="HandleOutsideClick" aria-label='@Localization["nav.closeMenus"]'></button>
 }
 
-<div class="brand-nav-shell flex w-full flex-col gap-4 md:flex-row md:items-center md:justify-between" @onclick="HandleNavShellClick">
+<div class="brand-nav-shell flex w-full flex-col gap-4 md:flex-row md:items-center md:justify-between" @onclick="HandleNavShellClick" @onkeydown="HandleNavMenuKeyDown">
     <nav class="brand-nav-links flex flex-col items-stretch gap-3 md:flex-1 md:flex-row md:items-center md:justify-center md:gap-5" aria-label='@Localization["nav.discover"]'>
         <NavLink href="/" Match="NavLinkMatch.All" class="brand-nav-link text-center md:text-left" ActiveClass="brand-nav-link--active" @onclick="HandleNavigationClicked">
             @Localization["nav.home"]
@@ -15,8 +15,9 @@
         <NavLink href="/sponsors" Match="NavLinkMatch.All" class="brand-nav-link text-center md:text-left" ActiveClass="brand-nav-link--active" @onclick="HandleNavigationClicked">
             @Localization["nav.sponsors"]
         </NavLink>
-        <div class="nav-menu-group info-nav-group" @onclick:stopPropagation="true">
+        <div id="info-nav-menu-container" class="nav-menu-group info-nav-group" @onclick:stopPropagation="true">
             <button type="button"
+                    @ref="_infoMenuTrigger"
                     class="@GetInfoButtonClass()"
                     @onclick="ToggleInfoMenu"
                     aria-expanded="@GetAriaExpanded(_isInfoMenuVisible)"

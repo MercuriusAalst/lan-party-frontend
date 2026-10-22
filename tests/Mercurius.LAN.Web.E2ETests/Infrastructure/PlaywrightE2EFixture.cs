@@ -240,7 +240,8 @@ public sealed class PlaywrightE2EFixture : IAsyncLifetime
             BaseURL = BaseUrl,
             IgnoreHTTPSErrors = true,
             Locale = "en-US",
-            TimezoneId = "Europe/Brussels"
+            TimezoneId = "Europe/Brussels",
+            ViewportSize = new ViewportSize { Width = 1440, Height = 900 }
         });
         var tracePath = Path.Combine(_traceDirectory, $"{Interlocked.Increment(ref _traceNumber):D3}.zip");
         await context.Tracing.StartAsync(new TracingStartOptions { Screenshots = true, Snapshots = true, Sources = true });

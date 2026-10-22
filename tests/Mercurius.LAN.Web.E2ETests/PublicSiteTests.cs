@@ -94,6 +94,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
 
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}");
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true }));
 
@@ -443,17 +444,193 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await page.GotoAsync($"{app.BaseUrl}");
         var shell = page.Locator(".layout-shell");
+        var footerThemeToggle = page.Locator(".footer-language-control .theme-toggle");
+        await Expect(page.Locator(".theme-toggle")).ToHaveCountAsync(1);
+        await Expect(footerThemeToggle).ToBeVisibleAsync();
         await Expect(shell).ToHaveAttributeAsync("data-theme-state", "light");
 
-        await page.ClickWhenInteractiveAsync(page.Locator(".theme-toggle"));
+        await page.ClickWhenInteractiveAsync(footerThemeToggle);
 
         await Expect(shell).ToHaveAttributeAsync("data-theme-state", "dark");
         // The pressed state is an ARIA boolean and must be exposed literally as "true".
-        await Expect(page.Locator(".theme-toggle")).ToHaveAttributeAsync("aria-pressed", "true");
+        await Expect(footerThemeToggle).ToHaveAttributeAsync("aria-pressed", "true");
 
         await page.ReloadAsync();
         await Expect(shell).ToHaveAttributeAsync("data-theme-state", "dark");
-        await Expect(page.Locator(".theme-toggle")).ToHaveAttributeAsync("aria-pressed", "true");
+        await Expect(page.Locator(".footer-language-control .theme-toggle")).ToHaveAttributeAsync("aria-pressed", "true");
+    }
+
+    [Fact]
+    public async Task HeaderNavigationCollapsesBeforeAnonymousActionsOverlap()
+    {
+        await using var context = await app.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
+        await page.GotoAsync($"{app.BaseUrl}");
+
+        foreach (var width in new[] { 1024, 1054, 1100, 1200, 1279, 1280, 1399, 1400, 1440 })
+        {
+            await page.SetViewportSizeAsync(width, 900);
+            var shouldCollapse = width <= 1399;
+            var toggle = page.GetByRole(AriaRole.Button, new() { Name = "Toggle navigation" });
+            if (shouldCollapse)
+            {
+                await Expect(toggle).ToBeVisibleAsync();
+                await page.ClickWhenInteractiveAsync(toggle);
+                await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+                await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Register" })).ToBeVisibleAsync();
+                Assert.True(await page.EvaluateAsync<bool>("""
+                    () => [...document.querySelectorAll('.brand-auth-actions .brand-utility-button')].every(button => {
+                        const style = getComputedStyle(button);
+                        return button.getBoundingClientRect().width >= 120 &&
+                            button.scrollWidth <= button.clientWidth && style.whiteSpace === 'nowrap';
+                    })
+                    """), $"Anonymous auth actions were clipped at {width}px.");
+            }
+            else
+            {
+                await Expect(toggle).ToBeHiddenAsync();
+                await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+                await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Register" })).ToBeVisibleAsync();
+            }
+
+            Assert.True(await page.EvaluateAsync<bool>("""
+                () => {
+                const header = document.querySelector('.brand-header-inner');
+                const logo = document.querySelector('.brand-logo-link').getBoundingClientRect();
+                const actions = document.querySelector('.brand-nav-actions').getBoundingClientRect();
+                const panel = document.querySelector('.brand-nav-panel');
+                const collapsed = getComputedStyle(document.querySelector('.menu-toggle')).display !== 'none';
+                const panelBounds = panel.getBoundingClientRect();
+                const logoOverlapsPanel = logo.left < panelBounds.right && logo.right > panelBounds.left &&
+                    logo.top < panelBounds.bottom && logo.bottom > panelBounds.top;
+                const sections = [...document.querySelectorAll('.brand-nav-shell > *')]
+                    .filter(element => getComputedStyle(element).display !== 'none')
+                    .map(element => element.getBoundingClientRect());
+                const sectionsOverlap = sections.some((a, i) => sections.slice(i + 1).some(b =>
+                    a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top));
+                return document.documentElement.scrollWidth <= window.innerWidth &&
+                    header.scrollWidth <= header.clientWidth + 1 && logo.right <= actions.left + 1 &&
+                    (collapsed || (!logoOverlapsPanel && !sectionsOverlap));
+                }
+                """), $"Header overflowed or overlapped at {width}px.");
+
+            if (shouldCollapse)
+                await page.ClickWhenInteractiveAsync(toggle);
+        }
+    }
+
+    [Fact]
+    public async Task AuthenticatedHeaderFitsAcrossLocalesAndInfoCanOpenAdminMenu()
+    {
+        var admin = await app.CreatePersonaAsync("header-responsive-admin", isAdmin: true);
+        await using var context = await app.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
+        await app.LoginAsync(page, admin);
+        await page.GotoAsync($"{app.BaseUrl}");
+
+        foreach (var language in new[] { "en-US", "nl-BE" })
+        {
+            await page.SelectOptionAsync("#footer-language-select", language);
+            await Expect(page.Locator("#footer-language-select")).ToHaveValueAsync(language);
+
+            foreach (var width in new[] { 1024, 1054, 1100, 1200, 1279, 1280, 1399, 1400, 1440 })
+            {
+                await page.SetViewportSizeAsync(width, 900);
+                var shouldCollapse = width <= 1399;
+                var navToggle = page.GetByRole(AriaRole.Button, new() { Name = language == "en-US" ? "Toggle navigation" : "Navigatie openen of sluiten" });
+                var navPanel = page.Locator("#primary-navigation");
+                if (shouldCollapse)
+                {
+                    await Expect(navToggle).ToBeVisibleAsync();
+                    if (await navToggle.GetAttributeAsync("aria-expanded") != "true")
+                        await page.ClickWhenInteractiveAsync(navToggle);
+                    await Expect(navPanel).ToHaveClassAsync(new Regex(@"\bopen\b"));
+                }
+                else
+                {
+                    await Expect(navToggle).ToBeHiddenAsync();
+                }
+
+                var infoTrigger = page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true });
+                var adminTrigger = page.Locator("#admin-nav-menu-trigger");
+                await page.ClickWhenInteractiveAsync(infoTrigger);
+                await Expect(page.Locator(".info-dropdown")).ToBeVisibleAsync();
+                await page.ClickWhenInteractiveAsync(adminTrigger);
+                await Expect(page.Locator(".info-dropdown")).ToHaveCountAsync(0);
+                await Expect(page.Locator("#admin-nav-menu")).ToBeVisibleAsync();
+                await page.Keyboard.PressAsync("Escape");
+                await Expect(page.Locator("#admin-nav-menu")).ToHaveCountAsync(0);
+                if (shouldCollapse)
+                {
+                    await Expect(navPanel).Not.ToHaveClassAsync(new Regex(@"\bopen\b"));
+                    await Expect(navToggle).ToHaveAttributeAsync("aria-expanded", "false");
+                }
+
+                var headerFits = await page.EvaluateAsync<bool>("""
+                    () => {
+                    const header = document.querySelector('.brand-header-inner');
+                    const logo = document.querySelector('.brand-logo-link').getBoundingClientRect();
+                    const actions = document.querySelector('.brand-nav-actions').getBoundingClientRect();
+                    const panel = document.querySelector('.brand-nav-panel');
+                    const collapsed = getComputedStyle(document.querySelector('.menu-toggle')).display !== 'none';
+                    const panelBounds = panel.getBoundingClientRect();
+                    const logoOverlapsPanel = logo.left < panelBounds.right && logo.right > panelBounds.left &&
+                        logo.top < panelBounds.bottom && logo.bottom > panelBounds.top;
+                    const sections = [...document.querySelectorAll('.brand-nav-shell > *')]
+                        .filter(element => getComputedStyle(element).display !== 'none')
+                        .map(element => element.getBoundingClientRect());
+                    const sectionsOverlap = sections.some((a, i) => sections.slice(i + 1).some(b =>
+                        a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top));
+                    return document.documentElement.scrollWidth <= window.innerWidth &&
+                        header.scrollWidth <= header.clientWidth + 1 && logo.right <= actions.left + 1 &&
+                        (collapsed || (!logoOverlapsPanel && !sectionsOverlap));
+                    }
+                    """);
+                Assert.True(headerFits, $"Authenticated header overflowed or overlapped at {width}px ({language}).");
+
+            }
+        }
+    }
+
+    [Fact]
+    public async Task InfoMenuRemainsOpenUntilHeldOutsideClickActivatesCollapsedNavigationTarget()
+    {
+        var admin = await app.CreatePersonaAsync("header-held-click-admin", isAdmin: true);
+        await using var context = await app.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await app.LoginAsync(page, admin);
+        await page.SetViewportSizeAsync(1054, 900);
+        await page.GotoAsync(app.BaseUrl);
+
+        var navToggle = page.GetByRole(AriaRole.Button, new() { Name = "Toggle navigation" });
+        var panel = page.Locator("#primary-navigation");
+        await page.ClickWhenInteractiveAsync(navToggle);
+        await Expect(panel).ToHaveClassAsync(new Regex(@"\bopen\b"));
+
+        var infoTrigger = page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true });
+        var infoDropdown = page.Locator(".info-dropdown");
+        var adminTrigger = page.Locator("#admin-nav-menu-trigger");
+        await page.ClickWhenInteractiveAsync(infoTrigger);
+        await Expect(infoDropdown).ToBeVisibleAsync();
+
+        var adminBounds = await adminTrigger.BoundingBoxAsync();
+        Assert.NotNull(adminBounds);
+        var clickX = adminBounds!.X + adminBounds.Width / 2;
+        var clickY = adminBounds.Y + adminBounds.Height / 2;
+        await page.Mouse.MoveAsync(clickX, clickY);
+        await page.Mouse.DownAsync();
+        await page.WaitForTimeoutAsync(250);
+
+        await Expect(infoDropdown).ToBeVisibleAsync();
+        var heldAdminBounds = await adminTrigger.BoundingBoxAsync();
+        Assert.NotNull(heldAdminBounds);
+        Assert.InRange(Math.Abs(adminBounds.Y - heldAdminBounds!.Y), 0, 2);
+
+        await page.Mouse.UpAsync();
+        await Expect(page.Locator("#admin-nav-menu")).ToBeVisibleAsync();
+        await Expect(infoDropdown).ToHaveCountAsync(0);
     }
 
     [Fact]
@@ -482,6 +659,16 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await page.Keyboard.PressAsync("Escape");
         await Expect(panel).Not.ToHaveClassAsync(new Regex(@"\bopen\b"));
         await Expect(toggle).ToBeFocusedAsync();
+
+        await page.ClickWhenInteractiveAsync(toggle);
+        await Expect(panel).ToHaveClassAsync(new Regex(@"\bopen\b"));
+        var infoTrigger = page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true });
+        await page.ClickWhenInteractiveAsync(infoTrigger);
+        await page.Keyboard.PressAsync("Escape");
+        await Expect(page.Locator(".info-dropdown")).ToHaveCountAsync(0);
+        await Expect(panel).ToHaveClassAsync(new Regex(@"\bopen\b"));
+        await Expect(infoTrigger).ToBeVisibleAsync();
+        await Expect(infoTrigger).ToBeFocusedAsync();
     }
 
     [Fact]
@@ -490,6 +677,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
 
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}");
         await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
 
@@ -504,6 +692,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
 
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}");
         await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
         await Expect(page.Locator("#global-nav-search-results")).ToBeVisibleAsync();
@@ -521,6 +710,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
 
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}");
         await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
         await Expect(page.Locator("#global-nav-search-results")).ToBeVisibleAsync();
@@ -534,17 +724,48 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
-    public async Task InfoMenuClosesWhenTheInteractionOverlayIsClicked()
+    public async Task InfoMenuOutsidePointerClosesItAndActivatesTheTarget()
     {
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
 
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}");
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true }));
         await Expect(page.Locator(".info-dropdown")).ToBeVisibleAsync();
 
-        await page.ClickWhenInteractiveAsync(page.Locator(".nav-overlay"));
+        var header = await page.Locator(".brand-header").BoundingBoxAsync();
+        Assert.NotNull(header);
+        await page.Mouse.ClickAsync(header!.X + header.Width - 2, header.Y + 4);
+        await Expect(page.Locator(".info-dropdown")).ToHaveCountAsync(0);
 
+        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true }));
+        await Expect(page.Locator(".info-dropdown")).ToBeVisibleAsync();
+
+        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Link, new() { Name = "Get Your Tickets" }));
+
+        await Expect(page).ToHaveURLAsync(new Regex("/info#tickets$"));
+        await Expect(page.Locator(".info-dropdown")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task InfoMenuEscapeRestoresFocusAndAnotherNavigationActionWorksFirstTry()
+    {
+        await using var context = await app.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
+        await page.GotoAsync($"{app.BaseUrl}");
+
+        var infoTrigger = page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true });
+        await page.ClickWhenInteractiveAsync(infoTrigger);
+        await page.Keyboard.PressAsync("Escape");
+        await Expect(page.Locator(".info-dropdown")).ToHaveCountAsync(0);
+        await Expect(infoTrigger).ToHaveAttributeAsync("aria-expanded", "false");
+        await Expect(infoTrigger).ToBeFocusedAsync();
+
+        await page.ClickWhenInteractiveAsync(infoTrigger);
+        await page.ClickWhenInteractiveAsync(page.Locator(".brand-nav-links").GetByRole(AriaRole.Link, new() { Name = "Tournaments" }));
+        await Expect(page).ToHaveURLAsync(new Regex("/tournaments$"));
         await Expect(page.Locator(".info-dropdown")).ToHaveCountAsync(0);
     }
 
@@ -633,6 +854,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
 
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}");
 
         await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
@@ -762,6 +984,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}");
         await page.SearchWhenInteractiveAsync(token);
 
@@ -803,6 +1026,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}");
         await page.SearchWhenInteractiveAsync(teamName);
 
@@ -927,6 +1151,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await using (var fault = await DatabaseReadFault.InstallAsync(app, "search_documents"))
         {
+            await page.SetViewportSizeAsync(1440, 900);
             await page.GotoAsync($"{app.BaseUrl}");
             await page.SearchWhenInteractiveAsync("zzzzzznotpresent");
 

@@ -301,15 +301,31 @@ public class PublicUserProfileTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await page.WaitForInteractiveAsync();
 
         var searchInput = page.Locator("#global-nav-search");
+        var menuToggle = page.Locator(".menu-toggle");
+        var navLinks = page.Locator(".brand-nav-links");
+
+        if (viewportWidth < 1400)
+        {
+            await Expect(menuToggle).ToBeVisibleAsync();
+            await Expect(menuToggle).ToHaveAttributeAsync("aria-expanded", "false");
+            await menuToggle.ClickWhenInteractiveAsync();
+            await Expect(menuToggle).ToHaveAttributeAsync("aria-expanded", "true");
+            await Expect(page.Locator(".brand-nav-panel.open")).ToBeVisibleAsync();
+            await Expect(navLinks).ToHaveCSSAsync("flex-direction", "column");
+        }
+        else
+        {
+            await Expect(menuToggle).ToBeHiddenAsync();
+            await Expect(navLinks).ToHaveCSSAsync("flex-direction", "row");
+        }
+
         await Expect(searchInput).ToBeVisibleAsync();
 
-        // Desktop navigation is expanded above the 1024px collapse breakpoint: the admin controls,
-        // the account widget, and the organizer menu must all be present and readable.
+        // Admin controls remain available in the expanded navigation and the theme control lives
+        // beside the language selector in the footer at every breakpoint.
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Admin" })).ToBeVisibleAsync();
         await Expect(page.Locator(".nav-user-widget-controls")).ToBeVisibleAsync();
-        await Expect(page.Locator(".theme-toggle")).ToBeVisibleAsync();
-        await Expect(page.Locator(".menu-toggle")).ToBeHiddenAsync();
-        await Expect(page.Locator(".brand-nav-links")).ToHaveCSSAsync("flex-direction", "row");
+        await Expect(page.Locator(".footer-preference-controls .theme-toggle")).ToBeVisibleAsync();
 
         // Real geometry: nothing in the header may exceed the header's own content box, and no
         // header child may be pushed past the right edge of the viewport.

@@ -23,6 +23,7 @@ public partial class NavMenu : IAsyncDisposable
     private const string AdminMenuContainerElementId = "admin-nav-menu-container";
     private const string AdminMenuTriggerElementId = "admin-nav-menu-trigger";
     private const string AdminMenuElementId = "admin-nav-menu";
+    private const string InfoMenuContainerElementId = "info-nav-menu-container";
 
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
@@ -68,8 +69,10 @@ public partial class NavMenu : IAsyncDisposable
     private IJSObjectReference? _searchOutsideClickListener;
     private IJSObjectReference? _accountMenuOutsideClickListener;
     private IJSObjectReference? _adminMenuOutsideClickListener;
+    private IJSObjectReference? _infoMenuOutsideClickListener;
     private DotNetObjectReference<NavMenu>? _searchOutsideClickReference;
     private ElementReference _adminMenuTrigger;
+    private ElementReference _infoMenuTrigger;
     private string? _loadedIdentityKey;
     private string? _currentProfileUsername;
     private string? _currentProfilePictureUrl;
@@ -87,6 +90,9 @@ public partial class NavMenu : IAsyncDisposable
     [Parameter]
     public EventCallback OnNavigationSelected { get; set; }
 
+    [Parameter]
+    public EventCallback OnEscape { get; set; }
+
     private string LoginHref => $"/account/login?returnUrl={Uri.EscapeDataString(GetCurrentRelativeUrl())}";
     private string RegisterHref => $"/account/register?returnUrl={Uri.EscapeDataString(GetCurrentRelativeUrl())}";
 #if INCLUDE_MOCK_BACKEND
@@ -94,7 +100,7 @@ public partial class NavMenu : IAsyncDisposable
     private string MockUserLoginHref => $"/account/login?persona=user&returnUrl={Uri.EscapeDataString("/tournaments")}";
     private bool IsMockBackendEnabled => MockBackendOptions.Value.Enabled;
 #endif
-    private bool ShouldShowInteractionOverlay => _isUserMenuVisible || _isDropdownVisible || _isInfoMenuVisible || _isNotificationMenuVisible;
+    private bool ShouldShowInteractionOverlay => _isUserMenuVisible || _isDropdownVisible || _isNotificationMenuVisible;
     private bool HasSearchResults => _searchResults.Count > 0;
     private int NotificationCount => NotificationService.UnreadCount;
 
@@ -349,6 +355,19 @@ public partial class NavMenu : IAsyncDisposable
         {
             await DisposeAdminMenuOutsideClickListenerAsync();
         }
+
+        if(_isInfoMenuVisible && _infoMenuOutsideClickListener == null)
+        {
+            _searchOutsideClickReference ??= DotNetObjectReference.Create(this);
+            _infoMenuOutsideClickListener = await JSRuntime.InvokeAsync<IJSObjectReference>(
+                "addNavInfoMenuListener",
+                InfoMenuContainerElementId,
+                _searchOutsideClickReference);
+        }
+        else if(!_isInfoMenuVisible && _infoMenuOutsideClickListener != null)
+        {
+            await DisposeInfoMenuOutsideClickListenerAsync();
+        }
     }
 
     private async Task BeginLogin()
@@ -410,6 +429,20 @@ public partial class NavMenu : IAsyncDisposable
         var shouldOpen = !_isInfoMenuVisible;
         CloseAllTemporarySurfaces();
         _isInfoMenuVisible = shouldOpen;
+    }
+
+    private async Task HandleNavMenuKeyDown(KeyboardEventArgs args)
+    {
+        if(args.Key != "Escape")
+            return;
+
+        if(_isInfoMenuVisible)
+        {
+            await CloseInfoDropdown(restoreFocus: true);
+            return;
+        }
+
+        await OnEscape.InvokeAsync();
     }
 
     private void CloseAllTemporarySurfaces(bool clearSearchResults = false, bool clearSearchQuery = false)
@@ -603,6 +636,22 @@ public partial class NavMenu : IAsyncDisposable
         });
     }
 
+    [JSInvokable]
+    public async Task CloseInfoDropdown(bool restoreFocus = false)
+    {
+        if(!_isInfoMenuVisible)
+            return;
+
+        await InvokeAsync(async () =>
+        {
+            _isInfoMenuVisible = false;
+            StateHasChanged();
+
+            if(restoreFocus)
+                await _infoMenuTrigger.FocusAsync();
+        });
+    }
+
     private void CloseSearchDropdown(bool clearResults, bool clearQuery)
     {
         CancelPendingSearch();
@@ -792,6 +841,24 @@ public partial class NavMenu : IAsyncDisposable
         }
     }
 
+    private async ValueTask DisposeInfoMenuOutsideClickListenerAsync()
+    {
+        var listener = _infoMenuOutsideClickListener;
+        _infoMenuOutsideClickListener = null;
+
+        if(listener == null)
+            return;
+
+        try
+        {
+            await listener.InvokeVoidAsync("dispose");
+            await listener.DisposeAsync();
+        }
+        catch(JSDisconnectedException)
+        {
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
@@ -805,6 +872,7 @@ public partial class NavMenu : IAsyncDisposable
         await DisposeSearchOutsideClickListenerAsync();
         await DisposeAccountMenuOutsideClickListenerAsync();
         await DisposeAdminMenuOutsideClickListenerAsync();
+        await DisposeInfoMenuOutsideClickListenerAsync();
         _searchOutsideClickReference?.Dispose();
         _lifetimeCancellationTokenSource.Dispose();
     }
