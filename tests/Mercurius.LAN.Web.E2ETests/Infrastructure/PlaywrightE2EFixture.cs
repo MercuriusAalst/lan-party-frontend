@@ -295,9 +295,12 @@ public sealed class PlaywrightE2EFixture : IAsyncLifetime
         // Reaching the app origin alone is not enough: the OIDC callback itself is served from
         // this origin before it redirects to the requested page. Wait for the authenticated UI
         // as well so callers cannot interrupt the callback while its cookie is being issued.
+        var accountMenuName = persona.UserId is null
+            ? "Account account menu"
+            : $"{persona.Username} account menu";
         await Assertions.Expect(page.GetByRole(AriaRole.Button, new()
         {
-            Name = $"{persona.Username} account menu",
+            Name = accountMenuName,
             Exact = true
         })).ToBeVisibleAsync();
     }
