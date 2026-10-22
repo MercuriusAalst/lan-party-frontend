@@ -32,6 +32,10 @@ async function main() {
     const page = await context.newPage();
     await page.addInitScript(() => {
       window.__heroImageTiming = { firstInsertedAtMs: null, insertions: [], loads: [] };
+      new PerformanceObserver(entries => {
+        const largest = entries.getEntries().at(-1);
+        if (largest) window.__heroImageTiming.largestContentfulPaint = { startTimeMs: +largest.startTime.toFixed(1), element: largest.element?.tagName || null };
+      }).observe({ type: 'largest-contentful-paint', buffered: true });
       const remember = image => {
         if (!(image instanceof HTMLImageElement) || !image.matches('.home-hero-media-image')) return;
         const url = image.currentSrc || image.src;
@@ -123,7 +127,7 @@ async function main() {
       await page.waitForTimeout(900);
       const homeState = isHome ? await page.evaluate(() => ({
         url: location.href,
-        performanceTiming: (() => { const navigation = performance.getEntriesByType('navigation')[0]; return navigation ? { responseStartMs: +navigation.responseStart.toFixed(1), domInteractiveMs: +navigation.domInteractive.toFixed(1), domContentLoadedMs: +navigation.domContentLoadedEventEnd.toFixed(1), loadEventEndMs: +navigation.loadEventEnd.toFixed(1) } : null; })(),
+        performanceTiming: (() => { const navigation = performance.getEntriesByType('navigation')[0]; const paints = Object.fromEntries(performance.getEntriesByType('paint').map(entry => [entry.name, +entry.startTime.toFixed(1)])); return navigation ? { responseStartMs: +navigation.responseStart.toFixed(1), domInteractiveMs: +navigation.domInteractive.toFixed(1), domContentLoadedMs: +navigation.domContentLoadedEventEnd.toFixed(1), loadEventEndMs: +navigation.loadEventEnd.toFixed(1), paints } : null; })(),
         heroImageTiming: window.__heroImageTiming,
         images: [...document.querySelectorAll('.home-hero-media-image')].map(image => ({ url: image.currentSrc || image.src, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight, complete: image.complete }))
       })) : null;
