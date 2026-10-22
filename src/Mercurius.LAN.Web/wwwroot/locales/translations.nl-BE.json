@@ -114,6 +114,7 @@
   "auth.loginCancelled": "Inloggen geannuleerd.",
   "auth.registrationFailed": "Registratie mislukt. Probeer opnieuw.",
   "auth.loginFailed": "Inloggen mislukt. Probeer opnieuw.",
+  "auth.accountDeletionPending": "Je LAN-profiel is verwijderd. Het opruimen van je login staat in de wachtrij. Je bent uitgelogd.",
   "search.users": "Gebruikers",
   "search.teams": "Teams",
   "search.tournaments": "Tournaments",

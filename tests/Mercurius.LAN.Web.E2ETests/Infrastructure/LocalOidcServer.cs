@@ -36,9 +36,12 @@ internal sealed class LocalOidcServer : IAsyncDisposable
     private readonly RSA _signingKey;
     private readonly string _keyId = Guid.NewGuid().ToString("N");
     private readonly ConcurrentDictionary<string, E2EPersona> _personas = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _createdAtBySubject = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, AuthorizationRequest> _requests = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, AuthorizationCode> _codes = new(StringComparer.Ordinal);
     private readonly ConcurrentQueue<string> _recentRequests = new();
+    private readonly object _providerGenerationSync = new();
+    private long _lastProviderCreatedAtTicks;
 
     private LocalOidcServer(WebApplication app, RSA signingKey, Uri issuer)
     {
@@ -97,6 +100,7 @@ internal sealed class LocalOidcServer : IAsyncDisposable
         app.MapPost("/oauth/token", (HttpRequest request) => server!.IssueTokensAsync(request));
         app.MapGet("/userinfo", (HttpRequest request) => server!.GetUserInfo(request));
         app.MapGet("/api/v2/users/{**subject}", (string? subject) => server!.GetManagementProfile(subject));
+        app.MapDelete("/api/v2/users/{**subject}", (string? subject) => server!.DeleteManagementProfile(subject));
         app.MapGet("/api/v2/roles", () => Results.Json(new[] { new { id = AdminRoleId, name = "admin" } }));
         app.MapGet("/api/v2/roles/{roleId}/users", (string roleId) => server!.GetRoleUsers(roleId));
         app.MapPost("/api/v2/jobs/verification-email", () => Results.Json(new { id = $"job_{Guid.NewGuid():N}" }, statusCode: StatusCodes.Status201Created));
@@ -113,7 +117,11 @@ internal sealed class LocalOidcServer : IAsyncDisposable
         return server;
     }
 
-    public void Register(E2EPersona persona) => _personas[persona.Subject] = persona;
+    public void Register(E2EPersona persona)
+    {
+        _personas[persona.Subject] = persona;
+        _createdAtBySubject[persona.Subject] = NextProviderCreatedAt();
+    }
 
     public string CreateAccessToken(E2EPersona persona) => WriteToken(persona, Audience, nonce: null, TimeSpan.FromMinutes(15));
 
@@ -278,6 +286,9 @@ internal sealed class LocalOidcServer : IAsyncDisposable
         if (!_personas.TryGetValue(unescapedSubject, out var persona))
             return Results.NotFound();
 
+        var createdAt = _createdAtBySubject.TryGetValue(unescapedSubject, out var value)
+            ? value
+            : throw new InvalidOperationException("A registered provider persona must have a creation time.");
         var identities = persona.HasPasswordResetIdentity
             ? new[] { new { connection = DatabaseConnection, provider = "auth0", user_id = persona.Username } }
             : Array.Empty<object>();
@@ -286,8 +297,34 @@ internal sealed class LocalOidcServer : IAsyncDisposable
             user_id = persona.Subject,
             email = persona.Email,
             email_verified = persona.EmailVerified,
+            created_at = createdAt,
             identities
         });
+    }
+
+    private IResult DeleteManagementProfile(string? subject)
+    {
+        var unescapedSubject = Uri.UnescapeDataString(subject ?? string.Empty);
+        if(!_personas.TryRemove(unescapedSubject, out _))
+            return Results.NotFound();
+
+        _createdAtBySubject.TryRemove(unescapedSubject, out _);
+        foreach(var code in _codes.Where(entry =>
+                    string.Equals(entry.Value.Persona.Subject, unescapedSubject, StringComparison.Ordinal)))
+        {
+            _codes.TryRemove(code.Key, out _);
+        }
+
+        return Results.NoContent();
+    }
+
+    private DateTimeOffset NextProviderCreatedAt()
+    {
+        lock(_providerGenerationSync)
+        {
+            _lastProviderCreatedAtTicks = Math.Max(DateTime.UtcNow.Ticks, _lastProviderCreatedAtTicks + 1);
+            return new DateTimeOffset(_lastProviderCreatedAtTicks, TimeSpan.Zero);
+        }
     }
 
     private IResult EndSession(HttpRequest request)

@@ -2,27 +2,42 @@
 @inject IToastService ToastService
 
 @code {
-    private string? _lastHandledStatus;
+    private string? _lastHandledDeletionStatus;
+    private string? _lastHandledLoginStatus;
 
     protected override void OnAfterRender(bool firstRender)
     {
         var loginStatus = GetLoginStatus();
-        if(string.IsNullOrWhiteSpace(loginStatus) || string.Equals(loginStatus, _lastHandledStatus, StringComparison.OrdinalIgnoreCase))
+        var accountDeletionStatus = GetAccountDeletionStatus();
+        var handledLogin = !string.IsNullOrWhiteSpace(loginStatus) &&
+                           !string.Equals(loginStatus, _lastHandledLoginStatus, StringComparison.OrdinalIgnoreCase);
+        var handledDeletion = string.Equals(accountDeletionStatus, "pending", StringComparison.OrdinalIgnoreCase) &&
+                              !string.Equals(accountDeletionStatus, _lastHandledDeletionStatus, StringComparison.OrdinalIgnoreCase);
+        if(!handledLogin && !handledDeletion)
             return;
 
-        _lastHandledStatus = loginStatus;
-        var isRegistration = IsRegistrationFlow();
-
-        if(string.Equals(loginStatus, "cancelled", StringComparison.OrdinalIgnoreCase))
+        if(handledLogin)
         {
-            ToastService.ShowInfo(isRegistration ? Localization["auth.registrationCancelled"] : Localization["auth.loginCancelled"]);
-        }
-        else if(string.Equals(loginStatus, "failed", StringComparison.OrdinalIgnoreCase))
-        {
-            ToastService.ShowError(isRegistration ? Localization["auth.registrationFailed"] : Localization["auth.loginFailed"]);
+            _lastHandledLoginStatus = loginStatus;
+            var isRegistration = IsRegistrationFlow();
+
+            if(string.Equals(loginStatus, "cancelled", StringComparison.OrdinalIgnoreCase))
+            {
+                ToastService.ShowInfo(isRegistration ? Localization["auth.registrationCancelled"] : Localization["auth.loginCancelled"]);
+            }
+            else if(string.Equals(loginStatus, "failed", StringComparison.OrdinalIgnoreCase))
+            {
+                ToastService.ShowError(isRegistration ? Localization["auth.registrationFailed"] : Localization["auth.loginFailed"]);
+            }
         }
 
-        var cleanUri = RemoveLoginQueryParameter();
+        if(handledDeletion)
+        {
+            _lastHandledDeletionStatus = accountDeletionStatus;
+            ToastService.ShowInfo(Localization["auth.accountDeletionPending"]);
+        }
+
+        var cleanUri = RemoveHandledStatusQueryParameters();
         NavigationManager.NavigateTo(cleanUri, replace: true);
     }
 
@@ -36,12 +51,23 @@
             : null;
     }
 
-    private string RemoveLoginQueryParameter()
+    private string? GetAccountDeletionStatus()
+    {
+        var currentUri = new Uri(NavigationManager.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(currentUri.Query);
+
+        return query.TryGetValue("accountDeletion", out var deletionValues)
+            ? deletionValues.ToString()
+            : null;
+    }
+
+    private string RemoveHandledStatusQueryParameters()
     {
         var currentUri = new Uri(NavigationManager.Uri);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(currentUri.Query)
             .Where(entry => !string.Equals(entry.Key, "login", StringComparison.OrdinalIgnoreCase) &&
-                            !string.Equals(entry.Key, "registration", StringComparison.OrdinalIgnoreCase))
+                            !string.Equals(entry.Key, "registration", StringComparison.OrdinalIgnoreCase) &&
+                            !string.Equals(entry.Key, "accountDeletion", StringComparison.OrdinalIgnoreCase))
             .ToDictionary(entry => entry.Key, entry => (string?)entry.Value.ToString());
 
         return Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(currentUri.GetLeftPart(UriPartial.Path), query) + currentUri.Fragment;

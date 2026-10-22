@@ -12,6 +12,9 @@ namespace Mercurius.LAN.Web.E2ETests;
 
 public sealed class PlaywrightE2EFixture : IAsyncLifetime
 {
+    // Deterministic AES-256 key for isolated test data only.
+    private const string AccountCleanupEncryptionKey = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
+
     private readonly List<ContextArtifacts> _contexts = [];
     private readonly ConcurrentBag<HttpClient> _createdApiClients = new();
     private string _frontendRoot = string.Empty;
@@ -73,6 +76,7 @@ public sealed class PlaywrightE2EFixture : IAsyncLifetime
                 ["Mercurius.LAN.API_Auth0__ManagementAudience"] = new Uri(_oidc.Issuer, "api/v2/").ToString(),
                 ["Mercurius.LAN.API_Auth0__ManagementClientId"] = LocalOidcServer.ManagementClientId,
                 ["Mercurius.LAN.API_Auth0__ManagementClientSecret"] = LocalOidcServer.ManagementClientSecret,
+                ["Mercurius.LAN.API_Auth0__AccountCleanupEncryptionKey"] = AccountCleanupEncryptionKey,
                 ["Mercurius.LAN.API_Auth0__DatabaseConnection"] = LocalOidcServer.DatabaseConnection,
                 ["Mercurius.LAN.API_Auth0__PasswordResetClientId"] = LocalOidcServer.ClientId,
                 ["Mercurius.LAN.API_Logging__EventLog__LogLevel__Default"] = "None",

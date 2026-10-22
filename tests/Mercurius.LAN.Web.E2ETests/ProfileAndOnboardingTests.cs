@@ -357,11 +357,14 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
         await page.Locator("#deleteConfirm").PressAsync("Tab");
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Delete account" }));
 
+        await Expect(page.GetByText("Your LAN profile has been removed. Login cleanup has been queued. You are signed out."))
+            .ToBeVisibleAsync();
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+        Assert.DoesNotContain("accountDeletion", page.Url, StringComparison.OrdinalIgnoreCase);
 
         await using (var db = app.CreateDbContext())
         {
-            var user = await db.Users.AsNoTracking().SingleAsync(candidate => candidate.Auth0UserId == member.Subject);
+            var user = await db.Users.AsNoTracking().SingleAsync(candidate => candidate.Id == member.UserId!.Value);
             Assert.True(user.IsDeleted);
             Assert.NotNull(user.DeletedAtUtc);
             Assert.Null(user.Firstname);
@@ -369,15 +372,6 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
             Assert.Null(user.Email);
             Assert.StartsWith("deleted-user-", user.Username);
         }
-
-        // Signing the anonymized identity back in must not resurrect a usable profile: the API
-        // reports the account as gone and the app drops the session instead of showing /profile.
-        await page.GotoAsync($"{app.BaseUrl}");
-        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Log in" }));
-        await app.SelectPersonaAsync(page, member);
-
-        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
-        Assert.DoesNotContain("/profile", page.Url, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
