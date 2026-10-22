@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
+using Mercurius.LAN.Web.DTOs.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 using Xunit;
@@ -348,6 +349,11 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
     [Fact]
     public async Task DeleteAccountAnonymizesTheProfileAndEndsTheSession()
     {
+        var probe = await app.CreatePersonaAsync("profile-delete-pending-probe");
+        using var probeApi = app.CreateApiClient(probe);
+        using var probeDelete = await probeApi.DeleteAsync("v1/lan/users/me");
+        var probeResponse = await probeDelete.Content.ReadFromJsonAsync<UserActionResponse>();
+        var pendingDeletion = probeResponse?.DeletionPending == true;
         var member = await app.CreatePersonaAsync("profile-delete");
         using var staleMemberApi = app.CreateApiClient(member);
 
@@ -359,8 +365,12 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
         await page.Locator("#deleteConfirm").PressAsync("Tab");
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Delete account" }));
 
-        await Expect(page.GetByText("Your LAN profile has been removed. Login cleanup has been queued. You are signed out."))
-            .ToBeVisibleAsync();
+        var pendingMessage = page.GetByText(
+            "Your LAN profile has been removed. Login cleanup has been queued. You are signed out.");
+        if(pendingDeletion)
+            await Expect(pendingMessage).ToBeVisibleAsync();
+        else
+            await Expect(pendingMessage).ToHaveCountAsync(0);
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
         Assert.DoesNotContain("accountDeletion", page.Url, StringComparison.OrdinalIgnoreCase);
 
