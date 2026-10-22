@@ -129,9 +129,9 @@
                     }
 
                     <div class="leaderboard-field">
-                        <label for="leaderboard-attempt-value">@GetValueLabel()</label>
                         @if(RankingMetric == LeaderboardRankingMetric.HighestScore)
                         {
+                            <label for="leaderboard-attempt-value">@GetValueLabel()</label>
                             <input id="leaderboard-attempt-value"
                                    type="text"
                                    inputmode="decimal"
@@ -141,14 +141,16 @@
                         }
                         else
                         {
-                            <input id="leaderboard-attempt-value"
-                                   type="number"
-                                   min="1"
-                                   step="1"
-                                   inputmode="numeric"
+                            <label for="leaderboard-duration">@Localization["Feature.leaderboard.durationLabel"]</label>
+                            <input id="leaderboard-duration"
+                                   type="time"
+                                   step="0.001"
+                                   min="00:00:00.001"
+                                   max="23:59:59.999"
+                                   required
                                    class="form-control"
-                                   @bind="_valueInput" />
-                            <small class="form-help">@GetDurationPreview()</small>
+                                   value="@_durationInput"
+                                   @onchange="e => _durationInput = e.Value?.ToString() ?? string.Empty" />
                         }
                     </div>
 
@@ -186,10 +188,29 @@
                                         @if(_editingAttemptId == attempt.Id)
                                         {
                                             <div class="leaderboard-attempt-edit">
-                                                <input type="text"
-                                                       class="form-control"
-                                                       aria-label='@Localization["Feature.leaderboard.editAttemptValue"]'
-                                                       @bind="_editValueInput" />
+                                                @if(RankingMetric == LeaderboardRankingMetric.FastestTime)
+                                                {
+                                                    <div class="leaderboard-field leaderboard-edit-duration">
+                                                        <label for="leaderboard-edit-duration">@Localization["Feature.leaderboard.durationLabel"]</label>
+                                                        <input id="leaderboard-edit-duration"
+                                                               type="time"
+                                                               step="0.001"
+                                                               min="00:00:00.001"
+                                                               max="23:59:59.999"
+                                                               required
+                                                               class="form-control"
+                                                               value="@_editDurationInput"
+                                                               @onchange="e => _editDurationInput = e.Value?.ToString() ?? string.Empty" />
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <input type="text"
+                                                           class="form-control"
+                                                           inputmode="decimal"
+                                                           aria-label='@Localization["Feature.leaderboard.editAttemptValue"]'
+                                                           @bind="_editValueInput" />
+                                                }
                                                 <button type="button" class="button-primary" disabled="@_isSavingAttempt" @onclick="() => SaveAttemptEditAsync(attempt)">
                                                     @Localization["Feature.leaderboard.saveAttemptEdit"]
                                                 </button>

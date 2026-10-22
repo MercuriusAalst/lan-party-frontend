@@ -176,7 +176,7 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         await Expect(rows.First).ToContainTextAsync("0:30.000");
         await Expect(rows.Nth(1)).ToContainTextAsync(slower);
 
-        // The dialog for a time-based leaderboard asks for whole milliseconds and previews the value.
+        // The dialog for a time-based leaderboard collects the elapsed time in one native time input.
         await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.RecordResult }).ClickAsync();
         var dialog = page.Locator("div.leaderboard-dialog");
         await Expect(dialog).ToBeVisibleAsync();
@@ -184,14 +184,26 @@ public class LeaderboardPlaywrightTests : TournamentE2ETestBase
         // Two participants already exist, so the dialog defaults to the existing-participant mode:
         // switch to the guest mode before the guest fields render.
         await dialog.GetByRole(AriaRole.Button, new() { Name = "New guest" }).ClickAsync();
-        await Expect(dialog.GetByLabel("Time (milliseconds)")).ToBeVisibleAsync();
+        var duration = dialog.GetByLabel("Elapsed time", new() { Exact = true });
+        await Expect(duration).ToHaveCountAsync(1);
+        await Expect(duration).ToHaveAttributeAsync("type", "time");
+        await Expect(duration).ToHaveAttributeAsync("step", "0.001");
+        await Expect(dialog.GetByLabel("Hours", new() { Exact = true })).ToHaveCountAsync(0);
+        await Expect(dialog.GetByLabel("Milliseconds", new() { Exact = true })).ToHaveCountAsync(0);
         await dialog.Locator("#leaderboard-guest-name").FillAsync(TournamentE2E.Unique("Guest Time"));
-        await dialog.Locator("#leaderboard-attempt-value").FillAsync("5000");
-        // The duration preview is rendered from _valueInput, which the input binds on `onchange`.
-        // Playwright's Fill only fires `input`, so commit the value the way a user does before
-        // asserting on anything the component derives from it.
-        await dialog.Locator("#leaderboard-attempt-value").PressAsync("Tab");
-        await Expect(dialog.GetByText("Recorded as 0:05.000")).ToBeVisibleAsync();
+        await dialog.Locator("#leaderboard-duration").FillAsync("00:00:05.123");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Save result" }).ClickAsync();
+        var attempt = dialog.Locator(".leaderboard-attempt-item");
+        await Expect(attempt).ToContainTextAsync("0:05.123");
+
+        // Correcting the attempt uses the same native time input, prefilled from the stored value.
+        await attempt.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.Edit }).ClickAsync();
+        var editDuration = dialog.Locator("#leaderboard-edit-duration");
+        await Expect(editDuration).ToHaveAttributeAsync("type", "time");
+        await Expect(editDuration).ToHaveValueAsync("00:00:05.123");
+        await editDuration.FillAsync("00:01:07.250");
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Save change" }).ClickAsync();
+        await Expect(attempt).ToContainTextAsync("1:07.250");
     }
 
     [Fact]

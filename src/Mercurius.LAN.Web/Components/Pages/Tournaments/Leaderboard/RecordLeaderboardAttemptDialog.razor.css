@@ -106,6 +106,12 @@
     font-weight: 600;
 }
 
+.leaderboard-field input[type="time"] {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
 .leaderboard-entry-hint {
     margin: 0;
     color: var(--color-muted-text);
@@ -197,6 +203,10 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
+}
+
+.leaderboard-attempt-edit .leaderboard-edit-duration {
+    flex: 1 1 100%;
 }
 
 .leaderboard-dialog-error {
