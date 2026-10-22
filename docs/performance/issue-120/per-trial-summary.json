@@ -3,7 +3,9 @@
     "event": "Chrome GPU-process Graphics.Pipeline / STEP_DRAW_AND_SWAP",
     "units": "milliseconds per event/swap",
     "interpretation": "GPU-process pipeline-stage duration; not hardware GPU-busy time",
-    "sampleMode": "same-page interleaved baseline/treatment, CSS document-timeline phase reset, warm decoded assets"
+    "sampleMode": "same-page interleaved baseline/treatment, CSS document-timeline phase reset, warm decoded assets",
+    "pipelineStartIntervalSource": "PipelineReporter ph=b begin-event timestamps for unique frames whose frame_reporter.state is STATE_PRESENTED_ALL or STATE_PRESENTED_PARTIAL",
+    "pipelineStartIntervalInterpretation": "Spacing between pipeline-start events for frames later tagged presented; not display-presentation intervals, missed-frame counts, or physical frame pacing"
   },
   "runs": [
     {
@@ -30,8 +32,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.474,
           "drawAndSwapEventCount": 296,
-          "presentedFrameP95Ms": 5.06,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.06,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -40,8 +42,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.413,
           "drawAndSwapEventCount": 296,
-          "presentedFrameP95Ms": 5.08,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.08,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -50,8 +52,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.416,
           "drawAndSwapEventCount": 294,
-          "presentedFrameP95Ms": 5.05,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.05,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -60,8 +62,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.47,
           "drawAndSwapEventCount": 293,
-          "presentedFrameP95Ms": 5.06,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.06,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -70,8 +72,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.481,
           "drawAndSwapEventCount": 294,
-          "presentedFrameP95Ms": 5.05,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.05,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -80,8 +82,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.409,
           "drawAndSwapEventCount": 298,
-          "presentedFrameP95Ms": 5.06,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.06,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         }
@@ -111,8 +113,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.584,
           "drawAndSwapEventCount": 287,
-          "presentedFrameP95Ms": 5.05,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.05,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -121,8 +123,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.465,
           "drawAndSwapEventCount": 291,
-          "presentedFrameP95Ms": 5.07,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.07,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -131,8 +133,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.474,
           "drawAndSwapEventCount": 290,
-          "presentedFrameP95Ms": 5.11,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.11,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -141,8 +143,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.585,
           "drawAndSwapEventCount": 290,
-          "presentedFrameP95Ms": 5.12,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.12,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -151,8 +153,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.537,
           "drawAndSwapEventCount": 290,
-          "presentedFrameP95Ms": 5.06,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.06,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -161,8 +163,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.476,
           "drawAndSwapEventCount": 288,
-          "presentedFrameP95Ms": 5.11,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.11,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -171,8 +173,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.483,
           "drawAndSwapEventCount": 290,
-          "presentedFrameP95Ms": 5.11,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.11,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -181,8 +183,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.534,
           "drawAndSwapEventCount": 285,
-          "presentedFrameP95Ms": 5.09,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.09,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         }
@@ -212,8 +214,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.557,
           "drawAndSwapEventCount": 290,
-          "presentedFrameP95Ms": 5.1,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.1,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -222,8 +224,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.51,
           "drawAndSwapEventCount": 288,
-          "presentedFrameP95Ms": 5.13,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.13,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -232,8 +234,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.468,
           "drawAndSwapEventCount": 288,
-          "presentedFrameP95Ms": 5.01,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.01,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -242,8 +244,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.542,
           "drawAndSwapEventCount": 286,
-          "presentedFrameP95Ms": 5.02,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.02,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -252,8 +254,8 @@
           "case": "baseline",
           "drawAndSwapMeanMs": 0.563,
           "drawAndSwapEventCount": 291,
-          "presentedFrameP95Ms": 5.09,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.09,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         },
@@ -262,8 +264,8 @@
           "case": "single-image-blur-surface",
           "drawAndSwapMeanMs": 0.714,
           "drawAndSwapEventCount": 289,
-          "presentedFrameP95Ms": 5.1,
-          "presentedIntervalsOver16_7Ms": 0,
+          "pipelineStartIntervalP95MsForPresentedStateFrames": 5.1,
+          "pipelineStartIntervalsOver16_7MsForPresentedStateFrames": 0,
           "decodedImages": 36,
           "decodedSponsorImages": 25
         }

@@ -190,15 +190,16 @@ async function traceScroll(page, pageName, label) {
   }
   const pipelineStateCounts = {};
   const pipelineScrollCounts = {};
-  const presentedTimestamps = [];
+  // PipelineReporter ph=b is the pipeline begin timestamp, not display presentation time.
+  const pipelineStartTimestampsForPresentedStateFrames = [];
   for (const frame of pipelineFrames.values()) {
     pipelineStateCounts[frame.state] = (pipelineStateCounts[frame.state] || 0) + 1;
     pipelineScrollCounts[frame.scroll_state] = (pipelineScrollCounts[frame.scroll_state] || 0) + 1;
-    if (frame.state === 'STATE_PRESENTED_ALL' || frame.state === 'STATE_PRESENTED_PARTIAL') presentedTimestamps.push(frame.ts);
+    if (frame.state === 'STATE_PRESENTED_ALL' || frame.state === 'STATE_PRESENTED_PARTIAL') pipelineStartTimestampsForPresentedStateFrames.push(frame.ts);
   }
-  presentedTimestamps.sort((a, b) => a - b);
-  const presentedIntervalsMs = presentedTimestamps.slice(1).map((value, index) => (value - presentedTimestamps[index]) / 1000).sort((a, b) => a - b);
-  const percentile = p => presentedIntervalsMs[Math.min(presentedIntervalsMs.length - 1, Math.floor(presentedIntervalsMs.length * p))] || 0;
+  pipelineStartTimestampsForPresentedStateFrames.sort((a, b) => a - b);
+  const pipelineStartIntervalsForPresentedStateFramesMs = pipelineStartTimestampsForPresentedStateFrames.slice(1).map((value, index) => (value - pipelineStartTimestampsForPresentedStateFrames[index]) / 1000).sort((a, b) => a - b);
+  const pipelineStartPercentile = p => pipelineStartIntervalsForPresentedStateFramesMs[Math.min(pipelineStartIntervalsForPresentedStateFramesMs.length - 1, Math.floor(pipelineStartIntervalsForPresentedStateFramesMs.length * p))] || 0;
   const summary = {
     rendererPids,
     rendererName: 'Renderer',
@@ -212,11 +213,11 @@ async function traceScroll(page, pageName, label) {
     pipelineFrames: pipelineFrames.size,
     pipelineStateCounts,
     pipelineScrollCounts,
-    presentedFrameIntervalMs: {
-      count: presentedIntervalsMs.length,
-      p50: +percentile(.5).toFixed(2),
-      p95: +percentile(.95).toFixed(2),
-      over16_7ms: presentedIntervalsMs.filter(interval => interval > 16.7).length
+    pipelineStartIntervalsForPresentedStateFramesMs: {
+      count: pipelineStartIntervalsForPresentedStateFramesMs.length,
+      p50: +pipelineStartPercentile(.5).toFixed(2),
+      p95: +pipelineStartPercentile(.95).toFixed(2),
+      over16_7ms: pipelineStartIntervalsForPresentedStateFramesMs.filter(interval => interval > 16.7).length
     },
     rendererMainThreadEventCount: rendererEvents.filter(item => threadNames.get(`${item.pid}:${item.tid}`) === 'CrRendererMain').length,
     rendererCompositorThreadEventCount: rendererEvents.filter(item => threadNames.get(`${item.pid}:${item.tid}`) === 'Compositor').length,
