@@ -14,4 +14,3 @@
 - [x] 3.1 Run Release build, focused contract tests, browser checks, and strict OpenSpec validation. Full repository verification is run by the architect.
 - [x] 3.2 Capture final screenshots at 390, 768, 900, and 1440px plus reduced motion; document cache/timing results and limitations.
 - [x] 3.3 Archive this owned OpenSpec change after the final applicable validation.
-
