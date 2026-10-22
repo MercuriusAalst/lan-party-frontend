@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.7.0...frontend-v0.8.0) (2026-10-22)
+
+
+### Features
+
+* Add Contextual Team Creation To Tournament Registration ([#122](https://github.com/MercuriusAalst/lan-party-frontend/issues/122)) ([3b71eec](https://github.com/MercuriusAalst/lan-party-frontend/commit/3b71eec5d4c6353961ce234d5d36f974ad97fec0))
+
+
+### Bug Fixes
+
+* Add Separate Leaderboard Duration Fields ([#121](https://github.com/MercuriusAalst/lan-party-frontend/issues/121)) ([2d49bbb](https://github.com/MercuriusAalst/lan-party-frontend/commit/2d49bbbf0cc1daa01c9fff8afcac642caeb69956))
+* Remove Hero Blur And Load Artwork Earlier ([#127](https://github.com/MercuriusAalst/lan-party-frontend/issues/127)) ([009a340](https://github.com/MercuriusAalst/lan-party-frontend/commit/009a340f9d7dfd7878e14cbec86f44b0809e2d9f))
+* Repair Responsive Header And Info Menu Dismissal ([#128](https://github.com/MercuriusAalst/lan-party-frontend/issues/128)) ([7739ca6](https://github.com/MercuriusAalst/lan-party-frontend/commit/7739ca6bb71dc0f1a37a18638b5159922eebc89a))
+
 ## [0.7.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.6.0...frontend-v0.7.0) (2026-10-19)
 
 
