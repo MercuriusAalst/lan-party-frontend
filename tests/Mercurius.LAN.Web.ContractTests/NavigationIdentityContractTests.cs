@@ -107,6 +107,36 @@ public sealed class NavigationIdentityContractTests
     }
 
     [Fact]
+    public async Task InconsistentlyDeletedCompletedProfileNeverSuppliesNavigationIdentity()
+    {
+        var userClient = CreateUserClient(_ => Task.FromResult(new CurrentUserProfileResponse(
+            true,
+            new UserProfileDTO
+            {
+                Username = "deleted-player",
+                ProfilePictureUrl = "/images/deleted.png",
+                IsDeleted = true
+            },
+            null,
+            true)));
+        var menu = CreateMenu(PrincipalWithProviderClaims("user-1"), userClient);
+
+        try
+        {
+            menu.StartInitialization();
+            await menu.ApplyParametersAsync();
+            await menu.StartInteractiveRenderAsync();
+            await menu.WaitForAuthenticatedNavigationAsync();
+
+            AssertNeutral(menu);
+        }
+        finally
+        {
+            await menu.DisposeForTestAsync();
+        }
+    }
+
+    [Fact]
     public async Task IdentityChangeClearsPreviousProfileAndIgnoresItsLateResponse()
     {
         var requests = new List<TaskCompletionSource<CurrentUserProfileResponse>>();

@@ -770,15 +770,15 @@ public partial class NavMenu : IAsyncDisposable
 
     private void ApplyCurrentUserProfile(CurrentUserProfileResponse profile)
     {
-        var username = profile.IsComplete ? profile.User?.Username?.Trim() : null;
-        if(string.IsNullOrWhiteSpace(username))
+        var user = profile.User;
+        if(!profile.IsComplete || user is null || user.IsDeleted || string.IsNullOrWhiteSpace(user.Username))
         {
             ClearCurrentUserProfile();
             return;
         }
 
-        _currentProfileUsername = username;
-        _currentProfilePictureUrl = profile.User?.ProfilePictureUrl;
+        _currentProfileUsername = user.Username.Trim();
+        _currentProfilePictureUrl = user.ProfilePictureUrl;
     }
 
     private void ClearCurrentUserProfile()
