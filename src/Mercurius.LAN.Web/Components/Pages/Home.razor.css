@@ -85,7 +85,6 @@
 .home-hero-media-image {
     position: absolute;
     object-fit: cover;
-    filter: blur(12px);
     opacity: 0.34;
     animation: home-hero-shift 16s ease-in-out infinite alternate;
 }

@@ -2,6 +2,7 @@
 @using Mercurius.LAN.Web.Components.Shared
 @using Mercurius.LAN.Web.Extensions
 @rendermode InteractiveServer
+@attribute [StreamRendering]
 
 <PageTitle>@Localization["General.Home.PageTitle"]</PageTitle>
 
@@ -14,17 +15,17 @@
 
         <div class="home-hero-shell">
             <div class="home-hero-media" aria-hidden="true">
-                @if(primaryHeroImage is not null)
+                @if(!string.IsNullOrWhiteSpace(primaryHeroImage))
                 {
                     <img src="@primaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--primary" />
                 }
 
-                @if(secondaryHeroImage is not null)
+                @if(!string.IsNullOrWhiteSpace(secondaryHeroImage))
                 {
                     <img src="@secondaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--secondary" />
                 }
 
-                @if(tertiaryHeroImage is not null)
+                @if(!string.IsNullOrWhiteSpace(tertiaryHeroImage))
                 {
                     <img src="@tertiaryHeroImage" alt="" class="home-hero-media-image home-hero-media-image--tertiary" />
                 }

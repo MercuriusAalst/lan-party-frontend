@@ -1,0 +1,981 @@
+{
+  "homepageUrl": "https://dev-lan.mercurius-aalst.be",
+  "browserPath": "C:\\Users\\svenp\\AppData\\Local\\ms-playwright\\chromium-1223\\chrome-win64\\chrome.exe",
+  "viewport": {
+    "width": 900,
+    "height": 800,
+    "dpr": 2
+  },
+  "cache": {
+    "persistentBrowserContext": true,
+    "cacheDisabled": false,
+    "profilePath": "C:\\Users\\svenp\\AppData\\Local\\Temp\\issue120-cache-profile-20261022-03"
+  },
+  "heroImageComparedDirectly": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+  "phases": [
+    {
+      "name": "homepage-cold-navigation",
+      "durationMs": 2591,
+      "url": "https://dev-lan.mercurius-aalst.be/",
+      "homeState": {
+        "url": "https://dev-lan.mercurius-aalst.be/",
+        "performanceTiming": {
+          "responseStartMs": 308.5,
+          "domInteractiveMs": 494.1,
+          "domContentLoadedMs": 496.2,
+          "loadEventEndMs": 574.4
+        },
+        "heroImageTiming": {
+          "firstInsertedAtMs": 1366.2000000029802,
+          "insertions": [
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "insertedAtMs": 1366.2000000029802
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "insertedAtMs": 1366.2999999970198
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "insertedAtMs": 1366.2999999970198
+            }
+          ],
+          "loads": [
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "loadedAtMs": 1617,
+              "naturalWidth": 1280
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "loadedAtMs": 1658.9000000059605,
+              "naturalWidth": 1920
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "loadedAtMs": 1667.9000000059605,
+              "naturalWidth": 2254
+            }
+          ]
+        },
+        "images": [
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+            "naturalWidth": 2254,
+            "naturalHeight": 1268,
+            "complete": true
+          },
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+            "naturalWidth": 1920,
+            "naturalHeight": 1080,
+            "complete": true
+          },
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+            "naturalWidth": 1280,
+            "naturalHeight": 720,
+            "complete": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "direct-image-navigation-same-context",
+      "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+      "directImage": true
+    },
+    {
+      "name": "homepage-reload-after-direct-image",
+      "durationMs": 2707,
+      "url": "https://dev-lan.mercurius-aalst.be/",
+      "homeState": {
+        "url": "https://dev-lan.mercurius-aalst.be/",
+        "performanceTiming": {
+          "responseStartMs": 78.5,
+          "domInteractiveMs": 102.9,
+          "domContentLoadedMs": 104.4,
+          "loadEventEndMs": 104.7
+        },
+        "heroImageTiming": {
+          "firstInsertedAtMs": 968.2000000029802,
+          "insertions": [
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "insertedAtMs": 968.2000000029802
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "insertedAtMs": 968.2000000029802
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "insertedAtMs": 968.2000000029802
+            }
+          ],
+          "loads": [
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "loadedAtMs": 968.7000000029802,
+              "naturalWidth": 2254
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "loadedAtMs": 968.7000000029802,
+              "naturalWidth": 1920
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "loadedAtMs": 968.7000000029802,
+              "naturalWidth": 1280
+            }
+          ]
+        },
+        "images": [
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+            "naturalWidth": 2254,
+            "naturalHeight": 1268,
+            "complete": true
+          },
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+            "naturalWidth": 1920,
+            "naturalHeight": 1080,
+            "complete": true
+          },
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+            "naturalWidth": 1280,
+            "naturalHeight": 720,
+            "complete": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "in-app-home-to-info",
+      "durationMs": 1991,
+      "url": "https://dev-lan.mercurius-aalst.be/info",
+      "homeState": null
+    },
+    {
+      "name": "in-app-back-to-home",
+      "durationMs": 2000,
+      "url": "https://dev-lan.mercurius-aalst.be/",
+      "homeState": {
+        "url": "https://dev-lan.mercurius-aalst.be/",
+        "performanceTiming": {
+          "responseStartMs": 78.5,
+          "domInteractiveMs": 102.9,
+          "domContentLoadedMs": 104.4,
+          "loadEventEndMs": 104.7
+        },
+        "heroImageTiming": {
+          "firstInsertedAtMs": 968.2000000029802,
+          "insertions": [
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "insertedAtMs": 968.2000000029802
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "insertedAtMs": 968.2000000029802
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "insertedAtMs": 968.2000000029802
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "insertedAtMs": 4927.29999999702
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "insertedAtMs": 4927.29999999702
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "insertedAtMs": 4927.29999999702
+            }
+          ],
+          "loads": [
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "loadedAtMs": 968.7000000029802,
+              "naturalWidth": 2254
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "loadedAtMs": 968.7000000029802,
+              "naturalWidth": 1920
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "loadedAtMs": 968.7000000029802,
+              "naturalWidth": 1280
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "loadedAtMs": 4927.399999991059,
+              "naturalWidth": 2254
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "loadedAtMs": 4927.399999991059,
+              "naturalWidth": 1920
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "loadedAtMs": 4927.399999991059,
+              "naturalWidth": 1280
+            }
+          ]
+        },
+        "images": [
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+            "naturalWidth": 2254,
+            "naturalHeight": 1268,
+            "complete": true
+          },
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+            "naturalWidth": 1920,
+            "naturalHeight": 1080,
+            "complete": true
+          },
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+            "naturalWidth": 1280,
+            "naturalHeight": 720,
+            "complete": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "homepage-warm-reload",
+      "durationMs": 1743,
+      "url": "https://dev-lan.mercurius-aalst.be/",
+      "homeState": {
+        "url": "https://dev-lan.mercurius-aalst.be/",
+        "performanceTiming": {
+          "responseStartMs": 121,
+          "domInteractiveMs": 137,
+          "domContentLoadedMs": 137.7,
+          "loadEventEndMs": 138
+        },
+        "heroImageTiming": {
+          "firstInsertedAtMs": 822.5,
+          "insertions": [
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "insertedAtMs": 822.5
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "insertedAtMs": 822.5
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "insertedAtMs": 822.5
+            }
+          ],
+          "loads": [
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+              "loadedAtMs": 822.9000000059605,
+              "naturalWidth": 2254
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+              "loadedAtMs": 823,
+              "naturalWidth": 1920
+            },
+            {
+              "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+              "loadedAtMs": 823,
+              "naturalWidth": 1280
+            }
+          ]
+        },
+        "images": [
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+            "naturalWidth": 2254,
+            "naturalHeight": 1268,
+            "complete": true
+          },
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+            "naturalWidth": 1920,
+            "naturalHeight": 1080,
+            "complete": true
+          },
+          {
+            "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+            "naturalWidth": 1280,
+            "naturalHeight": 720,
+            "complete": true
+          }
+        ]
+      }
+    }
+  ],
+  "imageRequests": [
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.8",
+      "url": "https://dev-lan.mercurius-aalst.be/img/lan_logo_wide_dark.svg",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 317,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "etag": "\"ACQsBbk23E9M53vIuvgFqraDmBrLAolCVMA31J+NvoA=\"",
+        "age": "149",
+        "date": "Thu, 22 Oct 2026 09:12:36 GMT",
+        "last-modified": "Mon, 19 Oct 2026 17:05:23 GMT",
+        "vary": "Accept-Encoding",
+        "cache-control": "max-age=14400, must-revalidate"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/svg+xml",
+      "encodedDataLength": 5993
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.9",
+      "url": "https://dev-lan.mercurius-aalst.be/img/lan_logo_wide_light.svg",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 317,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "etag": "\"0/oCRkHAECa1iI/OvuMk55GWSlpwIMchV+qMMaS74aU=\"",
+        "age": "149",
+        "date": "Thu, 22 Oct 2026 09:12:36 GMT",
+        "last-modified": "Mon, 19 Oct 2026 17:05:23 GMT",
+        "vary": "Accept-Encoding",
+        "cache-control": "max-age=14400, must-revalidate"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/svg+xml",
+      "encodedDataLength": 5966
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.87",
+      "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 1371,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"GOY_QOqtc1Fh7rJH0q6XeLZ1cUp27XW0qudEnzVc130\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/webp",
+      "encodedDataLength": 1220764
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.88",
+      "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 1371,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"_beCbgMhY3qntSIPFVc3ntrS9_7X9J52vm2XKHFk5SU\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/webp",
+      "encodedDataLength": 2348873
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.89",
+      "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 1371,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"K6EgxodIRlIltiKz9G2X7LkWKtZSZ22KZGyGSiSY374\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/webp",
+      "encodedDataLength": 264188
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.93",
+      "url": "https://dev-api.mercurius-aalst.be/images/866126d397ee4b80bdd7013942c3e226.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 1377,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"SyiMZiXjC7aDzOba2idaaX5Kg6xiY-4XxdnpUwPDBXA\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/webp",
+      "encodedDataLength": 20791
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.94",
+      "url": "https://dev-api.mercurius-aalst.be/images/0daf5e2f0e8044f5b38027e626e0329e.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 1377,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"T2dFQFe9yrv3pLOwKQDWUIc-YJYlpwokHVOqqS4cj38\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/webp",
+      "encodedDataLength": 3083
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.95",
+      "url": "https://dev-api.mercurius-aalst.be/images/f27972eacddc42f1ace6bb450c74dd32.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 1377,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"bx0Oheg8l6YkPaFcgSDr1qSf_3k7L1Y56tnz2Ag9PuA\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/webp",
+      "encodedDataLength": 117691
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.96",
+      "url": "https://dev-api.mercurius-aalst.be/images/0648935fd63e41abbc66844988d67292.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 1377,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"48Jsi0G9SbD6_PNIuFPec8Zito1IRT4Wz_whTKDZXks\"",
+        "age": "163337",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/webp",
+      "encodedDataLength": 25939
+    },
+    {
+      "phase": "homepage-cold-navigation",
+      "requestId": "57456.97",
+      "url": "https://dev-api.mercurius-aalst.be/images/e072d737515e404ca2f2b8b1b56af796.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 1377,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"PNvw7thj_nrHME98tI1JZOjRt2SoLiL_9NWZ0iV6Y6A\"",
+        "age": "163337",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "mimeType": "image/webp",
+      "encodedDataLength": 24895
+    },
+    {
+      "phase": "direct-image-navigation-same-context",
+      "requestId": "5248356C1FE869C6AA94B22BC77F6957",
+      "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 9,
+      "requestCacheHeaders": {},
+      "status": 200,
+      "fromDiskCache": true,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "age": "238159",
+        "cache-control": "public, max-age=31536000",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT",
+        "etag": "W/\"GOY_QOqtc1Fh7rJH0q6XeLZ1cUp27XW0qudEnzVc130\""
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.134",
+      "url": "https://dev-lan.mercurius-aalst.be/img/lan_logo_wide_dark.svg",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 96,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "etag": "\"ACQsBbk23E9M53vIuvgFqraDmBrLAolCVMA31J+NvoA=\"",
+        "age": "149",
+        "date": "Thu, 22 Oct 2026 09:12:36 GMT",
+        "last-modified": "Mon, 19 Oct 2026 17:05:23 GMT",
+        "vary": "Accept-Encoding",
+        "cache-control": "max-age=14400, must-revalidate"
+      },
+      "mimeType": "image/svg+xml",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.135",
+      "url": "https://dev-lan.mercurius-aalst.be/img/lan_logo_wide_light.svg",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 96,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "etag": "\"0/oCRkHAECa1iI/OvuMk55GWSlpwIMchV+qMMaS74aU=\"",
+        "age": "149",
+        "date": "Thu, 22 Oct 2026 09:12:36 GMT",
+        "last-modified": "Mon, 19 Oct 2026 17:05:23 GMT",
+        "vary": "Accept-Encoding",
+        "cache-control": "max-age=14400, must-revalidate"
+      },
+      "mimeType": "image/svg+xml",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.195",
+      "url": "https://dev-api.mercurius-aalst.be/images/866126d397ee4b80bdd7013942c3e226.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 945,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"SyiMZiXjC7aDzOba2idaaX5Kg6xiY-4XxdnpUwPDBXA\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.196",
+      "url": "https://dev-api.mercurius-aalst.be/images/0daf5e2f0e8044f5b38027e626e0329e.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 946,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"T2dFQFe9yrv3pLOwKQDWUIc-YJYlpwokHVOqqS4cj38\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.197",
+      "url": "https://dev-api.mercurius-aalst.be/images/f27972eacddc42f1ace6bb450c74dd32.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 946,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"bx0Oheg8l6YkPaFcgSDr1qSf_3k7L1Y56tnz2Ag9PuA\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.198",
+      "url": "https://dev-api.mercurius-aalst.be/images/0648935fd63e41abbc66844988d67292.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 946,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"48Jsi0G9SbD6_PNIuFPec8Zito1IRT4Wz_whTKDZXks\"",
+        "age": "163337",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.199",
+      "url": "https://dev-api.mercurius-aalst.be/images/e072d737515e404ca2f2b8b1b56af796.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 946,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"PNvw7thj_nrHME98tI1JZOjRt2SoLiL_9NWZ0iV6Y6A\"",
+        "age": "163337",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.220",
+      "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 972,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"GOY_QOqtc1Fh7rJH0q6XeLZ1cUp27XW0qudEnzVc130\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.221",
+      "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 972,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"_beCbgMhY3qntSIPFVc3ntrS9_7X9J52vm2XKHFk5SU\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-reload-after-direct-image",
+      "requestId": "57456.222",
+      "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 972,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"K6EgxodIRlIltiKz9G2X7LkWKtZSZ22KZGyGSiSY374\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.266",
+      "url": "https://dev-lan.mercurius-aalst.be/img/lan_logo_wide_dark.svg",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 130,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "etag": "\"ACQsBbk23E9M53vIuvgFqraDmBrLAolCVMA31J+NvoA=\"",
+        "age": "149",
+        "date": "Thu, 22 Oct 2026 09:12:36 GMT",
+        "last-modified": "Mon, 19 Oct 2026 17:05:23 GMT",
+        "vary": "Accept-Encoding",
+        "cache-control": "max-age=14400, must-revalidate"
+      },
+      "mimeType": "image/svg+xml",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.267",
+      "url": "https://dev-lan.mercurius-aalst.be/img/lan_logo_wide_light.svg",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 130,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "etag": "\"0/oCRkHAECa1iI/OvuMk55GWSlpwIMchV+qMMaS74aU=\"",
+        "age": "149",
+        "date": "Thu, 22 Oct 2026 09:12:36 GMT",
+        "last-modified": "Mon, 19 Oct 2026 17:05:23 GMT",
+        "vary": "Accept-Encoding",
+        "cache-control": "max-age=14400, must-revalidate"
+      },
+      "mimeType": "image/svg+xml",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.344",
+      "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 826,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"GOY_QOqtc1Fh7rJH0q6XeLZ1cUp27XW0qudEnzVc130\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.345",
+      "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 826,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"_beCbgMhY3qntSIPFVc3ntrS9_7X9J52vm2XKHFk5SU\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.346",
+      "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 826,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"K6EgxodIRlIltiKz9G2X7LkWKtZSZ22KZGyGSiSY374\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.350",
+      "url": "https://dev-api.mercurius-aalst.be/images/866126d397ee4b80bdd7013942c3e226.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 848,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"SyiMZiXjC7aDzOba2idaaX5Kg6xiY-4XxdnpUwPDBXA\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.351",
+      "url": "https://dev-api.mercurius-aalst.be/images/0daf5e2f0e8044f5b38027e626e0329e.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 848,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"T2dFQFe9yrv3pLOwKQDWUIc-YJYlpwokHVOqqS4cj38\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.352",
+      "url": "https://dev-api.mercurius-aalst.be/images/f27972eacddc42f1ace6bb450c74dd32.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 848,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"bx0Oheg8l6YkPaFcgSDr1qSf_3k7L1Y56tnz2Ag9PuA\"",
+        "age": "238159",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.353",
+      "url": "https://dev-api.mercurius-aalst.be/images/0648935fd63e41abbc66844988d67292.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 848,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"48Jsi0G9SbD6_PNIuFPec8Zito1IRT4Wz_whTKDZXks\"",
+        "age": "163337",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    },
+    {
+      "phase": "homepage-warm-reload",
+      "requestId": "57456.354",
+      "url": "https://dev-api.mercurius-aalst.be/images/e072d737515e404ca2f2b8b1b56af796.webp",
+      "method": "GET",
+      "requestStartAfterPhaseMs": 849,
+      "requestCacheHeaders": {},
+      "requestServedFromCache": true,
+      "status": 200,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "responseCacheHeaders": {
+        "cache-control": "public, max-age=31536000",
+        "etag": "W/\"PNvw7thj_nrHME98tI1JZOjRt2SoLiL_9NWZ0iV6Y6A\"",
+        "age": "163337",
+        "date": "Thu, 22 Oct 2026 09:12:38 GMT"
+      },
+      "mimeType": "image/webp",
+      "encodedDataLength": 0
+    }
+  ]
+}

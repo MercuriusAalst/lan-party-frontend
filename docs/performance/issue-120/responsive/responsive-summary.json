@@ -1,0 +1,151 @@
+{
+  "url": "http://127.0.0.1:5186",
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+  "cases": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "dpr": 2.0000000298023224
+      },
+      "documentWidth": 386,
+      "clientWidth": 380,
+      "horizontalOverflow": 6,
+      "heroImages": [
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+          "naturalWidth": 2254,
+          "filter": "none",
+          "animation": "home-hero-shift-b-datseg6ywv"
+        },
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+          "naturalWidth": 1920,
+          "filter": "none",
+          "animation": "home-hero-shift-b-datseg6ywv"
+        },
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+          "naturalWidth": 1280,
+          "filter": "none",
+          "animation": "home-hero-shift-secondary-b-datseg6ywv"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 900,
+        "dpr": 2.0000000298023224
+      },
+      "documentWidth": 763,
+      "clientWidth": 758,
+      "horizontalOverflow": 5,
+      "heroImages": [
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+          "naturalWidth": 2254,
+          "filter": "none",
+          "animation": "home-hero-shift-b-datseg6ywv"
+        },
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+          "naturalWidth": 1920,
+          "filter": "none",
+          "animation": "home-hero-shift-b-datseg6ywv"
+        },
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+          "naturalWidth": 1280,
+          "filter": "none",
+          "animation": "home-hero-shift-secondary-b-datseg6ywv"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 900,
+        "height": 800,
+        "dpr": 2.0000000298023224
+      },
+      "documentWidth": 895,
+      "clientWidth": 890,
+      "horizontalOverflow": 5,
+      "heroImages": [
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+          "naturalWidth": 2254,
+          "filter": "none",
+          "animation": "home-hero-shift-b-datseg6ywv"
+        },
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+          "naturalWidth": 1920,
+          "filter": "none",
+          "animation": "home-hero-shift-b-datseg6ywv"
+        },
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+          "naturalWidth": 1280,
+          "filter": "none",
+          "animation": "home-hero-shift-secondary-b-datseg6ywv"
+        }
+      ]
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "dpr": 1.25
+      },
+      "documentWidth": 1435,
+      "clientWidth": 1430,
+      "horizontalOverflow": 5,
+      "heroImages": [
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/afe61aec3e4d40a5834909bbdcc4a677.webp",
+          "naturalWidth": 2254,
+          "filter": "none",
+          "animation": "home-hero-shift-b-datseg6ywv"
+        },
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/c5bfe825a21a4fe0aed4c490b11f11b5.webp",
+          "naturalWidth": 1920,
+          "filter": "none",
+          "animation": "home-hero-shift-b-datseg6ywv"
+        },
+        {
+          "url": "https://dev-api.mercurius-aalst.be/images/9b46c322cffa447dbde85b27373bcf1a.webp",
+          "naturalWidth": 1280,
+          "filter": "none",
+          "animation": "home-hero-shift-secondary-b-datseg6ywv"
+        }
+      ]
+    }
+  ],
+  "reducedMotion": {
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "dpr": 2.0000000298023224
+    },
+    "documentWidth": 386,
+    "clientWidth": 380,
+    "horizontalOverflow": 6,
+    "reducedMotion": true,
+    "heroImages": [
+      {
+        "filter": "none",
+        "animation": "none"
+      },
+      {
+        "filter": "none",
+        "animation": "none"
+      },
+      {
+        "filter": "none",
+        "animation": "none"
+      }
+    ]
+  }
+}
