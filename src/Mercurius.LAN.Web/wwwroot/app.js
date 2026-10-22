@@ -115,12 +115,12 @@ function addNavInfoMenuListener(elementId, dotNetHelper) {
         dotNetHelper.invokeMethodAsync('CloseInfoDropdown', false).catch(() => {});
     };
 
-    document.addEventListener('pointerdown', listener, true);
+    document.addEventListener('click', listener, true);
     document.addEventListener('keydown', listener, true);
 
     return {
         dispose: () => {
-            document.removeEventListener('pointerdown', listener, true);
+            document.removeEventListener('click', listener, true);
             document.removeEventListener('keydown', listener, true);
         }
     };

@@ -540,11 +540,13 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
                 await page.SetViewportSizeAsync(width, 900);
                 var shouldCollapse = width <= 1399;
                 var navToggle = page.GetByRole(AriaRole.Button, new() { Name = language == "en-US" ? "Toggle navigation" : "Navigatie openen of sluiten" });
+                var navPanel = page.Locator("#primary-navigation");
                 if (shouldCollapse)
                 {
                     await Expect(navToggle).ToBeVisibleAsync();
                     if (await navToggle.GetAttributeAsync("aria-expanded") != "true")
                         await page.ClickWhenInteractiveAsync(navToggle);
+                    await Expect(navPanel).ToHaveClassAsync(new Regex(@"\bopen\b"));
                 }
                 else
                 {
@@ -560,6 +562,11 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
                 await Expect(page.Locator("#admin-nav-menu")).ToBeVisibleAsync();
                 await page.Keyboard.PressAsync("Escape");
                 await Expect(page.Locator("#admin-nav-menu")).ToHaveCountAsync(0);
+                if (shouldCollapse)
+                {
+                    await Expect(navPanel).Not.ToHaveClassAsync(new Regex(@"\bopen\b"));
+                    await Expect(navToggle).ToHaveAttributeAsync("aria-expanded", "false");
+                }
 
                 var headerFits = await page.EvaluateAsync<bool>("""
                     () => {
@@ -585,6 +592,45 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
             }
         }
+    }
+
+    [Fact]
+    public async Task InfoMenuRemainsOpenUntilHeldOutsideClickActivatesCollapsedNavigationTarget()
+    {
+        var admin = await app.CreatePersonaAsync("header-held-click-admin", isAdmin: true);
+        await using var context = await app.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await app.LoginAsync(page, admin);
+        await page.SetViewportSizeAsync(1054, 900);
+        await page.GotoAsync(app.BaseUrl);
+
+        var navToggle = page.GetByRole(AriaRole.Button, new() { Name = "Toggle navigation" });
+        var panel = page.Locator("#primary-navigation");
+        await page.ClickWhenInteractiveAsync(navToggle);
+        await Expect(panel).ToHaveClassAsync(new Regex(@"\bopen\b"));
+
+        var infoTrigger = page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true });
+        var infoDropdown = page.Locator(".info-dropdown");
+        var adminTrigger = page.Locator("#admin-nav-menu-trigger");
+        await page.ClickWhenInteractiveAsync(infoTrigger);
+        await Expect(infoDropdown).ToBeVisibleAsync();
+
+        var adminBounds = await adminTrigger.BoundingBoxAsync();
+        Assert.NotNull(adminBounds);
+        var clickX = adminBounds!.X + adminBounds.Width / 2;
+        var clickY = adminBounds.Y + adminBounds.Height / 2;
+        await page.Mouse.MoveAsync(clickX, clickY);
+        await page.Mouse.DownAsync();
+        await page.WaitForTimeoutAsync(250);
+
+        await Expect(infoDropdown).ToBeVisibleAsync();
+        var heldAdminBounds = await adminTrigger.BoundingBoxAsync();
+        Assert.NotNull(heldAdminBounds);
+        Assert.InRange(Math.Abs(adminBounds.Y - heldAdminBounds!.Y), 0, 2);
+
+        await page.Mouse.UpAsync();
+        await Expect(page.Locator("#admin-nav-menu")).ToBeVisibleAsync();
+        await Expect(infoDropdown).ToHaveCountAsync(0);
     }
 
     [Fact]

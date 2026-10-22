@@ -49,11 +49,12 @@ public sealed class NavigationDropdownContractTests
 
         Assert.Contains("id=\"info-nav-menu-container\"", markup);
         Assert.Contains("@onkeydown=\"HandleNavMenuKeyDown\"", markup);
-        Assert.Contains("document.addEventListener('pointerdown', listener, true)", infoListener);
+        Assert.Contains("document.addEventListener('click', listener, true)", infoListener);
+        Assert.DoesNotContain("pointerdown", infoListener);
         Assert.Contains("document.addEventListener('keydown', listener, true)", infoListener);
         Assert.Contains("element.closest('.brand-nav-shell')?.contains(event.target)", infoListener);
         Assert.Contains("CloseInfoDropdown', false", infoListener);
-        Assert.Contains("document.removeEventListener('pointerdown', listener, true)", infoListener);
+        Assert.Contains("document.removeEventListener('click', listener, true)", infoListener);
         Assert.Contains("document.removeEventListener('keydown', listener, true)", infoListener);
         Assert.Contains("private async Task HandleNavMenuKeyDown(KeyboardEventArgs args)", code);
         Assert.Contains("await CloseInfoDropdown(restoreFocus: true)", code);
