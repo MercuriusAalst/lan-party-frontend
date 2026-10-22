@@ -34,16 +34,59 @@ namespace Mercurius.LAN.Web.ContractTests;
 public sealed class ComponentLifecycleBehaviorTests
 {
     [Fact]
+    public async Task HomeUsesPersistedFeaturedDataWithoutRepeatingTheInitialRequest()
+    {
+        var featuredRequests = 0;
+        var tournamentService = CreateProxy<ITournamentService>((method, _) =>
+        {
+            if(method.Name != nameof(ITournamentService.GetFeaturedTournamentsAsync))
+                throw new NotSupportedException(method.Name);
+
+            Interlocked.Increment(ref featuredRequests);
+            return Task.FromResult(new FeaturedTournamentsDTO());
+        });
+        var component = new TestHome();
+        var persistedFeatured = new List<Tournament> { Tournament(7), Tournament(8) };
+        var sponsorRequests = 0;
+        var sponsorService = CreateProxy<ISponsorService>((method, _) =>
+        {
+            if(method.Name != nameof(ISponsorService.GetSponsorsAsync))
+                throw new NotSupportedException(method.Name);
+
+            Interlocked.Increment(ref sponsorRequests);
+            return Task.FromResult<IEnumerable<Sponsor>>(Array.Empty<Sponsor>());
+        });
+
+        SetProperty(component, "TournamentService", tournamentService);
+        SetProperty(component, "SponsorService", sponsorService);
+        SetProperty(component, "EventOptions", Microsoft.Extensions.Options.Options.Create(new LanEventOptions()));
+        component.SetPersistedFeaturedTournaments(persistedFeatured);
+        component.SetPersistedSponsors([]);
+
+        await component.StartInitializationAsync();
+
+        Assert.Equal(persistedFeatured.Select(tournament => tournament.Id),
+            ReadHomeField<List<Tournament>>(component, "_featuredTournaments").Select(tournament => tournament.Id));
+        Assert.False(ReadHomeField<bool>(component, "_isTournamentsLoading"));
+        Assert.Equal(0, Volatile.Read(ref featuredRequests));
+        Assert.Equal(0, Volatile.Read(ref sponsorRequests));
+
+        await component.DisposeAsync();
+    }
+
+    [Fact]
     public async Task HomeRendersSponsorsBeforePendingTournamentRequestCompletes()
     {
         var featuredTournaments = new TaskCompletionSource<FeaturedTournamentsDTO>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var featuredRequestStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var tournamentService = CreateProxy<ITournamentService>((method, _) =>
             method.Name == nameof(ITournamentService.GetFeaturedTournamentsAsync)
-                ? featuredTournaments.Task
+                ? StartFeaturedRead()
                 : throw new NotSupportedException(method.Name));
+        var sponsorRequests = 0;
         var sponsorService = CreateProxy<ISponsorService>((method, _) =>
             method.Name == nameof(ISponsorService.GetSponsorsAsync)
-                ? Task.FromResult<IEnumerable<Sponsor>>(Array.Empty<Sponsor>())
+                ? LoadSponsors()
                 : throw new NotSupportedException(method.Name));
         var component = new TestHome();
 
@@ -51,16 +94,32 @@ public sealed class ComponentLifecycleBehaviorTests
         SetProperty(component, "SponsorService", sponsorService);
         SetProperty(component, "EventOptions", Microsoft.Extensions.Options.Options.Create(new LanEventOptions()));
 
-        await component.StartInitialRenderAsync();
-        await WaitForAsync(() => component.RenderCount >= 2);
+        var initialization = component.StartInitializationAsync();
+        await featuredRequestStarted.Task;
+        await WaitForAsync(() => component.RenderCount >= 1);
 
         Assert.False(featuredTournaments.Task.IsCompleted);
+        Assert.Equal(1, Volatile.Read(ref sponsorRequests));
+        Assert.False(ReadHomeField<bool>(component, "_isSponsorsLoading"));
 
         await component.DisposeAsync();
         featuredTournaments.SetResult(new FeaturedTournamentsDTO());
+        await initialization;
         await Task.Delay(25);
 
-        Assert.Equal(2, component.RenderCount);
+        Assert.Equal(1, component.RenderCount);
+
+        Task<IEnumerable<Sponsor>> LoadSponsors()
+        {
+            Interlocked.Increment(ref sponsorRequests);
+            return Task.FromResult<IEnumerable<Sponsor>>(Array.Empty<Sponsor>());
+        }
+
+        Task<FeaturedTournamentsDTO> StartFeaturedRead()
+        {
+            featuredRequestStarted.TrySetResult();
+            return featuredTournaments.Task;
+        }
     }
 
     [Fact]
@@ -83,8 +142,11 @@ public sealed class ComponentLifecycleBehaviorTests
         SetProperty(component, "SponsorService", sponsorService);
         SetProperty(component, "EventOptions", Microsoft.Extensions.Options.Options.Create(new LanEventOptions()));
 
-        await component.StartInitialRenderAsync();
-        await WaitForAsync(() => component.RenderCount >= 2);
+        component.SetPersistedFeaturedTournaments([]);
+        await component.StartInitializationAsync();
+
+        await component.StartFeaturedRefreshAsync();
+        await WaitForAsync(() => ReadHomeField<bool>(component, "_isTournamentsLoading"));
 
         // An administrator confirms a save while the homepage featured read is still in flight.
         Assert.True(ReadHomeField<bool>(component, "_isTournamentsLoading"));
@@ -507,7 +569,15 @@ public sealed class ComponentLifecycleBehaviorTests
 
         private int _renderCount;
 
-        public Task StartInitialRenderAsync() => base.OnAfterRenderAsync(firstRender: true);
+        public Task StartInitializationAsync() => base.OnInitializedAsync();
+
+        public Task StartFeaturedRefreshAsync() => (Task)(typeof(Home)
+            .GetMethod("LoadHomeDataAsync", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.Invoke(this, null) ?? throw new MissingMethodException(typeof(Home).FullName, "LoadHomeDataAsync"));
+
+        public void SetPersistedFeaturedTournaments(List<Tournament> tournaments) => PersistedFeaturedTournaments = tournaments;
+
+        public void SetPersistedSponsors(List<Sponsor> sponsors) => PersistedSponsors = sponsors;
 
         protected override Task RequestRenderAsync()
         {

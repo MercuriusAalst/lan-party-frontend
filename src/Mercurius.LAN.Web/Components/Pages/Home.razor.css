@@ -73,13 +73,6 @@
     overflow: hidden;
 }
 
-.home-hero-media-art {
-    position: absolute;
-    inset: 0;
-    filter: blur(12px);
-    pointer-events: none;
-}
-
 .home-hero-media::after {
     content: "";
     position: absolute;

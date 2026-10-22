@@ -18,6 +18,14 @@ public partial class Home : IAsyncDisposable
     [Inject] private ISponsorService SponsorService { get; set; } = null!;
     [Inject] private IOptions<LanEventOptions> EventOptions { get; set; } = null!;
 
+    [PersistentState] public List<Tournament>? PersistedFeaturedTournaments { get; set; }
+
+    [PersistentState] public bool PersistedFeaturedLoadFailed { get; set; }
+
+    [PersistentState] public List<Sponsor>? PersistedSponsors { get; set; }
+
+    [PersistentState] public bool PersistedSponsorsLoadFailed { get; set; }
+
     private List<Tournament> _featuredTournaments = [];
     private List<Sponsor> _sponsors = [];
     private bool _isTournamentsLoading = true;
@@ -36,12 +44,33 @@ public partial class Home : IAsyncDisposable
 
     private string HeroLocation => $"{EventOptions.Value.VenueName}, {EventOptions.Value.Address}";
 
-    protected override Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if(firstRender && !_disposed)
-            _ = LoadHomeDataAsync();
+        var loadVersion = ++_loadVersion;
 
-        return Task.CompletedTask;
+        if(PersistedSponsors is not null)
+        {
+            _sponsors = PersistedSponsors;
+            _isSponsorsLoading = false;
+            if(PersistedSponsorsLoadFailed)
+                _sponsorsError = Localization["General.Home.SponsorsUnavailable"];
+        }
+        else
+        {
+            _ = LoadSponsorsAsync(loadVersion);
+        }
+
+        if(PersistedFeaturedTournaments is not null)
+        {
+            _featuredTournaments = PersistedFeaturedTournaments;
+            _isTournamentsLoading = false;
+            if(PersistedFeaturedLoadFailed)
+                _tournamentsError = Localization["General.Home.LoadError"];
+
+            return;
+        }
+
+        await LoadTournamentsAsync(loadVersion, renderAfterLoad: false);
     }
 
     private async Task LoadHomeDataAsync()
@@ -54,13 +83,15 @@ public partial class Home : IAsyncDisposable
         _isSponsorsLoading = true;
         _tournamentsError = null;
         _sponsorsError = null;
+        PersistedFeaturedLoadFailed = false;
+        PersistedSponsorsLoadFailed = false;
 
         await RenderIfCurrentAsync(loadVersion);
         _ = LoadTournamentsAsync(loadVersion);
         _ = LoadSponsorsAsync(loadVersion);
     }
 
-    private async Task LoadTournamentsAsync(long loadVersion)
+    private async Task LoadTournamentsAsync(long loadVersion, bool renderAfterLoad = true)
     {
         // The featured read keeps its own generation so a confirmed save can retire a response that is
         // still in flight without touching the sponsor read.
@@ -70,7 +101,11 @@ public partial class Home : IAsyncDisposable
         {
             var featured = await TournamentService.GetFeaturedTournamentsAsync();
             if(IsCurrentFeaturedLoad(featuredLoadVersion))
+            {
                 _featuredTournaments = featured?.Tournaments ?? [];
+                PersistedFeaturedTournaments = _featuredTournaments;
+                PersistedFeaturedLoadFailed = false;
+            }
         }
         catch(Exception)
         {
@@ -80,13 +115,16 @@ public partial class Home : IAsyncDisposable
             _featuredTournaments = [];
             _tournamentsError = Localization["General.Home.LoadError"];
             ToastService.ShowError(Localization["General.Home.LoadToast"]);
+            PersistedFeaturedTournaments = [];
+            PersistedFeaturedLoadFailed = true;
         }
         finally
         {
             if(IsCurrentFeaturedLoad(featuredLoadVersion))
             {
                 _isTournamentsLoading = false;
-                await RenderIfCurrentAsync(loadVersion);
+                if(renderAfterLoad)
+                    await RenderIfCurrentAsync(loadVersion);
             }
         }
     }
@@ -100,7 +138,11 @@ public partial class Home : IAsyncDisposable
                 .ThenBy(sponsor => sponsor.Name)
                 .ToList();
             if(IsCurrentLoad(loadVersion))
+            {
                 _sponsors = sponsors;
+                PersistedSponsors = sponsors;
+                PersistedSponsorsLoadFailed = false;
+            }
         }
         catch(Exception)
         {
@@ -109,6 +151,8 @@ public partial class Home : IAsyncDisposable
 
             _sponsors = [];
             _sponsorsError = Localization["General.Home.SponsorsUnavailable"];
+            PersistedSponsors = [];
+            PersistedSponsorsLoadFailed = true;
         }
         finally
         {
@@ -158,6 +202,8 @@ public partial class Home : IAsyncDisposable
         // Retire any featured read that started before the save so its response cannot restore the old order.
         _featuredLoadVersion++;
         _featuredTournaments = order.ToList();
+        PersistedFeaturedTournaments = _featuredTournaments;
+        PersistedFeaturedLoadFailed = false;
         _isTournamentsLoading = false;
         _tournamentsError = null;
         _isEditingFeatured = false;
