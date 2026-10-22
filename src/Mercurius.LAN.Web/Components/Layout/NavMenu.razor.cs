@@ -1,4 +1,5 @@
 using Mercurius.LAN.Web.DTOs.Search;
+using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.APIClients;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Services;
@@ -80,12 +81,17 @@ public partial class NavMenu : IAsyncDisposable
     private CancellationTokenSource? _authenticatedNavigationCancellationTokenSource;
     private Task? _authenticatedNavigationTask;
     private long _authenticatedNavigationVersion;
+    private long _profileRequestVersion;
     private string? _pendingAuthenticatedNavigationIdentityKey;
     private bool _disposed;
     private CancellationTokenSource? _pendingResolutionsCancellationTokenSource;
     private Task? _pendingResolutionsTask;
     private readonly HashSet<string> _pendingNotificationActionIds = [];
     private string? _notificationActionError;
+
+    internal string? CurrentProfileUsername => _currentProfileUsername;
+    internal string? CurrentProfilePictureUrl => _currentProfilePictureUrl;
+    internal Task? AuthenticatedNavigationTask => _authenticatedNavigationTask;
 
     [Parameter]
     public EventCallback OnNavigationSelected { get; set; }
@@ -181,14 +187,25 @@ public partial class NavMenu : IAsyncDisposable
         CancellationTokenSource cancellationTokenSource)
     {
         var cancellationToken = cancellationTokenSource.Token;
+        var profileRequestVersion = Interlocked.Increment(ref _profileRequestVersion);
         try
         {
             var profile = await UserClient.GetCurrentUserProfileAsync();
+            if(IsCurrentAuthenticatedNavigation(identityKey, navigationVersion, cancellationToken) &&
+               IsCurrentProfileRequest(profileRequestVersion))
+            {
+                ApplyCurrentUserProfile(profile);
+                await InvokeAsync(() =>
+                {
+                    if(IsCurrentAuthenticatedNavigation(identityKey, navigationVersion, cancellationToken) &&
+                       IsCurrentProfileRequest(profileRequestVersion))
+                        StateHasChanged();
+                });
+            }
+
             if(!IsCurrentAuthenticatedNavigation(identityKey, navigationVersion, cancellationToken))
                 return;
 
-            _currentProfileUsername = profile.User?.Username?.Trim();
-            _currentProfilePictureUrl = profile.User?.ProfilePictureUrl;
             await NotificationService.RefreshAsync(cancellationToken);
             if(!IsCurrentAuthenticatedNavigation(identityKey, navigationVersion, cancellationToken))
                 return;
@@ -227,6 +244,9 @@ public partial class NavMenu : IAsyncDisposable
         !cancellationToken.IsCancellationRequested &&
         navigationVersion == _authenticatedNavigationVersion &&
         string.Equals(identityKey, _loadedIdentityKey, StringComparison.Ordinal);
+
+    private bool IsCurrentProfileRequest(long profileRequestVersion) =>
+        profileRequestVersion == Volatile.Read(ref _profileRequestVersion);
 
     private void StartPendingResolutionPolling()
     {
@@ -748,19 +768,33 @@ public partial class NavMenu : IAsyncDisposable
         };
     }
 
-    private string GetDisplayName(ClaimsPrincipal user)
+    private void ApplyCurrentUserProfile(CurrentUserProfileResponse profile)
     {
-        return _currentProfileUsername
-            ?? GetUsernameClaim(user)
-            ?? user.Identity?.Name
-            ?? user.FindFirst("name")?.Value
-            ?? user.FindFirst("email")?.Value
-            ?? Localization["nav.account"];
+        var username = profile.IsComplete ? profile.User?.Username?.Trim() : null;
+        if(string.IsNullOrWhiteSpace(username))
+        {
+            ClearCurrentUserProfile();
+            return;
+        }
+
+        _currentProfileUsername = username;
+        _currentProfilePictureUrl = profile.User?.ProfilePictureUrl;
     }
 
-    private string GetUserMenuAriaLabel(ClaimsPrincipal user)
+    private void ClearCurrentUserProfile()
     {
-        var displayName = GetDisplayName(user);
+        _currentProfileUsername = null;
+        _currentProfilePictureUrl = null;
+    }
+
+    private string GetDisplayName()
+    {
+        return _currentProfileUsername ?? Localization["nav.account"];
+    }
+
+    private string GetUserMenuAriaLabel()
+    {
+        var displayName = GetDisplayName();
 
         return Localization.Get("nav.accountMenu", displayName);
     }
@@ -778,13 +812,6 @@ public partial class NavMenu : IAsyncDisposable
             ?? user.FindFirst("sub")?.Value
             ?? user.Identity?.Name
             ?? "authenticated";
-    }
-
-    private static string? GetUsernameClaim(ClaimsPrincipal user)
-    {
-        return user.FindFirst("preferred_username")?.Value?.Trim()
-            ?? user.FindFirst("nickname")?.Value?.Trim()
-            ?? user.FindFirst("username")?.Value?.Trim();
     }
 
     private async ValueTask DisposeSearchOutsideClickListenerAsync()
@@ -946,27 +973,40 @@ public partial class NavMenu : IAsyncDisposable
 
     private async Task HandleCurrentUserProfileChangedAsync()
     {
-        if(_disposed || string.IsNullOrWhiteSpace(_loadedIdentityKey))
+        var identityKey = _loadedIdentityKey;
+        if(_disposed || string.IsNullOrWhiteSpace(identityKey))
             return;
 
+        var authenticatedNavigationVersion = Volatile.Read(ref _authenticatedNavigationVersion);
+        var profileRequestVersion = Interlocked.Increment(ref _profileRequestVersion);
+        var cancellationToken = _lifetimeCancellationTokenSource.Token;
         try
         {
             var profile = await UserClient.GetCurrentUserProfileAsync();
             await InvokeAsync(() =>
             {
-                if(_disposed)
+                if(!IsCurrentAuthenticatedNavigation(identityKey, authenticatedNavigationVersion, cancellationToken) ||
+                   !IsCurrentProfileRequest(profileRequestVersion))
                     return;
 
-                _currentProfileUsername = profile.User?.Username?.Trim();
-                _currentProfilePictureUrl = profile.User?.ProfilePictureUrl;
+                ApplyCurrentUserProfile(profile);
                 StateHasChanged();
             });
         }
-        catch(OperationCanceledException) when(_disposed)
+        catch(OperationCanceledException) when(cancellationToken.IsCancellationRequested || _disposed)
         {
         }
         catch(Exception)
         {
+            await InvokeAsync(() =>
+            {
+                if(!IsCurrentAuthenticatedNavigation(identityKey, authenticatedNavigationVersion, cancellationToken) ||
+                   !IsCurrentProfileRequest(profileRequestVersion))
+                    return;
+
+                ClearCurrentUserProfile();
+                StateHasChanged();
+            });
         }
     }
 

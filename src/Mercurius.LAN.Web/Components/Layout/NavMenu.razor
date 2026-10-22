@@ -151,9 +151,9 @@
                                 class="@GetUserButtonClass()"
                                 @onclick="ToggleUserMenu"
                                 aria-expanded="@GetAriaExpanded(_isUserMenuVisible)"
-                                aria-label="@GetUserMenuAriaLabel(authState.User)">
-                            <UserAvatar Name="@GetDisplayName(authState.User)" PictureUrl="@_currentProfilePictureUrl" Size="compact" Decorative="true" />
-                            <span>@GetDisplayName(authState.User)</span>
+                                aria-label="@GetUserMenuAriaLabel()">
+                            <UserAvatar Name="@_currentProfileUsername" PictureUrl="@_currentProfilePictureUrl" Size="compact" Decorative="true" />
+                            <span>@GetDisplayName()</span>
                         </button>
                         <button type="button"
                                 class="@GetNotificationButtonClass()"
