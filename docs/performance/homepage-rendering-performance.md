@@ -2,9 +2,9 @@
 
 ## Result
 
-Issue 120 is resolved with a measured rendering optimization: the three animated hero images now share one `blur(12px)` wrapper instead of each owning a blur filter. In interleaved 900×800, DPR 2 Chromium runs, the Chrome GPU-process `STEP_DRAW_AND_SWAP` mean decreased 13% on the deployed homepage and 9–15% on the local app with live API assets. This is pipeline-stage duration, not hardware GPU-busy time; the reported Edge/iGPU laptop was not available for direct validation. [Current measurements, reproduction commands, per-trial data and screenshots](issue-120/profile-results.md).
+Issue 120 is resolved by removing the hero artwork blur and exposing featured image URLs during streamed prerender. Blazor reuses the featured result during hydration, avoiding a duplicate featured request. Browser measurements showed that stable image URLs were already cacheable: cold loads transferred image bytes, while warm homepage reloads used cache with zero image bytes. The delay came from late URL discovery, not broken HTTP caching. [Current measurements, reproduction commands, cache evidence and screenshots](issue-120/profile-results.md).
 
-The 1920px RAF investigation below is historical. Its smooth frame intervals did not expose the reported issue and did not select this fix; the later matched pipeline-stage measurements did.
+The 1920px RAF investigation below is historical. Its smooth frame intervals did not expose the reported issue or select the final fix; the later cache and image-discovery measurements did.
 
 The first diagnostic run incorrectly reported `animationName=none`: the profiler injected each candidate override before reading the original computed style. That ordering is fixed. The corrected 1920px run loaded all three hero images and 20 sponsor logos, and all seven controls passed their before/after style assertions. The old unexplained mismatch was a harness defect, not evidence of a homepage issue.
 
@@ -44,4 +44,4 @@ $env:HOMEPAGE_DIAGNOSTIC_WIDTHS = '1920'
 node scripts/profile-homepage.cjs
 ```
 
-For baseline-only captures, set `HOMEPAGE_DIAGNOSTIC_WIDTHS='0'`. The script checkpoints its JSON summary after every completed case and records an optional diagnostic failure without discarding prior results. It closes Chromium on success or failure. These commands reproduce the historical RAF investigation, not the selected fix measurements. The implementation consolidates existing blur rendering without changing the visual or motion contract, so no OpenSpec delta was needed.
+For baseline-only captures, set `HOMEPAGE_DIAGNOSTIC_WIDTHS='0'`. The script checkpoints its JSON summary after every completed case and records an optional diagnostic failure without discarding prior results. It closes Chromium on success or failure. These commands reproduce the historical RAF investigation, not the selected fix measurements. The historical shared-blur experiment was not selected. The final change removes the artwork blur and uses streamed prerender with persistent component state to expose the image URLs sooner; its behavior is recorded in the archived OpenSpec change.
