@@ -11,4 +11,4 @@
 ## 3. Verification
 
 - [x] Run the targeted browser regression and Release build.
-- [ ] Validate and archive this OpenSpec change.
+- [x] Validate and archive this OpenSpec change.
