@@ -5,6 +5,7 @@ using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.JSInterop;
 using Refit;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
@@ -61,6 +62,7 @@ public partial class Profile : IDisposable
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
     [Inject] private IConfiguration Configuration { get; set; } = null!;
     [Inject] private ICurrentUserProfileNotifier CurrentUserProfileNotifier { get; set; } = null!;
+    [Inject] private ILogger<Profile>? Logger { get; set; }
 
     protected override void OnInitialized()
     {
@@ -177,14 +179,17 @@ public partial class Profile : IDisposable
 
     private async Task SelectPictureAsync(InputFileChangeEventArgs args)
     {
+        Logger?.LogDebug("Profile picture selection callback received");
         if(IsPictureActionBusy)
             return;
 
         _isPictureSelecting = true;
         _pendingPicture = null;
+        _pictureStatusText = string.Empty;
         var file = args.File;
         if(!ProfilePictureContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
         {
+            Logger?.LogDebug("Profile picture selection rejected: content type");
             _pictureStatusText = Localization["profile.pictureTypeNotAllowed"];
             _isPictureSelecting = false;
             return;
@@ -192,6 +197,7 @@ public partial class Profile : IDisposable
 
         if(file.Size > _maxPictureBytes)
         {
+            Logger?.LogDebug("Profile picture selection rejected: size limit");
             _pictureStatusText = Localization.Get("shared.fileSizeLimit", _maxPictureBytes / (1024 * 1024));
             _isPictureSelecting = false;
             return;
@@ -205,14 +211,24 @@ public partial class Profile : IDisposable
 
             _pendingPicture = new ProfilePictureSelection(file.Name, file.ContentType, content);
             _pictureStatusText = Localization.Get("profile.pictureSelected", file.Name);
+            Logger?.LogDebug("Profile picture read completed");
         }
-        catch(IOException)
+        catch(Exception exception) when(exception is IOException or TimeoutException or JSException)
         {
+            Logger?.LogDebug("Profile picture read failed ({ExceptionType})", exception.GetType().Name);
             _pendingPicture = null;
-            _pictureStatusText = Localization.Get("shared.fileSizeLimit", _maxPictureBytes / (1024 * 1024));
+            _pictureStatusText = Localization["shared.fileReadFailed"];
         }
         catch(OperationCanceledException) when(_lifetimeCancellation.IsCancellationRequested)
         {
+            Logger?.LogDebug("Profile picture read canceled with component lifetime");
+            _pendingPicture = null;
+        }
+        catch(OperationCanceledException)
+        {
+            Logger?.LogDebug("Profile picture read canceled");
+            _pendingPicture = null;
+            _pictureStatusText = Localization["shared.fileReadFailed"];
         }
         finally
         {
@@ -542,6 +558,7 @@ public partial class Profile : IDisposable
     {
         _disposed = true;
         _lifetimeCancellation.Cancel();
+        _pendingPicture = null;
         _lifetimeCancellation.Dispose();
     }
 }
