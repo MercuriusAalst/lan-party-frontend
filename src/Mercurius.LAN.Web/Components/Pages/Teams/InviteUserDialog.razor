@@ -241,11 +241,12 @@
         if(_selected?.UserId is not { } userId)
             return;
 
+        var displayLabel = _selected.DisplayLabel;
         _isClosing = true;
         try
         {
             await DisposeFocusTrapAsync();
-            await UserSelected.InvokeAsync(new InviteUserDialogResult(userId, _selected.DisplayLabel));
+            await UserSelected.InvokeAsync(new InviteUserDialogResult(userId, displayLabel));
         }
         finally
         {
