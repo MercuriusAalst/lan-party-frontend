@@ -238,7 +238,7 @@
 
     private async Task SubmitAsync()
     {
-        if(_selected?.UserId is not { } userId)
+        if(_isClosing || _selected?.UserId is not { } userId)
             return;
 
         var displayLabel = _selected.DisplayLabel;
@@ -263,6 +263,9 @@
 
     private async Task CancelAsync()
     {
+        if(_isClosing)
+            return;
+
         _isClosing = true;
         try
         {
