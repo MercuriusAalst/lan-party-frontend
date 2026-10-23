@@ -19,8 +19,3 @@ The profile picture, create-team logo, manage-team logo and shared image pickers
 - **AND** the user MUST see the replacement failure
 - **AND** only a later successfully read replacement MAY be uploaded
 
-#### Scenario: Disposal cancellation is not shown as a user read failure
-
-- **WHEN** a component is disposed while it is reading a selected image
-- **THEN** the read MUST be cancelled through the component lifetime token
-- **AND** the component MUST NOT present stale retry feedback after disposal
