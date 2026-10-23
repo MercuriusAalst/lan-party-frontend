@@ -297,6 +297,7 @@
     max-height: min(42rem, 70vh);
     overflow-y: auto;
     overscroll-behavior: contain;
+    overscroll-behavior-y: auto;
     padding-right: 0.3rem;
     align-content: start;
 }
