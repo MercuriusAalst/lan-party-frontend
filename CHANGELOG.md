@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.0...frontend-v0.8.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* Keep Home Hero Logo Light in Both Themes ([#130](https://github.com/MercuriusAalst/lan-party-frontend/issues/130)) ([414fcfe](https://github.com/MercuriusAalst/lan-party-frontend/commit/414fcfefa7805cfe2fda0906d780c430c0398814))
+* Validate LAN Account Identity And Report Pending Deletion ([#131](https://github.com/MercuriusAalst/lan-party-frontend/issues/131)) ([31a9a11](https://github.com/MercuriusAalst/lan-party-frontend/commit/31a9a11b657dffc39e5b152d92ddba8bded6766e)), closes [#129](https://github.com/MercuriusAalst/lan-party-frontend/issues/129)
+
 ## [0.8.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.7.0...frontend-v0.8.0) (2026-10-22)
 
 
