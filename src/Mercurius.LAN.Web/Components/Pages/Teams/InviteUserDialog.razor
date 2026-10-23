@@ -116,6 +116,8 @@
     private long _searchRequestVersion;
     private ElementReference _dialogElement;
     private IJSObjectReference? _focusTrap;
+    private Task<IJSObjectReference>? _focusTrapActivation;
+    private bool _isClosing;
 
     private bool CanSubmit => _selected?.UserId.HasValue == true;
     private string DisplayTeamName => string.IsNullOrWhiteSpace(TeamName) ? Localization["General.Team.ThisTeam"] : TeamName;
@@ -131,13 +133,30 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if(IsOpen && _focusTrap is null)
-        {
-            _focusTrap = await JSRuntime.InvokeAsync<IJSObjectReference>("activateTeamModalFocusTrap", _dialogElement);
-        }
+        if(IsOpen && !_isClosing && _focusTrap is null)
+            await ActivateFocusTrapAsync();
         else if(!IsOpen && _focusTrap is not null)
-        {
             await DisposeFocusTrapAsync();
+    }
+
+    private async Task ActivateFocusTrapAsync()
+    {
+        var activation = _focusTrapActivation ??= JSRuntime.InvokeAsync<IJSObjectReference>("activateTeamModalFocusTrap", _dialogElement).AsTask();
+        try
+        {
+            var focusTrap = await activation;
+            if(ReferenceEquals(_focusTrapActivation, activation))
+            {
+                _focusTrapActivation = null;
+                _focusTrap = focusTrap;
+            }
+        }
+        catch
+        {
+            if(ReferenceEquals(_focusTrapActivation, activation))
+                _focusTrapActivation = null;
+
+            throw;
         }
     }
 
@@ -219,10 +238,22 @@
 
     private async Task SubmitAsync()
     {
-        if(_selected?.UserId is not { } userId)
+        if(_isClosing || _selected?.UserId is not { } userId)
             return;
 
-        await UserSelected.InvokeAsync(new InviteUserDialogResult(userId, _selected.DisplayLabel));
+        var displayLabel = _selected.DisplayLabel;
+        _isClosing = true;
+        try
+        {
+            await DisposeFocusTrapAsync();
+            await UserSelected.InvokeAsync(new InviteUserDialogResult(userId, displayLabel));
+        }
+        finally
+        {
+            _isClosing = false;
+            if(IsOpen && _focusTrap is null)
+                await ActivateFocusTrapAsync();
+        }
     }
 
     private Task HandleKeyDown(KeyboardEventArgs args) =>
@@ -232,13 +263,31 @@
 
     private async Task CancelAsync()
     {
-        await Canceled.InvokeAsync();
+        if(_isClosing)
+            return;
+
+        _isClosing = true;
+        try
+        {
+            await DisposeFocusTrapAsync();
+            await Canceled.InvokeAsync();
+        }
+        finally
+        {
+            _isClosing = false;
+            if(IsOpen && _focusTrap is null)
+                await ActivateFocusTrapAsync();
+        }
     }
 
     private async ValueTask DisposeFocusTrapAsync()
     {
+        var activation = _focusTrapActivation;
+        _focusTrapActivation = null;
+        if(activation is not null)
+            _focusTrap = await activation;
+
         var focusTrap = _focusTrap;
-        _focusTrap = null;
         if(focusTrap is null)
             return;
 
@@ -246,9 +295,13 @@
         {
             await focusTrap.InvokeVoidAsync("dispose");
             await focusTrap.DisposeAsync();
+            if(ReferenceEquals(_focusTrap, focusTrap))
+                _focusTrap = null;
         }
         catch(JSDisconnectedException)
         {
+            if(ReferenceEquals(_focusTrap, focusTrap))
+                _focusTrap = null;
         }
     }
 

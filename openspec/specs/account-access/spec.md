@@ -252,3 +252,76 @@ Identity-provider cancellation or failure MUST return to a safe public destinati
 - **WHEN** a visitor completes sign-in for a validated protected return destination
 - **THEN** the application MUST preserve the existing successful return-to-destination behavior
 
+### Requirement: Account navigation exposes only a validated LAN profile
+
+The authenticated account navigation MUST display LAN profile identity data only after a current, completed profile response has been validated for the active authenticated identity. Before validation, the navigation MUST use a neutral account state that does not expose any provider subject, nickname, username, name, or email claim.
+
+#### Scenario: Profile request is pending
+
+- **WHEN** an authenticated user's LAN profile request is still pending
+- **THEN** the account navigation MUST show the neutral account state
+- **AND** it MUST NOT show any identity value from the authentication claims
+
+#### Scenario: Completed profile is available
+
+- **WHEN** the current profile request returns a completed profile with a LAN username
+- **THEN** the account navigation MUST show that LAN username
+- **AND** it MUST show the profile picture supplied by that profile response
+
+#### Scenario: Profile is incomplete
+
+- **WHEN** the current profile request returns an incomplete profile
+- **THEN** the account navigation MUST remain neutral
+- **AND** the existing onboarding flow MUST remain available
+
+#### Scenario: Profile is missing or deleted
+
+- **WHEN** the current profile request returns not found or gone
+- **THEN** the account navigation MUST remain neutral
+- **AND** deleted-profile handling MUST retain the existing sign-out behavior
+
+#### Scenario: Profile request fails
+
+- **WHEN** the current profile request fails temporarily
+- **THEN** the account navigation MUST remain neutral
+- **AND** the failure MUST NOT expose authentication claim values or force a sign-out
+
+#### Scenario: Authenticated identity changes
+
+- **WHEN** the authenticated identity changes while a profile request is pending or complete
+- **THEN** the navigation MUST immediately discard the previous identity's username and picture
+- **AND** a response for the previous identity MUST NOT update the navigation
+
+#### Scenario: Profile notification is stale or invalid
+
+- **WHEN** a current-user profile notification completes for a superseded identity or request
+- **THEN** the navigation MUST ignore that response
+- **WHEN** a current profile notification fails or returns an incomplete profile
+- **THEN** the navigation MUST clear previously displayed profile data
+
+### Requirement: Successful account deletion is confirmed after logout
+
+When authenticated account deletion succeeds, the application MUST end the local authenticated session, return to a safe public destination, and show the localized neutral message "Your account has been deleted." regardless of any cleanup state supplied by the backend. The message MUST NOT mention a provider, queue, pending state, or LAN profile. After showing the message, the application MUST remove the handled deletion status from the address.
+
+#### Scenario: Account deletion succeeds with pending cleanup
+
+- **WHEN** the current-user deletion response indicates pending provider cleanup
+- **THEN** the application MUST end the authenticated session through the existing logout flow
+- **THEN** it MUST return to a safe public destination with the deleted-account status
+- **THEN** it MUST show "Your account has been deleted." after logout
+- **THEN** it MUST remove the handled status query without disturbing unrelated query parameters
+
+#### Scenario: Account deletion succeeds with completed or legacy cleanup
+
+- **WHEN** the current-user deletion response reports completed cleanup or omits the optional cleanup state
+- **THEN** the application MUST end the authenticated session through the existing logout flow
+- **THEN** it MUST return to a safe public destination with the deleted-account status
+- **THEN** it MUST show the same "Your account has been deleted." message
+- **THEN** it MUST remove the handled status query without disturbing unrelated query parameters
+
+#### Scenario: Post-logout return target is unsafe
+
+- **WHEN** a deletion return target is not a safe public local destination
+- **THEN** the existing logout protection MUST redirect to the public home page
+- **AND** no protected destination or external URL MUST be replayed
+

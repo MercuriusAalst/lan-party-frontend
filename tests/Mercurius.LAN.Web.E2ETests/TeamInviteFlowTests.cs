@@ -113,6 +113,7 @@ public sealed class TeamInviteFlowTests : E2ETestBase
         await page.ClickWhenInteractiveAsync(dialog.GetByRole(AriaRole.Button, new() { Name = "Send invite", Exact = true }));
 
         await Expect(page.GetByText(TeamE2E.GenericActionFailure)).ToBeVisibleAsync();
+        Assert.False(await page.Locator("#team-workspace").EvaluateAsync<bool>("element => element.hasAttribute('inert')"));
         await page.ClickWhenInteractiveAsync(TeamE2E.TeamToolsTab(page));
         await Expect(TeamE2E.SentInvites(page)).ToHaveCountAsync(1);
     }
@@ -337,6 +338,7 @@ public sealed class TeamInviteFlowTests : E2ETestBase
 
         await page.ClickWhenInteractiveAsync(dialog.GetByRole(AriaRole.Button, new() { Name = "Cancel", Exact = true }));
         await Expect(dialog).Not.ToBeVisibleAsync();
+        Assert.False(await page.Locator("#team-workspace").EvaluateAsync<bool>("element => element.hasAttribute('inert')"));
 
         await page.ClickWhenInteractiveAsync(TeamE2E.TeamToolsTab(page));
         await Expect(page.GetByText("No pending invites.")).ToBeVisibleAsync();

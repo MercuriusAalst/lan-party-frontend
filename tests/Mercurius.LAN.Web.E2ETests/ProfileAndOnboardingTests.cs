@@ -1,5 +1,7 @@
-using System.Text.RegularExpressions;
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
+using Mercurius.LAN.Web.DTOs.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 using Xunit;
@@ -348,6 +350,7 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
     public async Task DeleteAccountAnonymizesTheProfileAndEndsTheSession()
     {
         var member = await app.CreatePersonaAsync("profile-delete");
+        using var staleMemberApi = app.CreateApiClient(member);
 
         await using var context = await app.NewAuthenticatedContextAsync(member);
         var page = await context.NewPageAsync();
@@ -357,11 +360,39 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
         await page.Locator("#deleteConfirm").PressAsync("Tab");
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Delete account" }));
 
+        await Expect(page.GetByText("Your account has been deleted.")).ToBeVisibleAsync();
+        await Expect(page.GetByText("Your account has been deleted.")).ToHaveCountAsync(1);
+        await Expect(page.GetByText(
+            "Your LAN profile has been removed. Login cleanup has been queued. You are signed out."))
+            .ToHaveCountAsync(0);
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+        await Expect(page.GetByText(member.Username)).ToHaveCountAsync(0);
+        await Expect(page.Locator($"button[aria-label*='{member.Username}']")).ToHaveCountAsync(0);
+        await Expect(page.Locator("#username")).ToHaveCountAsync(0);
+        Assert.DoesNotContain("accountDeletion", page.Url, StringComparison.OrdinalIgnoreCase);
+
+        using(var staleProfile = await staleMemberApi.GetAsync("v1/lan/users/me"))
+            Assert.Equal(HttpStatusCode.Gone, staleProfile.StatusCode);
+
+        using var staleUpdateRequest = new HttpRequestMessage(HttpMethod.Put, "v1/lan/users/me")
+        {
+            Content = JsonContent.Create(new
+            {
+                username = member.Username,
+                firstname = "Stale",
+                lastname = "Replay"
+            })
+        };
+        using(var staleUpdate = await staleMemberApi.SendAsync(staleUpdateRequest))
+        {
+            Assert.True(
+                staleUpdate.StatusCode is HttpStatusCode.Gone or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden,
+                $"Expected the deleted account replay to be rejected, but received {(int)staleUpdate.StatusCode}.");
+        }
 
         await using (var db = app.CreateDbContext())
         {
-            var user = await db.Users.AsNoTracking().SingleAsync(candidate => candidate.Auth0UserId == member.Subject);
+            var user = await db.Users.AsNoTracking().SingleAsync(candidate => candidate.Id == member.UserId!.Value);
             Assert.True(user.IsDeleted);
             Assert.NotNull(user.DeletedAtUtc);
             Assert.Null(user.Firstname);
@@ -369,15 +400,6 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
             Assert.Null(user.Email);
             Assert.StartsWith("deleted-user-", user.Username);
         }
-
-        // Signing the anonymized identity back in must not resurrect a usable profile: the API
-        // reports the account as gone and the app drops the session instead of showing /profile.
-        await page.GotoAsync($"{app.BaseUrl}");
-        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Log in" }));
-        await app.SelectPersonaAsync(page, member);
-
-        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
-        Assert.DoesNotContain("/profile", page.Url, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -372,6 +372,25 @@ public sealed class ProfilePictureBehaviorTests
         Assert.Equal(0, userClient.DeleteCalls);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SuccessfulAccountDeletionAlwaysRedirectsThroughLogoutToThePostRedirectStatus(bool deletionPending)
+    {
+        var page = CreateProfile(out var userClient, out _);
+        SetProfileField(page, "_originalUsername", "mockuser");
+        SetProfileField(page, "_deleteConfirmation", "mockuser");
+        userClient.DeleteResponse = new UserActionResponse("Account cleanup queued.", DeletionPending: deletionPending);
+
+        await InvokeProfileTaskAsync(page, "DeleteAccountAsync");
+
+        var navigation = ReadProfileProperty<RecordingNavigationManager>(page, "NavigationManager");
+        Assert.Equal(
+            "/account/logout?returnUrl=%2F%3FaccountDeletion%3Ddeleted",
+            Assert.Single(navigation.Navigations).Uri);
+        Assert.True(navigation.Navigations[0].ForceLoad);
+    }
+
     [Fact]
     public async Task PictureUploadIsIgnoredWhileProfileSaveIsPending()
     {
@@ -518,6 +537,13 @@ public sealed class ProfilePictureBehaviorTests
         return (T)field.GetValue(page)!;
     }
 
+    private static T ReadProfileProperty<T>(Profile page, string name)
+    {
+        var property = typeof(Profile).GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMemberException(typeof(Profile).FullName, name);
+        return (T)property.GetValue(page)!;
+    }
+
     private static string ReadRepositoryFile(string relativePath)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -591,6 +617,7 @@ public sealed class ProfilePictureBehaviorTests
         public int RemoveCalls { get; private set; }
         public int UpdateCalls { get; private set; }
         public int DeleteCalls { get; private set; }
+        public UserActionResponse DeleteResponse { get; set; } = new("deleted");
         public CancellationToken UploadCancellationToken { get; private set; }
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
@@ -630,7 +657,7 @@ public sealed class ProfilePictureBehaviorTests
         private object Delete()
         {
             DeleteCalls++;
-            return Task.FromResult(new UserActionResponse("deleted"));
+            return Task.FromResult(DeleteResponse);
         }
     }
 
@@ -649,14 +676,15 @@ public sealed class ProfilePictureBehaviorTests
 
     private sealed class RecordingNavigationManager : NavigationManager
     {
+        public List<(string Uri, bool ForceLoad)> Navigations { get; } = [];
+
         public RecordingNavigationManager()
         {
             Initialize("https://example.test/", "https://example.test/profile");
         }
 
-        protected override void NavigateToCore(string uri, NavigationOptions options)
-        {
-        }
+        protected override void NavigateToCore(string uri, NavigationOptions options) =>
+            Navigations.Add((uri, options.ForceLoad));
     }
 
     public class RecordingToastServiceProxy : DispatchProxy

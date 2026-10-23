@@ -12,6 +12,9 @@ namespace Mercurius.LAN.Web.E2ETests;
 
 public sealed class PlaywrightE2EFixture : IAsyncLifetime
 {
+    // Deterministic AES-256 key for isolated test data only.
+    private const string AccountCleanupEncryptionKey = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
+
     private readonly List<ContextArtifacts> _contexts = [];
     private readonly ConcurrentBag<HttpClient> _createdApiClients = new();
     private string _frontendRoot = string.Empty;
@@ -73,6 +76,7 @@ public sealed class PlaywrightE2EFixture : IAsyncLifetime
                 ["Mercurius.LAN.API_Auth0__ManagementAudience"] = new Uri(_oidc.Issuer, "api/v2/").ToString(),
                 ["Mercurius.LAN.API_Auth0__ManagementClientId"] = LocalOidcServer.ManagementClientId,
                 ["Mercurius.LAN.API_Auth0__ManagementClientSecret"] = LocalOidcServer.ManagementClientSecret,
+                ["Mercurius.LAN.API_Auth0__AccountCleanupEncryptionKey"] = AccountCleanupEncryptionKey,
                 ["Mercurius.LAN.API_Auth0__DatabaseConnection"] = LocalOidcServer.DatabaseConnection,
                 ["Mercurius.LAN.API_Auth0__PasswordResetClientId"] = LocalOidcServer.ClientId,
                 ["Mercurius.LAN.API_Logging__EventLog__LogLevel__Default"] = "None",
@@ -291,9 +295,12 @@ public sealed class PlaywrightE2EFixture : IAsyncLifetime
         // Reaching the app origin alone is not enough: the OIDC callback itself is served from
         // this origin before it redirects to the requested page. Wait for the authenticated UI
         // as well so callers cannot interrupt the callback while its cookie is being issued.
+        var accountMenuName = persona.UserId is null
+            ? "Account account menu"
+            : $"{persona.Username} account menu";
         await Assertions.Expect(page.GetByRole(AriaRole.Button, new()
         {
-            Name = $"{persona.Username} account menu",
+            Name = accountMenuName,
             Exact = true
         })).ToBeVisibleAsync();
     }

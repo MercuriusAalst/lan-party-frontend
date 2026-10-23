@@ -402,7 +402,8 @@ public partial class Profile : IDisposable
         try
         {
             await UserClient.DeleteCurrentUserAsync();
-            NavigationManager.NavigateTo("/account/logout", true);
+            var returnUrl = Uri.EscapeDataString("/?accountDeletion=deleted");
+            NavigationManager.NavigateTo($"/account/logout?returnUrl={returnUrl}", true);
         }
         catch(ApiException exception)
         {

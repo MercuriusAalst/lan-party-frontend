@@ -3042,7 +3042,7 @@ internal sealed class MockBackendStore
                     user.IsDeleted = true;
             }
 
-            return new UserActionResponse("Mock account deleted.");
+            return new UserActionResponse("Mock account deleted.", DeletionPending: false);
         }
     }
 
