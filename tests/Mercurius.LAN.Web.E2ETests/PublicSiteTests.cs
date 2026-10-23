@@ -328,6 +328,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1440, 900);
         await page.GotoAsync($"{app.BaseUrl}sponsors");
 
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Why sponsors matter to the event" })).ToBeVisibleAsync();
@@ -361,6 +362,11 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             $"Missing tier heading. Rendered: {string.Join(" | ", tierHeadings)}"));
         Assert.True(positions.SequenceEqual(positions.OrderBy(position => position)),
             $"Tier sections rendered out of order: {string.Join(" | ", tierHeadings)}");
+
+        await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Link, new() { Name = "Become a Sponsor" }).First);
+        await Expect(page).ToHaveURLAsync(new Regex("/info#contact-info$"), new() { Timeout = 15000 });
+        var populatedContactForm = page.Locator("#contact-info .info-contact-form");
+        await Expect(populatedContactForm).ToBeInViewportAsync(new() { Timeout = 15000 });
     }
 
     [Fact]
@@ -899,6 +905,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         // Per-test isolation truncates every table before this test, so there are no sponsors yet.
         await using var context = await app.NewContextAsync();
         var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(390, 844);
         await page.GotoAsync($"{app.BaseUrl}sponsors");
 
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "We are currently shaping the partner lineup." }))
@@ -912,7 +919,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         // The empty state routes visitors to the two sensible next steps.
         var emptyActions = page.Locator(".sponsors-empty-actions");
         await Expect(emptyActions.GetByRole(AriaRole.Link, new() { Name = "Become a Sponsor" }))
-            .ToHaveAttributeAsync("href", "/#contact");
+            .ToHaveAttributeAsync("href", "/info#contact-info");
         await Expect(emptyActions.GetByRole(AriaRole.Link, new() { Name = "View Event Info" }))
             .ToHaveAttributeAsync("href", "/info");
 
@@ -926,6 +933,11 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "We are currently shaping the partner lineup." }))
             .ToBeVisibleAsync();
         await Expect(page.Locator("#current-partners .sponsor-card")).ToHaveCountAsync(0);
+
+        await page.ClickWhenInteractiveAsync(emptyActions.GetByRole(AriaRole.Link, new() { Name = "Become a Sponsor" }));
+        await Expect(page).ToHaveURLAsync(new Regex("/info#contact-info$"), new() { Timeout = 15000 });
+        var emptyStateContactForm = page.Locator("#contact-info .info-contact-form");
+        await Expect(emptyStateContactForm).ToBeInViewportAsync(new() { Timeout = 15000 });
     }
 
     [Fact]
