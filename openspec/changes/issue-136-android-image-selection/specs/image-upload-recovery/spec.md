@@ -18,4 +18,3 @@ The profile picture, create-team logo, manage-team logo and shared image pickers
 - **THEN** the earlier selection MUST NOT remain pending or uploadable
 - **AND** the user MUST see the replacement failure
 - **AND** only a later successfully read replacement MAY be uploaded
-
