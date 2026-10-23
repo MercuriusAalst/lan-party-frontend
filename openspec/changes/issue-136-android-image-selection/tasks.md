@@ -4,14 +4,14 @@
 
 ## 2. Recovery
 
-- [ ] Add behavioral tests for interrupted profile, team and shared image reads and successful retry.
-- [ ] Return all image pickers to a usable state after a recoverable read failure without retaining stale pending bytes.
-- [ ] Run the focused recovery tests and a Release build.
+- [x] Add behavioral tests for interrupted profile, team and shared image reads and successful retry.
+- [x] Return all image pickers to a usable state after a recoverable read failure without retaining stale pending bytes.
+- [x] Run the focused recovery tests and a Release build.
 
 ## 3. Diagnostics
 
-- [ ] Add the disabled-by-default browser diagnostic switch and component stage logging.
-- [ ] Add the focused JavaScript self-check and validate the diagnostics artifacts.
+- [x] Add the disabled-by-default browser diagnostic switch and component stage logging.
+- [x] Add the focused JavaScript self-check and validate the diagnostics artifacts.
 
 ## 4. Device Evidence
 

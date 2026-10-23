@@ -206,3 +206,59 @@ function activateTeamModalFocusTrap(dialog) {
         }
     };
 }
+
+(() => {
+    const key = 'lanParty.imageSelectionDiagnostics';
+    if (window.__imageSelectionDiagnosticsInitialized) return;
+    window.__imageSelectionDiagnosticsInitialized = true;
+
+    try {
+        if (sessionStorage.getItem(key) !== '1') return;
+    } catch {
+        return;
+    }
+
+    const log = (stage, details = {}) => console.debug('[image-selection]', new Date().toISOString(), stage, details);
+    const fileSummary = input => Array.from(input.files || [], file => ({ type: file.type, size: file.size }));
+    const handleInputEvent = event => {
+        const input = event.target;
+        if (input?.tagName !== 'INPUT' || input.type !== 'file') return;
+        const control = { disabled: input.disabled, connected: input.isConnected };
+        if (event.type === 'click') log('native-click', { ...control, selectedCount: input.files?.length || 0 });
+        else log(`native-${event.type}`, { ...control, files: fileSummary(input) });
+    };
+
+    document.addEventListener('click', handleInputEvent, true);
+    document.addEventListener('change', handleInputEvent, true);
+    document.addEventListener('cancel', handleInputEvent, true);
+    document.addEventListener('visibilitychange', () => log('visibility', { state: document.visibilityState }));
+    document.addEventListener('components-reconnect-state-changed', event => log('reconnect-state', { state: event.detail?.state }), true);
+    for (const eventName of ['pageshow', 'pagehide', 'freeze', 'resume', 'online', 'offline']) {
+        window.addEventListener(eventName, () => log(eventName));
+    }
+
+    const selector = '#components-reconnect-modal, #blazor-error-ui, .blazor-error-boundary';
+    const lastStates = new Map();
+    const reportReconnectState = () => {
+        const elements = document.querySelectorAll(selector);
+        const state = elements.length
+            ? Array.from(elements, element => ({
+                selector: element.id ? `#${element.id}` : `.${Array.from(element.classList).join('.')}`,
+                className: element.className,
+                visible: !element.hidden && element.getAttribute('aria-hidden') !== 'true' && element.getClientRects().length > 0
+            }))
+            : [];
+        const signature = JSON.stringify(state);
+        if (lastStates.get(selector) === signature) return;
+        lastStates.set(selector, signature);
+        log('reconnect-error-dom', { state });
+    };
+
+    new MutationObserver(reportReconnectState).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['aria-hidden', 'class', 'hidden', 'style'],
+        childList: true,
+        subtree: true
+    });
+    reportReconnectState();
+})();
