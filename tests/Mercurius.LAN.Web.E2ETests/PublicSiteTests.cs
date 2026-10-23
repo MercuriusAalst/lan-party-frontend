@@ -608,6 +608,8 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         var panel = page.Locator("#primary-navigation");
         await page.ClickWhenInteractiveAsync(navToggle);
         await Expect(panel).ToHaveClassAsync(new Regex(@"\bopen\b"));
+        await Expect(panel.Locator(".brand-nav-shell"))
+            .ToHaveCSSAsync("transform", "matrix(1, 0, 0, 1, 0, 0)");
 
         var infoTrigger = page.GetByRole(AriaRole.Button, new() { Name = "Info", Exact = true });
         var infoDropdown = page.Locator(".info-dropdown");

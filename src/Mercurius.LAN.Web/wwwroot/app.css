@@ -1306,14 +1306,6 @@ select:-webkit-autofill:focus {
     border-color: color-mix(in srgb, var(--color-danger) 36%, transparent);
 }
 
-.home-hero-wordmark {
-    content: url("/img/lan_logo_wide_dark.svg");
-}
-
-html[data-theme="dark"] .home-hero-wordmark {
-    content: url("/img/lan_logo_wide_light.svg");
-}
-
 #contact.home-contact {
     background: var(--color-surface);
     color: var(--color-ink);
