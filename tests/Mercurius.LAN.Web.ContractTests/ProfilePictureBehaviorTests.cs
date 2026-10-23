@@ -372,35 +372,22 @@ public sealed class ProfilePictureBehaviorTests
         Assert.Equal(0, userClient.DeleteCalls);
     }
 
-    [Fact]
-    public async Task PendingAccountDeletionRedirectsThroughLogoutToThePostRedirectStatus()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SuccessfulAccountDeletionAlwaysRedirectsThroughLogoutToThePostRedirectStatus(bool deletionPending)
     {
         var page = CreateProfile(out var userClient, out _);
         SetProfileField(page, "_originalUsername", "mockuser");
         SetProfileField(page, "_deleteConfirmation", "mockuser");
-        userClient.DeleteResponse = new UserActionResponse("Account cleanup queued.", DeletionPending: true);
+        userClient.DeleteResponse = new UserActionResponse("Account cleanup queued.", DeletionPending: deletionPending);
 
         await InvokeProfileTaskAsync(page, "DeleteAccountAsync");
 
         var navigation = ReadProfileProperty<RecordingNavigationManager>(page, "NavigationManager");
         Assert.Equal(
-            "/account/logout?returnUrl=%2F%3FaccountDeletion%3Dpending",
+            "/account/logout?returnUrl=%2F%3FaccountDeletion%3Ddeleted",
             Assert.Single(navigation.Navigations).Uri);
-        Assert.True(navigation.Navigations[0].ForceLoad);
-    }
-
-    [Fact]
-    public async Task CompletedAccountDeletionKeepsTheExistingLogoutRedirect()
-    {
-        var page = CreateProfile(out var userClient, out _);
-        SetProfileField(page, "_originalUsername", "mockuser");
-        SetProfileField(page, "_deleteConfirmation", "mockuser");
-        userClient.DeleteResponse = new UserActionResponse("Account deleted.");
-
-        await InvokeProfileTaskAsync(page, "DeleteAccountAsync");
-
-        var navigation = ReadProfileProperty<RecordingNavigationManager>(page, "NavigationManager");
-        Assert.Equal("/account/logout", Assert.Single(navigation.Navigations).Uri);
         Assert.True(navigation.Navigations[0].ForceLoad);
     }
 

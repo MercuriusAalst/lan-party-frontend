@@ -28,10 +28,10 @@ public sealed class AccountDeletionBehaviorTests
     }
 
     [Fact]
-    public void PendingDeletionShowsOnePostLogoutMessageAndRemovesItsQuery()
+    public void SuccessfulDeletionShowsOnePostLogoutMessageAndRemovesItsQuery()
     {
         var navigation = new RecordingNavigationManager(
-            "https://example.test/?campaign=lan&accountDeletion=pending#account");
+            "https://example.test/?campaign=lan&accountDeletion=deleted#account");
         var toast = DispatchProxy.Create<IToastService, RecordingToastProxy>();
         var component = new TestAuthStatusToast();
         SetProperty(component, "Localization", TestLocalizationService.Instance);
@@ -42,9 +42,21 @@ public sealed class AccountDeletionBehaviorTests
         component.HandleStatus();
 
         var proxy = (RecordingToastProxy)(object)toast;
-        Assert.Equal("auth.accountDeletionPending", Assert.Single(proxy.InfoMessages));
+        Assert.Equal("auth.accountDeleted", Assert.Single(proxy.InfoMessages));
         Assert.Empty(proxy.ErrorMessages);
         Assert.Equal("https://example.test/?campaign=lan#account", Assert.Single(navigation.Navigations));
+    }
+
+    [Theory]
+    [InlineData("translations.en-US.json", "Your account has been deleted.")]
+    [InlineData("translations.nl-BE.json", "Je account is verwijderd.")]
+    public void AccountDeletionConfirmationIsNeutral(string fileName, string expected)
+    {
+        using var resources = JsonDocument.Parse(
+            ReadRepositoryFile($"src/Mercurius.LAN.Web/wwwroot/locales/{fileName}"));
+
+        Assert.Equal(expected, resources.RootElement.GetProperty("auth.accountDeleted").GetString());
+        Assert.False(resources.RootElement.TryGetProperty("auth.accountDeletionPending", out _));
     }
 
     [Theory]
@@ -87,6 +99,21 @@ public sealed class AccountDeletionBehaviorTests
     private sealed class TestAuthStatusToast : AuthStatusToast
     {
         public void HandleStatus() => base.OnAfterRender(firstRender: false);
+    }
+
+    private static string ReadRepositoryFile(string relativePath)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while(directory is not null)
+        {
+            var repositoryPath = Path.Combine(directory.FullName, relativePath);
+            if(File.Exists(repositoryPath))
+                return File.ReadAllText(repositoryPath);
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException($"Could not locate repository file '{relativePath}'.");
     }
 
     private class RecordingToastProxy : DispatchProxy

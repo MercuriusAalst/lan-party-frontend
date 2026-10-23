@@ -11,7 +11,7 @@
         var accountDeletionStatus = GetAccountDeletionStatus();
         var handledLogin = !string.IsNullOrWhiteSpace(loginStatus) &&
                            !string.Equals(loginStatus, _lastHandledLoginStatus, StringComparison.OrdinalIgnoreCase);
-        var handledDeletion = string.Equals(accountDeletionStatus, "pending", StringComparison.OrdinalIgnoreCase) &&
+        var handledDeletion = string.Equals(accountDeletionStatus, "deleted", StringComparison.OrdinalIgnoreCase) &&
                               !string.Equals(accountDeletionStatus, _lastHandledDeletionStatus, StringComparison.OrdinalIgnoreCase);
         if(!handledLogin && !handledDeletion)
             return;
@@ -34,7 +34,7 @@
         if(handledDeletion)
         {
             _lastHandledDeletionStatus = accountDeletionStatus;
-            ToastService.ShowInfo(Localization["auth.accountDeletionPending"]);
+            ToastService.ShowInfo(Localization["auth.accountDeleted"]);
         }
 
         var cleanUri = RemoveHandledStatusQueryParameters();

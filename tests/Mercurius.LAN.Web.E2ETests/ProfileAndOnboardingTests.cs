@@ -349,11 +349,6 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
     [Fact]
     public async Task DeleteAccountAnonymizesTheProfileAndEndsTheSession()
     {
-        var probe = await app.CreatePersonaAsync("profile-delete-pending-probe");
-        using var probeApi = app.CreateApiClient(probe);
-        using var probeDelete = await probeApi.DeleteAsync("v1/lan/users/me");
-        var probeResponse = await probeDelete.Content.ReadFromJsonAsync<UserActionResponse>();
-        var pendingDeletion = probeResponse?.DeletionPending == true;
         var member = await app.CreatePersonaAsync("profile-delete");
         using var staleMemberApi = app.CreateApiClient(member);
 
@@ -365,13 +360,15 @@ public class ProfileAndOnboardingTests(PlaywrightE2EFixture app) : E2ETestBase(a
         await page.Locator("#deleteConfirm").PressAsync("Tab");
         await page.ClickWhenInteractiveAsync(page.GetByRole(AriaRole.Button, new() { Name = "Delete account" }));
 
-        var pendingMessage = page.GetByText(
-            "Your LAN profile has been removed. Login cleanup has been queued. You are signed out.");
-        if(pendingDeletion)
-            await Expect(pendingMessage).ToBeVisibleAsync();
-        else
-            await Expect(pendingMessage).ToHaveCountAsync(0);
+        await Expect(page.GetByText("Your account has been deleted.")).ToBeVisibleAsync();
+        await Expect(page.GetByText("Your account has been deleted.")).ToHaveCountAsync(1);
+        await Expect(page.GetByText(
+            "Your LAN profile has been removed. Login cleanup has been queued. You are signed out."))
+            .ToHaveCountAsync(0);
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+        await Expect(page.GetByText(member.Username)).ToHaveCountAsync(0);
+        await Expect(page.Locator($"button[aria-label*='{member.Username}']")).ToHaveCountAsync(0);
+        await Expect(page.Locator("#username")).ToHaveCountAsync(0);
         Assert.DoesNotContain("accountDeletion", page.Url, StringComparison.OrdinalIgnoreCase);
 
         using(var staleProfile = await staleMemberApi.GetAsync("v1/lan/users/me"))

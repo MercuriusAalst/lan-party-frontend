@@ -114,7 +114,7 @@
   "auth.loginCancelled": "Login was cancelled.",
   "auth.registrationFailed": "Registration failed. Please try again.",
   "auth.loginFailed": "Login failed. Please try again.",
-  "auth.accountDeletionPending": "Your LAN profile has been removed. Login cleanup has been queued. You are signed out.",
+  "auth.accountDeleted": "Your account has been deleted.",
   "search.users": "Users",
   "search.teams": "Teams",
   "search.tournaments": "Tournaments",

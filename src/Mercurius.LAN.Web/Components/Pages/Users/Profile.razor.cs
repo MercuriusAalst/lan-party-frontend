@@ -401,11 +401,9 @@ public partial class Profile : IDisposable
         _isDeleting = true;
         try
         {
-            var response = await UserClient.DeleteCurrentUserAsync();
-            var logoutUrl = response.DeletionPending
-                ? $"/account/logout?returnUrl={Uri.EscapeDataString("/?accountDeletion=pending")}"
-                : "/account/logout";
-            NavigationManager.NavigateTo(logoutUrl, true);
+            await UserClient.DeleteCurrentUserAsync();
+            var returnUrl = Uri.EscapeDataString("/?accountDeletion=deleted");
+            NavigationManager.NavigateTo($"/account/logout?returnUrl={returnUrl}", true);
         }
         catch(ApiException exception)
         {
