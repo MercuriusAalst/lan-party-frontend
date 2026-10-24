@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.2...frontend-v0.8.3) (2026-10-24)
+
+
+### Bug Fixes
+
+* Correct Info Navigation And Ticket Guidance ([#141](https://github.com/MercuriusAalst/lan-party-frontend/issues/141)) ([c606251](https://github.com/MercuriusAalst/lan-party-frontend/commit/c606251c73a6891f2b22bb46673e3c69719c1ecb))
+
 ## [0.8.2](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.1...frontend-v0.8.2) (2026-10-24)
 
 
