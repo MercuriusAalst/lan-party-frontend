@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.2](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.1...frontend-v0.8.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* Recover Image Selection Failures ([#138](https://github.com/MercuriusAalst/lan-party-frontend/issues/138)) ([11036ba](https://github.com/MercuriusAalst/lan-party-frontend/commit/11036babfa181b156f68e79bc44b07ab89db7968))
+* Restore Tournament Panel Scroll Chaining ([#137](https://github.com/MercuriusAalst/lan-party-frontend/issues/137)) ([198f664](https://github.com/MercuriusAalst/lan-party-frontend/commit/198f6640c84d8c9751730078beb9e9fa870d19fa))
+* Route Sponsor Inquiries to Contact Form ([#134](https://github.com/MercuriusAalst/lan-party-frontend/issues/134)) ([1f82a8f](https://github.com/MercuriusAalst/lan-party-frontend/commit/1f82a8fdbb9fddb217c148000d62e6814a1e7fb8))
+
 ## [0.8.1](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.0...frontend-v0.8.1) (2026-10-23)
 
 
