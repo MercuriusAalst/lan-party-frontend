@@ -69,7 +69,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
 
         await page.GotoAsync($"{app.BaseUrl}info");
 
-        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Everything for Mercurius LAN" })).ToBeVisibleAsync();
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "All information for the LAN" })).ToBeVisibleAsync();
         await Expect(page.GetByText("Gamer passes from 10 EUR")).ToBeVisibleAsync();
 
         await Expect(page.Locator("#packing")).ToBeVisibleAsync();
@@ -86,6 +86,79 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(page.Locator("#contact-info")).ToBeVisibleAsync();
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Contact us" })).ToBeVisibleAsync();
         await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Join the Mercurius Aalst Discord server" })).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task InfoNavigationAndTicketGuidanceStayCurrentAcrossLocalesAndViewports()
+    {
+        await using var context = await app.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        foreach (var (language, heading, guidance) in new[]
+        {
+            ("en-US", "All information for the LAN", "Tickets can be purchased via Google Forms or directly at the venue."),
+            ("nl-BE", "Alle informatie over de LAN", "Tickets zijn verkrijgbaar via Google Forms of ter plaatse.")
+        })
+        {
+            await page.SetViewportSizeAsync(1440, 900);
+            await page.GotoAsync($"{app.BaseUrl}");
+            await page.WaitForInteractiveAsync();
+            await page.SelectOptionAsync("#footer-language-select", language);
+            await Expect(page.GetByRole(AriaRole.Button, new() { Name = language == "en-US" ? "Log in" : "Inloggen" }))
+                .ToBeVisibleAsync();
+
+            foreach (var (width, height) in new[] { (1440, 900), (390, 844) })
+            {
+                await page.SetViewportSizeAsync(width, height);
+                await page.GotoAsync($"{app.BaseUrl}info");
+                await Expect(page.GetByRole(AriaRole.Heading, new() { Name = heading })).ToBeVisibleAsync();
+                await Expect(page.GetByText(guidance)).ToBeVisibleAsync();
+                await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Google Forms" }))
+                    .ToHaveAttributeAsync("href", "https://forms.gle/B6Jwgbb51KU2Hmds6");
+                Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth"),
+                    $"Info page overflowed at {width}px ({language}).");
+
+                await page.EvaluateAsync("window.__issue140DocumentId = Math.random()");
+                var documentId = await page.EvaluateAsync<double>("window.__issue140DocumentId");
+                var navToggle = page.Locator(".menu-toggle");
+                if (width < 1400)
+                    await page.ClickWhenInteractiveAsync(navToggle);
+
+                var infoTrigger = page.Locator(".info-nav-button");
+                await Expect(infoTrigger).ToHaveClassAsync(new Regex(@"\bbrand-nav-link--active\b"));
+                await page.ClickWhenInteractiveAsync(infoTrigger);
+                await Expect(page.Locator(".info-dropdown")).ToBeVisibleAsync();
+                await page.ClickWhenInteractiveAsync(page.Locator("#primary-navigation a[href='/']"));
+                await Expect(page).ToHaveURLAsync(new Regex("/$"));
+                await Expect(page.Locator(".info-dropdown")).ToHaveCountAsync(0);
+                await Expect(infoTrigger).Not.ToHaveClassAsync(new Regex(@"\bbrand-nav-link--active\b"));
+                await Expect(page.Locator("#primary-navigation a[href='/']"))
+                    .ToHaveClassAsync(new Regex(@"\bbrand-nav-link--active\b"));
+
+                if (width < 1400)
+                    await page.ClickWhenInteractiveAsync(navToggle);
+                await page.ClickWhenInteractiveAsync(infoTrigger);
+                await page.ClickWhenInteractiveAsync(page.Locator(".info-dropdown a[href='/info']"));
+                await Expect(page).ToHaveURLAsync(new Regex("/info$"));
+                await Expect(infoTrigger).ToHaveClassAsync(new Regex(@"\bbrand-nav-link--active\b"));
+                if (width < 1400)
+                    await page.ClickWhenInteractiveAsync(navToggle);
+                await page.ClickWhenInteractiveAsync(infoTrigger);
+                await page.ClickWhenInteractiveAsync(page.Locator(".info-dropdown a[href='/info#tickets']"));
+                await Expect(page).ToHaveURLAsync(new Regex("/info#tickets$"));
+                await Expect(infoTrigger).ToHaveClassAsync(new Regex(@"\bbrand-nav-link--active\b"));
+                await Expect(page.Locator(".info-dropdown")).ToHaveCountAsync(0);
+
+                if (width < 1400)
+                    await page.ClickWhenInteractiveAsync(navToggle);
+                await page.ClickWhenInteractiveAsync(page.Locator("#primary-navigation a[href='/tournaments']"));
+                await Expect(page).ToHaveURLAsync(new Regex("/tournaments$"));
+                await Expect(infoTrigger).Not.ToHaveClassAsync(new Regex(@"\bbrand-nav-link--active\b"));
+                await Expect(page.Locator("#primary-navigation a[href='/tournaments']"))
+                    .ToHaveClassAsync(new Regex(@"\bbrand-nav-link--active\b"));
+                Assert.Equal(documentId, await page.EvaluateAsync<double>("window.__issue140DocumentId"));
+            }
+        }
     }
 
     [Fact]
