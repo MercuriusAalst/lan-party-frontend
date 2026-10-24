@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 #endif
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using System.Security.Claims;
@@ -121,9 +122,22 @@ public partial class NavMenu : IAsyncDisposable
 
     protected override void OnInitialized()
     {
+        NavigationManager.LocationChanged += HandleLocationChanged;
         NotificationService.Changed += HandleNotificationsChangedAsync;
         TeamRealtimeService.TeamStateInvalidated += RefreshNotificationsFromSignalAsync;
         CurrentUserProfileNotifier.Changed += HandleCurrentUserProfileChangedAsync;
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _ = InvokeAsync(() =>
+        {
+            if(_disposed)
+                return;
+
+            _isInfoMenuVisible = false;
+            StateHasChanged();
+        });
     }
 
     protected override async Task OnParametersSetAsync()
@@ -728,7 +742,8 @@ public partial class NavMenu : IAsyncDisposable
         return _isSearchDropdownVisible ? $"{classes} nav-search-input-shell--open" : classes;
     }
 
-    private bool IsInfoPage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("info", StringComparison.OrdinalIgnoreCase);
+    private bool IsInfoPage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
+        .Split('?', '#')[0].Equals("info", StringComparison.OrdinalIgnoreCase);
 
     private static string GetAriaExpanded(bool isExpanded) => isExpanded ? "true" : "false";
 
@@ -895,6 +910,7 @@ public partial class NavMenu : IAsyncDisposable
         NotificationService.Changed -= HandleNotificationsChangedAsync;
         TeamRealtimeService.TeamStateInvalidated -= RefreshNotificationsFromSignalAsync;
         CurrentUserProfileNotifier.Changed -= HandleCurrentUserProfileChangedAsync;
+        NavigationManager.LocationChanged -= HandleLocationChanged;
         CancelPendingSearch();
         await DisposeSearchOutsideClickListenerAsync();
         await DisposeAccountMenuOutsideClickListenerAsync();
