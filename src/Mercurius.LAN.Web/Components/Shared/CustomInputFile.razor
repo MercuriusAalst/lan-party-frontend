@@ -1,5 +1,6 @@
 ﻿@inherits InputBase<IBrowserFile>
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
 @using System.IO
 @implements IDisposable
 
@@ -13,18 +14,24 @@
                    @attributes="AdditionalAttributes" />
     </label>
     <small>@SelectedFileText</small>
+    @if(!string.IsNullOrEmpty(_readError))
+    {
+        <small class="form-text text-danger" role="alert">@_readError</small>
+    }
 </div>
 
 @code {
     [Inject]
     private IConfiguration Configuration { get; set; } = null!;
-
     [Parameter] public string LabelText { get; set; } = "";
     [Parameter] public string EmptyText { get; set; } = "";
     [Parameter] public string Accept { get; set; } = "image/png, image/jpeg, image/webp";
 
     private ValidationMessageStore? messageStore;
+    private EditContext? _messageStoreContext;
     private long _maxFileSize;
+    private string _readError = string.Empty;
+    private readonly CancellationTokenSource _lifetimeCancellation = new();
 
     // Properties voor de metadata van het tijdelijk opgeslagen bestand
     public string? TempFilePath { get; private set; }
@@ -42,9 +49,21 @@
 
     protected override void OnParametersSet()
     {
+        base.OnParametersSet();
+
         if(EditContext is not null)
         {
+            if(ReferenceEquals(EditContext, _messageStoreContext))
+                return;
+
+            messageStore?.Clear();
             messageStore = new ValidationMessageStore(EditContext);
+            _messageStoreContext = EditContext;
+        }
+        else
+        {
+            messageStore = null;
+            _messageStoreContext = null;
         }
     }
 
@@ -77,12 +96,16 @@
 
     public void Dispose()
     {
+        _lifetimeCancellation.Cancel();
         ClearTemporaryFile();
+        _lifetimeCancellation.Dispose();
     }
 
     private async Task HandleFileChange(InputFileChangeEventArgs e)
     {
         messageStore?.Clear(FieldIdentifier);
+        _readError = string.Empty;
+        EditContext?.NotifyValidationStateChanged();
         var file = e.File;
 
         ClearTemporaryFile();
@@ -90,17 +113,13 @@
 
         if(!AllowedContentTypes.Contains(file.ContentType))
         {
-            string errorMessage = Localization.Get("shared.fileTypeNotAllowed", file.ContentType);
-            messageStore?.Add(FieldIdentifier, errorMessage);
-            EditContext?.NotifyFieldChanged(FieldIdentifier);
+            ShowValidationError(Localization.Get("shared.fileTypeNotAllowed", file.ContentType));
             return;
         }
 
         if(file.Size > _maxFileSize)
         {
-            string errorMessage = Localization.Get("shared.fileSizeLimit", _maxFileSize / (1024 * 1024));
-            messageStore?.Add(FieldIdentifier, errorMessage);
-            EditContext?.NotifyFieldChanged(FieldIdentifier);
+            ShowValidationError(Localization.Get("shared.fileSizeLimit", _maxFileSize / (1024 * 1024)));
             return;
         }
 
@@ -111,7 +130,7 @@
 
             using(var fs = File.Create(TempFilePath))
             {
-                await stream.CopyToAsync(fs);
+                await stream.CopyToAsync(fs, _lifetimeCancellation.Token);
             }
 
             FileContentType = file.ContentType;
@@ -119,16 +138,35 @@
 
             CurrentValue = file;
         }
-        catch(IOException)
+        catch(Exception exception) when(exception is IOException or TimeoutException or JSException)
         {
             ClearTemporaryFile();
-            string errorMessage = Localization.Get("shared.fileSizeLimit", _maxFileSize / (1024 * 1024));
-            messageStore?.Add(FieldIdentifier, errorMessage);
+            CurrentValue = null;
+            ShowValidationError(Localization["shared.fileReadFailed"]);
+        }
+        catch(OperationCanceledException) when(!_lifetimeCancellation.IsCancellationRequested)
+        {
+            ClearTemporaryFile();
+            CurrentValue = null;
+            ShowValidationError(Localization["shared.fileReadFailed"]);
+        }
+        catch(OperationCanceledException) when(_lifetimeCancellation.IsCancellationRequested)
+        {
+            ClearTemporaryFile();
+            CurrentValue = null;
         }
         finally
         {
             EditContext?.NotifyFieldChanged(FieldIdentifier);
         }
+    }
+
+    private void ShowValidationError(string errorMessage)
+    {
+        _readError = errorMessage;
+        messageStore?.Add(FieldIdentifier, errorMessage);
+        EditContext?.NotifyFieldChanged(FieldIdentifier);
+        EditContext?.NotifyValidationStateChanged();
     }
 
     protected string GetPickerCssClass()

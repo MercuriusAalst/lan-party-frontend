@@ -5,6 +5,7 @@ using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.JSInterop;
 using Refit;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
@@ -182,6 +183,7 @@ public partial class Profile : IDisposable
 
         _isPictureSelecting = true;
         _pendingPicture = null;
+        _pictureStatusText = string.Empty;
         var file = args.File;
         if(!ProfilePictureContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
         {
@@ -206,13 +208,19 @@ public partial class Profile : IDisposable
             _pendingPicture = new ProfilePictureSelection(file.Name, file.ContentType, content);
             _pictureStatusText = Localization.Get("profile.pictureSelected", file.Name);
         }
-        catch(IOException)
+        catch(Exception exception) when(exception is IOException or TimeoutException or JSException)
         {
             _pendingPicture = null;
-            _pictureStatusText = Localization.Get("shared.fileSizeLimit", _maxPictureBytes / (1024 * 1024));
+            _pictureStatusText = Localization["shared.fileReadFailed"];
         }
         catch(OperationCanceledException) when(_lifetimeCancellation.IsCancellationRequested)
         {
+            _pendingPicture = null;
+        }
+        catch(OperationCanceledException)
+        {
+            _pendingPicture = null;
+            _pictureStatusText = Localization["shared.fileReadFailed"];
         }
         finally
         {
@@ -542,6 +550,7 @@ public partial class Profile : IDisposable
     {
         _disposed = true;
         _lifetimeCancellation.Cancel();
+        _pendingPicture = null;
         _lifetimeCancellation.Dispose();
     }
 }

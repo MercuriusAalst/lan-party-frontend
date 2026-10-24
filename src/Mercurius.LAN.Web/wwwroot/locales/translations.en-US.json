@@ -306,6 +306,7 @@
   "shared.chooseImage": "Choose image",
   "shared.fileTypeNotAllowed": "File type '{0}' is not allowed. Only PNG, JPEG, and WEBP are accepted.",
   "shared.fileSizeLimit": "File size exceeds the {0}MB limit.",
+  "shared.fileReadFailed": "The selected image could not be read. Please choose it again.",
   "status.scheduled": "Scheduled",
   "status.inProgress": "In progress",
   "status.completed": "Completed",

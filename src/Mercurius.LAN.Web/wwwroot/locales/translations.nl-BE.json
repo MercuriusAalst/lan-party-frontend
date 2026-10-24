@@ -306,6 +306,7 @@
   "shared.chooseImage": "Afbeelding kiezen",
   "shared.fileTypeNotAllowed": "Bestandstype '{0}' is niet toegestaan. Alleen PNG, JPEG en WEBP zijn toegestaan.",
   "shared.fileSizeLimit": "Bestand is groter dan de limiet van {0} MB.",
+  "shared.fileReadFailed": "De gekozen afbeelding kon niet worden gelezen. Kies de afbeelding opnieuw.",
   "status.scheduled": "Gepland",
   "status.inProgress": "Bezig",
   "status.completed": "Voltooid",

@@ -521,6 +521,7 @@ public partial class ManageTeams : IAsyncDisposable
 
     private async Task SelectLogoAsync(Guid teamId, InputFileChangeEventArgs args)
     {
+        _selectedLogos.Remove(teamId);
         var file = args.File;
         if(file.Size > MaximumLogoBytes)
         {
@@ -534,11 +535,19 @@ public partial class ManageTeams : IAsyncDisposable
             return;
         }
 
-        var buffer = new byte[file.Size];
-        await using var stream = file.OpenReadStream(MaximumLogoBytes);
-        await stream.ReadExactlyAsync(buffer);
-        var preview = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
-        _selectedLogos[teamId] = new TeamLogoSelection(file.Name, file.ContentType, buffer, preview);
+        try
+        {
+            var buffer = new byte[file.Size];
+            await using var stream = file.OpenReadStream(MaximumLogoBytes, _lifetimeCancellationTokenSource.Token);
+            await stream.ReadExactlyAsync(buffer, _lifetimeCancellationTokenSource.Token);
+            var preview = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+            _selectedLogos[teamId] = new TeamLogoSelection(file.Name, file.ContentType, buffer, preview);
+        }
+        catch(Exception exception) when(exception is IOException or TimeoutException or JSException or OperationCanceledException)
+        {
+            if(!_lifetimeCancellationTokenSource.IsCancellationRequested)
+                ShowActionToast(Localization["shared.fileReadFailed"], TeamActionSeverity.Error);
+        }
     }
 
     private async Task UploadLogoAsync(Guid teamId)
