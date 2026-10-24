@@ -14,8 +14,9 @@ The public sponsors page SHALL present a polished partner-focused intro that use
 - **AND** the intro remains consistent with the existing redesign system and shared brand/button classes
 
 #### Scenario: Visitor follows sponsor inquiry action
-- **WHEN** the visitor uses the become-a-sponsor call to action
-- **THEN** the action routes to the existing sponsorship or contact destination
+- **WHEN** the visitor uses the become-a-sponsor call to action from populated or empty sponsor content
+- **THEN** the action MUST navigate to `/info#contact-info`
+- **AND** the existing contact form MUST be in the browser viewport after navigation
 - **AND** the page does not require a new backend form, API endpoint, or sponsor data field
 
 ### Requirement: Public sponsors page explains sponsor value
