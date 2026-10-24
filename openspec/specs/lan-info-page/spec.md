@@ -182,4 +182,3 @@ complete information and SHALL explain the available ticket purchase channels.
   `https://forms.gle/B6Jwgbb51KU2Hmds6`
 - **AND** the guidance MUST remain readable without horizontal overflow at
   supported desktop and mobile widths
-

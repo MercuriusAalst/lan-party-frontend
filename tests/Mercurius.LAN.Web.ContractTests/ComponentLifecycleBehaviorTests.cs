@@ -626,6 +626,9 @@ public sealed class ComponentLifecycleBehaviorTests
 
     private sealed class TestNavMenu : NavMenu
     {
+        public TestNavMenu() =>
+            SetProperty(this, "NavigationManager", new RecordingNavigationManager("https://example.test/"));
+
         public void StartInitialization() => base.OnInitialized();
 
         public Task ApplyParametersAsync() => base.OnParametersSetAsync();

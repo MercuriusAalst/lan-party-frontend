@@ -470,6 +470,7 @@ public sealed class NavigationIdentityContractTests
         {
             _renderer.Attach(this);
             SetProperty(this, "Localization", TestLocalizationService.Instance);
+            SetProperty(this, "NavigationManager", new RecordingNavigationManager("https://example.test/"));
         }
 
         public void StartInitialization() => base.OnInitialized();
@@ -502,6 +503,15 @@ public sealed class NavigationIdentityContractTests
             _renderer.Dispose();
         }
 
+    }
+
+    private sealed class RecordingNavigationManager : NavigationManager
+    {
+        public List<string> Navigations { get; } = [];
+
+        public RecordingNavigationManager(string uri) => Initialize("https://example.test/", uri);
+
+        protected override void NavigateToCore(string uri, NavigationOptions options) => Navigations.Add(uri);
     }
 
     private class NoopNotificationService : ITeamNotificationService
