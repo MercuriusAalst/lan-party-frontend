@@ -81,7 +81,6 @@
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public EventCallback<CreateTeamDialogResult> TeamCreated { get; set; }
     [Parameter] public EventCallback Canceled { get; set; }
-    [Inject] private ILogger<CreateTeamDialog>? Logger { get; set; }
 
     private readonly CreateTeamFormModel _model = new();
     private TeamLogoSelection? _logo;
@@ -119,13 +118,11 @@
 
     private async Task SelectLogoAsync(InputFileChangeEventArgs args)
     {
-        Logger?.LogDebug("Create team logo selection callback received");
         _logo = null;
         _error = null;
         var file = args.File;
         if(file.Size > MaximumLogoBytes)
         {
-            Logger?.LogDebug("Create team logo selection rejected: size limit");
             _error = Localization["General.Team.LogoTooLarge"];
             _logo = null;
             return;
@@ -133,7 +130,6 @@
 
         if(!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
         {
-            Logger?.LogDebug("Create team logo selection rejected: content type");
             _error = Localization["General.Team.ImageFileRequired"];
             _logo = null;
             return;
@@ -145,11 +141,9 @@
             await using var stream = file.OpenReadStream(MaximumLogoBytes);
             await stream.ReadExactlyAsync(buffer);
             _logo = new TeamLogoSelection(file.Name, file.ContentType, buffer, $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}");
-            Logger?.LogDebug("Create team logo read completed");
         }
         catch(Exception exception) when(exception is IOException or TimeoutException or JSException or OperationCanceledException)
         {
-            Logger?.LogDebug("Create team logo read failed ({ExceptionType})", exception.GetType().Name);
             _error = Localization["shared.fileReadFailed"];
         }
     }

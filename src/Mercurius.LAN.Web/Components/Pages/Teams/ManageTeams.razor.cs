@@ -23,7 +23,6 @@ public partial class ManageTeams : IAsyncDisposable
     [Inject] private IToastService ToastService { get; set; } = null!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
-    [Inject] private ILogger<ManageTeams>? Logger { get; set; }
 
     [Parameter, SupplyParameterFromQuery(Name = "create")]
     public bool CreateIntent { get; set; }
@@ -522,19 +521,16 @@ public partial class ManageTeams : IAsyncDisposable
 
     private async Task SelectLogoAsync(Guid teamId, InputFileChangeEventArgs args)
     {
-        Logger?.LogDebug("Team logo selection callback received");
         _selectedLogos.Remove(teamId);
         var file = args.File;
         if(file.Size > MaximumLogoBytes)
         {
-            Logger?.LogDebug("Team logo selection rejected: size limit");
             ShowActionToast(Localization["General.Team.LogoTooLarge"], TeamActionSeverity.Warning);
             return;
         }
 
         if(!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
         {
-            Logger?.LogDebug("Team logo selection rejected: content type");
             ShowActionToast(Localization["General.Team.ImageFileRequired"], TeamActionSeverity.Warning);
             return;
         }
@@ -546,11 +542,9 @@ public partial class ManageTeams : IAsyncDisposable
             await stream.ReadExactlyAsync(buffer, _lifetimeCancellationTokenSource.Token);
             var preview = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
             _selectedLogos[teamId] = new TeamLogoSelection(file.Name, file.ContentType, buffer, preview);
-            Logger?.LogDebug("Team logo read completed");
         }
         catch(Exception exception) when(exception is IOException or TimeoutException or JSException or OperationCanceledException)
         {
-            Logger?.LogDebug("Team logo read failed ({ExceptionType})", exception.GetType().Name);
             if(!_lifetimeCancellationTokenSource.IsCancellationRequested)
                 ShowActionToast(Localization["shared.fileReadFailed"], TeamActionSeverity.Error);
         }

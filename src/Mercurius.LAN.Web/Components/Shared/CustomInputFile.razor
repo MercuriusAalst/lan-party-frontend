@@ -23,9 +23,6 @@
 @code {
     [Inject]
     private IConfiguration Configuration { get; set; } = null!;
-    [Inject]
-    private ILogger<CustomInputFile>? Logger { get; set; }
-
     [Parameter] public string LabelText { get; set; } = "";
     [Parameter] public string EmptyText { get; set; } = "";
     [Parameter] public string Accept { get; set; } = "image/png, image/jpeg, image/webp";
@@ -106,7 +103,6 @@
 
     private async Task HandleFileChange(InputFileChangeEventArgs e)
     {
-        Logger?.LogDebug("Shared image selection callback received");
         messageStore?.Clear(FieldIdentifier);
         _readError = string.Empty;
         EditContext?.NotifyValidationStateChanged();
@@ -117,14 +113,12 @@
 
         if(!AllowedContentTypes.Contains(file.ContentType))
         {
-            Logger?.LogDebug("Shared image selection rejected: content type");
             ShowValidationError(Localization.Get("shared.fileTypeNotAllowed", file.ContentType));
             return;
         }
 
         if(file.Size > _maxFileSize)
         {
-            Logger?.LogDebug("Shared image selection rejected: size limit");
             ShowValidationError(Localization.Get("shared.fileSizeLimit", _maxFileSize / (1024 * 1024)));
             return;
         }
@@ -143,25 +137,21 @@
             FileName = file.Name;
 
             CurrentValue = file;
-            Logger?.LogDebug("Shared image read completed");
         }
         catch(Exception exception) when(exception is IOException or TimeoutException or JSException)
         {
-            Logger?.LogDebug("Shared image read failed ({ExceptionType})", exception.GetType().Name);
             ClearTemporaryFile();
             CurrentValue = null;
             ShowValidationError(Localization["shared.fileReadFailed"]);
         }
         catch(OperationCanceledException) when(!_lifetimeCancellation.IsCancellationRequested)
         {
-            Logger?.LogDebug("Shared image read canceled");
             ClearTemporaryFile();
             CurrentValue = null;
             ShowValidationError(Localization["shared.fileReadFailed"]);
         }
         catch(OperationCanceledException) when(_lifetimeCancellation.IsCancellationRequested)
         {
-            Logger?.LogDebug("Shared image read canceled with component lifetime");
             ClearTemporaryFile();
             CurrentValue = null;
         }
