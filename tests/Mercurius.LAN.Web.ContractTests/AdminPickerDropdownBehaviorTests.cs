@@ -142,10 +142,10 @@ public sealed class AdminPickerDropdownBehaviorTests
         Guid? raised = AssignedId;
         SetProperty(component, "ValueChanged", EventCallback.Factory.Create<Guid?>(this, value => raised = value));
 
-        await InvokeAsync(component, "OnChangeAsync", new ChangeEventArgs { Value = string.Empty });
+        await InvokeValueAsync(component, null);
         Assert.Null(raised);
 
-        await InvokeAsync(component, "OnChangeAsync", new ChangeEventArgs { Value = OtherId.ToString() });
+        await InvokeValueAsync(component, OtherId);
         Assert.Equal(OtherId, raised);
     }
 
@@ -360,11 +360,11 @@ public sealed class AdminPickerDropdownBehaviorTests
         });
     }
 
-    private static async Task InvokeAsync(AdminPicker component, string methodName, ChangeEventArgs args)
+    private static async Task InvokeValueAsync(AdminPicker component, Guid? value)
     {
-        var method = typeof(AdminPicker).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new MissingMethodException(typeof(AdminPicker).FullName, methodName);
-        await (Task)method.Invoke(component, [args])!;
+        var method = typeof(AdminPicker).GetMethod("SetValueAsync", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(typeof(AdminPicker).FullName, "SetValueAsync");
+        await (Task)method.Invoke(component, [value])!;
     }
 
     private static void SetProperty(object instance, string propertyName, object? value)

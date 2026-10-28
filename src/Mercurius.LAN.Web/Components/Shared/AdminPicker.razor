@@ -5,8 +5,8 @@
 <div class="admin-picker">
     <select id="@Id"
             class="form-select"
-            value="@(Value?.ToString() ?? string.Empty)"
-            @onchange="OnChangeAsync"
+            @bind:get="Value"
+            @bind:set="SetValueAsync"
             aria-required="@(Required ? "true" : "false")"
             aria-busy="@(_isLoading ? "true" : "false")">
         @if(Required)
@@ -109,16 +109,12 @@
         }
     }
 
-    private async Task OnChangeAsync(ChangeEventArgs args)
-    {
-        var selectedId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : (Guid?)null;
-        await ValueChanged.InvokeAsync(selectedId);
-    }
-
     private static string GetAdminLabel(PublicUserDTO admin) =>
         !string.IsNullOrWhiteSpace(admin.Username) ? admin.Username!
         : !string.IsNullOrWhiteSpace(admin.DisplayName) ? admin.DisplayName
         : admin.Id.ToString();
+
+    private Task SetValueAsync(Guid? value) => ValueChanged.InvokeAsync(value);
 
     private PublicUserDTO? SelectedChoice =>
         Value.HasValue

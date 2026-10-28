@@ -204,7 +204,7 @@
                         <div class="overview-edit-schedule-fields">
                             <div class="form-group">
                                 <label for="plannedStartTime">@Localization["Feature.tournaments.plannedStartTime"]</label>
-                                <input id="plannedStartTime" type="datetime-local" class="form-control" @bind="_editTournament.PlannedStartTime" @bind:format="yyyy-MM-ddTHH:mm" />
+                                <InputDate id="plannedStartTime" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_editTournament.PlannedStartTime" />
                                 <ValidationMessage For="@(() => _editTournament.PlannedStartTime)" />
                             </div>
 
