@@ -21,6 +21,8 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
             "SingleElimination",
             "Individual",
             assignedAdminUserId: assignedAdmin.UserId);
+        var created = await TournamentE2E.ReadJsonAsync(await firstAdminApi.GetAsync($"v1/lan/tournaments/{tournamentId}"));
+        Assert.Equal(assignedAdmin.UserId, created.GetProperty("contactAdmin").GetProperty("id").GetGuid());
 
         var context = await App.NewAuthenticatedContextAsync(firstAdmin);
         var page = await context.NewPageAsync();
