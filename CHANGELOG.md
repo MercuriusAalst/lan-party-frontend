@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.4](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.3...frontend-v0.8.4) (2026-10-30)
+
+
+### Bug Fixes
+
+* Preserve Tournament Date And Contact Admin Edits ([#143](https://github.com/MercuriusAalst/lan-party-frontend/issues/143)) ([689d0dc](https://github.com/MercuriusAalst/lan-party-frontend/commit/689d0dc6f94c8012e159e56583c790d9d7474a64))
+
 ## [0.8.3](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.2...frontend-v0.8.3) (2026-10-24)
 
 
