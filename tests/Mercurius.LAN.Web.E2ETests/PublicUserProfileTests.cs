@@ -105,6 +105,8 @@ public class PublicUserProfileTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await using (var fault = await DatabaseReadFault.InstallAsync(app, "users"))
         {
             await page.GotoAsync($"{app.BaseUrl}users/{target.Username}");
+            // Keep the table fault active until the interactive circuit has loaded the unavailable state.
+            await page.WaitForInteractiveAsync();
 
             await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Profile unavailable" }))
                 .ToBeVisibleAsync(new() { Timeout = 15000 });

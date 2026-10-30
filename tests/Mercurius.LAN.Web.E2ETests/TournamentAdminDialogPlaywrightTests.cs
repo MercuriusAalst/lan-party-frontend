@@ -10,6 +10,51 @@ public class TournamentAdminDialogPlaywrightTests : TournamentE2ETestBase
     public TournamentAdminDialogPlaywrightTests(PlaywrightE2EFixture app) : base(app) { }
 
     [Fact]
+    public async Task EditingScheduledTournamentKeepsTheChangedStartAndSavedContactAdmin()
+    {
+        var firstAdmin = await App.CreatePersonaAsync("aaa-admin", isAdmin: true);
+        var assignedAdmin = await App.CreatePersonaAsync("zzz-admin", isAdmin: true);
+        var firstAdminApi = App.CreateApiClient(firstAdmin);
+        var tournamentId = await TournamentE2E.CreateTournamentAsync(
+            firstAdminApi,
+            TournamentE2E.Unique("E2E Edit fields"),
+            "SingleElimination",
+            "Individual",
+            assignedAdminUserId: assignedAdmin.UserId);
+        var created = await TournamentE2E.ReadJsonAsync(await firstAdminApi.GetAsync($"v1/lan/tournaments/{tournamentId}"));
+        Assert.Equal(assignedAdmin.UserId, created.GetProperty("contactAdmin").GetProperty("id").GetGuid());
+
+        var context = await App.NewAuthenticatedContextAsync(firstAdmin);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, $"/tournaments/{tournamentId}");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Edit" }).ClickAsync();
+
+        var contactAdmin = page.Locator("#contactAdmin");
+        await Expect(contactAdmin).ToHaveAttributeAsync("aria-busy", "false");
+        await Expect(contactAdmin).ToHaveValueAsync(assignedAdmin.UserId!.Value.ToString());
+        Assert.NotEqual(
+            await contactAdmin.Locator("option").Nth(1).GetAttributeAsync("value"),
+            assignedAdmin.UserId.Value.ToString());
+
+        var startTime = page.Locator("#plannedStartTime");
+        await startTime.FillAsync("2030-05-06T18:15");
+        await startTime.PressAsync("Tab");
+        await Expect(startTime).ToHaveValueAsync("2030-05-06T18:15");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
+        await Expect(page.Locator("#plannedStartTime")).ToHaveCountAsync(0);
+
+        var saved = await TournamentE2E.ReadJsonAsync(await firstAdminApi.GetAsync($"v1/lan/tournaments/{tournamentId}"));
+        Assert.Equal(new DateTime(2030, 5, 6), DateTimeOffset.Parse(saved.GetProperty("plannedStartTime").GetString()!).UtcDateTime.Date);
+        Assert.Equal(assignedAdmin.UserId, saved.GetProperty("contactAdmin").GetProperty("id").GetGuid());
+
+        await TournamentE2E.GotoInteractiveAsync(page, $"/tournaments/{tournamentId}");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Edit" }).ClickAsync();
+        await Expect(page.Locator("#contactAdmin")).ToHaveAttributeAsync("aria-busy", "false");
+        await Expect(page.Locator("#plannedStartTime")).ToHaveValueAsync("2030-05-06T18:15");
+        await Expect(page.Locator("#contactAdmin")).ToHaveValueAsync(assignedAdmin.UserId.Value.ToString());
+    }
+
+    [Fact]
     public async Task AdminCanCreateIndividualTournamentThroughDialog()
     {
         var admin = await App.CreatePersonaAsync("dialog-create-admin", isAdmin: true);
