@@ -213,7 +213,9 @@ app.MapPost("/account/ticket-registration/confirm", async (
     {
         var confirmation = await httpContext.Request.ReadFromJsonAsync<Dictionary<string, string>>(
             cancellationToken: httpContext.RequestAborted);
-        if (confirmation is null || !confirmation.TryGetValue("proof", out var proof))
+        if (confirmation is null ||
+            !confirmation.TryGetValue("proof", out var proof) ||
+            string.IsNullOrWhiteSpace(proof))
             return Results.Json(new { confirmed = false }, statusCode: StatusCodes.Status400BadRequest);
 
         var payload = dataProtectionProvider
@@ -231,10 +233,14 @@ app.MapPost("/account/ticket-registration/confirm", async (
 
         return Results.NoContent();
     }
+    catch (JsonException)
+    {
+        return Results.Json(new { confirmed = false }, statusCode: StatusCodes.Status400BadRequest);
+    }
     catch (CryptographicException)
     {
-        // A replica without the issuing key, an expired proof, or malformed data must fall back safely.
-        return Results.Json(new { confirmed = false }, statusCode: StatusCodes.Status401Unauthorized);
+        // A replica without the issuing key or malformed data must fall back safely.
+        return Results.Json(new { confirmed = false }, statusCode: StatusCodes.Status400BadRequest);
     }
 }).AllowAnonymous();
 

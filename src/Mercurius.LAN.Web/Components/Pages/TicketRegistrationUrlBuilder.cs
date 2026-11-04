@@ -11,8 +11,11 @@ internal static class TicketRegistrationUrlBuilder
             ? value
             : null;
 
-    public static string AddProfileValues(string url, RegistrationFormOptions options, UserProfileDTO? profile)
+    public static string AddProfileValues(string url, RegistrationFormOptions? options, UserProfileDTO? profile)
     {
+        if (options is null)
+            return url;
+
         var existingKeys = QueryHelpers.ParseQuery(new Uri(url).Query).Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var values = new Dictionary<string, string?>();
         AddPrefill(values, existingKeys, options.FirstNameEntryId, profile?.Firstname);

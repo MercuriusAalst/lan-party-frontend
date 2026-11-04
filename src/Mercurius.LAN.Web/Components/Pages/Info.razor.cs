@@ -27,7 +27,7 @@ public partial class Info : IAsyncDisposable
     [Inject] private IToastService ToastService { get; set; } = null!;
 
     private LanEventOptions Event => EventOptions.Value;
-    private string? GeneralRegistrationUrl => TicketRegistrationUrlBuilder.GetValidUrl(Event.Registration.GeneralUrl);
+    private string? GeneralRegistrationUrl => TicketRegistrationUrlBuilder.GetValidUrl(Event.Registration?.GeneralUrl);
     private string GamerTicketPrice => Event.Tickets
         .FirstOrDefault(ticket => string.Equals(ticket.Kind, "gamer", StringComparison.OrdinalIgnoreCase))
         ?.Price is { } price ? GetTicketPrice(price) : "10 EUR";

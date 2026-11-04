@@ -32,7 +32,7 @@ public sealed class LanEventOptions
 
     public List<TicketOption> Tickets { get; set; } = [];
 
-    public RegistrationFormOptions Registration { get; set; } = new();
+    public RegistrationFormOptions? Registration { get; set; } = new();
 
     public List<MenuSectionOptions> MenuSections { get; set; } = [];
 

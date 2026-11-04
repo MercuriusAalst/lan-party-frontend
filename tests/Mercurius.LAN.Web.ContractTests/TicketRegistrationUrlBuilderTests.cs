@@ -56,6 +56,10 @@ public class TicketRegistrationUrlBuilderTests
         Assert.False(query.ContainsKey("entry.106529928"));
     }
 
+    [Fact]
+    public void AddProfileValuesReturnsTicketUrlWhenRegistrationOptionsAreNull() =>
+        Assert.Equal(TicketUrl, TicketRegistrationUrlBuilder.AddProfileValues(TicketUrl, null, new UserProfileDTO()));
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

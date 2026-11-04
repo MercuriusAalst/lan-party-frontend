@@ -327,6 +327,42 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
+    public async Task TicketRegistrationConfirmationRejectsMissingAndMalformedProofsAsBadRequests()
+    {
+        var persona = await app.CreatePersonaAsync("invalid registration proof");
+        await using var context = await app.NewAuthenticatedContextAsync(persona);
+        var page = context.Pages[0];
+        await page.GotoAsync($"{app.BaseUrl}info");
+        await page.WaitForInteractiveAsync();
+
+        var statuses = await page.EvaluateAsync<int[]>(
+            """
+            async () => {
+            const responses = [];
+            for (const body of [{}, { proof: null }, { proof: '' }, { proof: 'not-a-proof' }]) {
+                const response = await fetch('/account/ticket-registration/confirm', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                responses.push(response.status);
+            }
+            const malformed = await fetch('/account/ticket-registration/confirm', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{'
+            });
+            responses.push(malformed.status);
+            return responses;
+            }
+            """);
+
+        Assert.Equal(new[] { 400, 400, 400, 400, 400 }, statuses);
+    }
+
+    [Fact]
     public async Task InfoNavigationAndTicketGuidanceStayCurrentAcrossLocalesAndViewports()
     {
         await using var context = await app.NewContextAsync();
