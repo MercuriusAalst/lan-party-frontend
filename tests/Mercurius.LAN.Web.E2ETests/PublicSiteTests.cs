@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Playwright;
-using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Xunit;
 using static Microsoft.Playwright.Assertions;
@@ -277,20 +276,43 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await secondTab.GotoAsync($"{app.BaseUrl}info");
         await secondTab.WaitForInteractiveAsync();
 
-        await using var heldUsers = await HoldMappedTableAsync("User");
-        var popup = await firstTab.RunAndWaitForPopupAsync(async () =>
+        var candidateResponse = new TaskCompletionSource<IAPIResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseCandidate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/account/ticket-registration/gamer", async route =>
         {
-            await firstTab.Locator("a.lan-ticket--gamer").FocusAsync();
-            await firstTab.Keyboard.PressAsync("Enter");
+            var response = await route.FetchAsync();
+            candidateResponse.TrySetResult(response);
+            await releaseCandidate.Task.WaitAsync(TimeSpan.FromSeconds(15));
+            await route.FulfillAsync(new() { Response = response });
         });
-        await WaitForMappedTableLockWaitAsync("User");
 
-        await secondTab.GetByRole(AriaRole.Button, new() { Name = $"{firstPersona.Username} account menu" }).ClickAsync();
-        await secondTab.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
-        await Expect(secondTab.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
-        await app.LoginAsync(secondTab, secondPersona);
+        IPage popup;
+        try
+        {
+            popup = await firstTab.RunAndWaitForPopupAsync(async () =>
+            {
+                await firstTab.Locator("a.lan-ticket--gamer").FocusAsync();
+                await firstTab.Keyboard.PressAsync("Enter");
+            });
+            var capturedResponse = await candidateResponse.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            var candidate = await capturedResponse.JsonAsync() ?? throw new InvalidOperationException("The ticket endpoint returned no JSON response.");
+            Assert.True(candidate.TryGetProperty("url", out var candidateUrlValue));
+            var candidateQuery = QueryHelpers.ParseQuery(new Uri(candidateUrlValue.GetString()!).Query);
+            Assert.Equal("race first user", candidateQuery["entry.171194938"].ToString());
+            Assert.Equal(firstPersona.Username, candidateQuery["entry.106529928"].ToString());
+            Assert.True(candidate.TryGetProperty("proof", out var proof));
+            Assert.False(string.IsNullOrWhiteSpace(proof.GetString()));
 
-        await heldUsers.DisposeAsync();
+            await secondTab.GetByRole(AriaRole.Button, new() { Name = $"{firstPersona.Username} account menu" }).ClickAsync();
+            await secondTab.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
+            await Expect(secondTab.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+            await app.LoginAsync(secondTab, secondPersona);
+        }
+        finally
+        {
+            releaseCandidate.TrySetResult();
+        }
+
         await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
         var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
         Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
@@ -1409,52 +1431,6 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         }
     }
 
-    private async Task<NpgsqlConnection> HoldMappedTableAsync(string entityName)
-    {
-        await using var db = app.CreateDbContext();
-        var entity = db.Model.GetEntityTypes().First(type =>
-            string.Equals(type.ClrType.Name, entityName, StringComparison.Ordinal));
-        var table = entity.GetTableName() ?? throw new InvalidOperationException($"The '{entityName}' entity has no table mapping.");
-        var schema = entity.GetSchema() ?? "public";
-        var connection = new NpgsqlConnection(app.DatabaseConnectionString);
-        try
-        {
-            await connection.OpenAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = $"BEGIN; SET LOCAL lock_timeout = '15s'; LOCK TABLE \"{schema.Replace("\"", "\"\"")}\".\"{table.Replace("\"", "\"\"")}\" IN ACCESS EXCLUSIVE MODE";
-            await command.ExecuteNonQueryAsync();
-            return connection;
-        }
-        catch
-        {
-            await connection.DisposeAsync();
-            throw;
-        }
-    }
-
-    private async Task WaitForMappedTableLockWaitAsync(string entityName)
-    {
-        await using var db = app.CreateDbContext();
-        var entity = db.Model.GetEntityTypes().First(type =>
-            string.Equals(type.ClrType.Name, entityName, StringComparison.Ordinal));
-        var table = entity.GetTableName() ?? throw new InvalidOperationException($"The '{entityName}' entity has no table mapping.");
-        var schema = entity.GetSchema() ?? "public";
-        var relation = $"\"{schema.Replace("\"", "\"\"")}\".\"{table.Replace("\"", "\"\"")}\"";
-        await using var connection = new NpgsqlConnection(app.DatabaseConnectionString);
-        await connection.OpenAsync();
-        var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (DateTime.UtcNow < deadline)
-        {
-            await using var command = connection.CreateCommand();
-            command.CommandText = "SELECT EXISTS (SELECT 1 FROM pg_locks WHERE relation = to_regclass(@relation) AND NOT granted)";
-            command.Parameters.AddWithValue("relation", relation);
-            if ((bool)(await command.ExecuteScalarAsync() ?? false))
-                return;
-            await Task.Delay(100);
-        }
-
-        throw new TimeoutException($"No blocked query reached the '{entityName}' table within 10 seconds.");
-    }
 
     [Fact]
     public async Task SponsorsPageLoadFailureReportsFailureToastAndRecoversOnReload()
