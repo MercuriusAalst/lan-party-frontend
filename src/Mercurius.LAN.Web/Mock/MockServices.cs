@@ -607,8 +607,9 @@ internal sealed class MockUserClient : IUserClient
         _authenticationStateProvider = authenticationStateProvider;
     }
 
-    public async Task<CurrentUserProfileResponse> GetCurrentUserProfileAsync()
+    public async Task<CurrentUserProfileResponse> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var persona = await GetCurrentPersonaAsync();
         return _store.GetCurrentProfile(persona);
     }

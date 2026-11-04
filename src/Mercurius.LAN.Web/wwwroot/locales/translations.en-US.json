@@ -357,6 +357,8 @@
   "General.Info.TicketGuidancePrefix": "Tickets can be purchased via ",
   "General.Info.GoogleForms": "Google Forms",
   "General.Info.TicketGuidanceSuffix": " or directly at the venue.",
+  "General.Info.TicketRegistrationDisclosure": "Opening a ticket form sends your available first name, last name, and username to Google Forms.",
+  "General.Info.Ticket.Register": "Register for {0}",
   "General.Info.OurMenu": "Our menu",
   "General.Info.MenuIntro": "Grab a drink, pick a warm snack, and keep your squad fueled between matches.",
   "General.Info.ContactUs": "Contact us",

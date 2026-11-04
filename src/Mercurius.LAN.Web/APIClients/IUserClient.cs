@@ -11,7 +11,7 @@ namespace Mercurius.LAN.Web.APIClients;
 public interface IUserClient
 {
     [Get("/v1/lan/users/me")]
-    Task<CurrentUserProfileResponse> GetCurrentUserProfileAsync();
+    Task<CurrentUserProfileResponse> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default);
 
     [Put("/v1/lan/users/me")]
     Task<UserProfileDTO> CompleteCurrentUserProfileAsync([Body] CompleteUserProfileRequest request);

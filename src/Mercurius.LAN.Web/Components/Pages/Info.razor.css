@@ -313,6 +313,16 @@
     transition: transform 160ms ease, box-shadow 160ms ease;
 }
 
+a.lan-ticket {
+    color: inherit;
+    text-decoration: none;
+}
+
+a.lan-ticket:focus-visible {
+    outline: 3px solid var(--color-accent, #149447);
+    outline-offset: 4px;
+}
+
 .lan-ticket--chair {
     transform: rotate(-1.1deg);
 }

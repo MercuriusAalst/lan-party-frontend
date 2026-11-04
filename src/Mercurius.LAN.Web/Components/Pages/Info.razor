@@ -84,21 +84,46 @@
     <section id="tickets" class="brand-section brand-section-shell info-section brand-section-anchor">
         <div class="brand-section-shell info-section-header">
             <h2>@Localization["General.Info.PickPass"]</h2>
-            <p>@Localization["General.Info.TicketGuidancePrefix"]<a href="https://forms.gle/B6Jwgbb51KU2Hmds6" target="_blank" rel="noopener noreferrer">@Localization["General.Info.GoogleForms"]</a>@Localization["General.Info.TicketGuidanceSuffix"]</p>
+            <p>@Localization["General.Info.TicketGuidancePrefix"]@if(GeneralRegistrationUrl is { } generalUrl)
+            {
+                <a href="@generalUrl" target="_blank" rel="noopener noreferrer">@Localization["General.Info.GoogleForms"]</a>
+            }
+            else
+            {
+                @Localization["General.Info.GoogleForms"]
+            }@Localization["General.Info.TicketGuidanceSuffix"]</p>
+            <p class="ticket-registration-disclosure">@Localization["General.Info.TicketRegistrationDisclosure"]</p>
         </div>
 
         <div class="ticket-grid">
             @foreach(var ticket in Event.Tickets)
             {
-                <article class="lan-ticket lan-ticket--@ticket.Kind">
-                    <div class="lan-ticket-main">
-                        <h3>@GetTicketName(ticket)</h3>
-                        <p>@GetTicketDescription(ticket)</p>
-                    </div>
-                    <div class="lan-ticket-stub">
-                        <strong>@GetTicketPrice(ticket.Price)</strong>
-                    </div>
-                </article>
+                @if(TicketRegistrationUrlBuilder.GetValidUrl(ticket.RegistrationUrl) is { } ticketUrl)
+                {
+                    <a class="lan-ticket lan-ticket--@ticket.Kind" href="@ticketUrl" target="_blank" rel="noopener noreferrer"
+                       aria-label='@Localization.Get("General.Info.Ticket.Register", GetTicketName(ticket))'
+                       data-ticket-kind="@ticket.Kind">
+                        <div class="lan-ticket-main">
+                            <h3>@GetTicketName(ticket)</h3>
+                            <p>@GetTicketDescription(ticket)</p>
+                        </div>
+                        <div class="lan-ticket-stub">
+                            <strong>@GetTicketPrice(ticket.Price)</strong>
+                        </div>
+                    </a>
+                }
+                else
+                {
+                    <article class="lan-ticket lan-ticket--@ticket.Kind">
+                        <div class="lan-ticket-main">
+                            <h3>@GetTicketName(ticket)</h3>
+                            <p>@GetTicketDescription(ticket)</p>
+                        </div>
+                        <div class="lan-ticket-stub">
+                            <strong>@GetTicketPrice(ticket.Price)</strong>
+                        </div>
+                    </article>
+                }
             }
         </div>
     </section>
