@@ -80,7 +80,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Pick your pass." })).ToBeVisibleAsync();
         await Expect(page.Locator(".lan-ticket--gamer")).ToContainTextAsync("Basic");
         await Expect(page.Locator(".lan-ticket--visitor")).ToContainTextAsync("5 EUR");
-        await Expect(page.GetByText("Opening a ticket form sends your available first name, last name, and username to Google Forms.")).ToBeVisibleAsync();
+        await Expect(page.GetByText("Opening a ticket form sends your available first name, last name, and username to Google Forms.")).ToHaveCountAsync(0);
         await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Google Forms" }))
             .ToHaveAttributeAsync("href", "https://forms.gle/B6Jwgbb51KU2Hmds6");
 

@@ -12,5 +12,5 @@ The Info page is public and interactive-server rendered. The existing `IUserClie
 
 ## Risks / Trade-offs
 
-- Opening registration transfers the configured profile fields to Google and may place them in browser history; localized text discloses this before activation.
+- Opening registration transfers available configured profile fields to Google and may place them in browser history.
 - The generated ticket URL contains profile values in its rendered link and may remain available in an already-open Info page after another tab signs out. Normal logout navigation refreshes the page before the logged-out visitor can use it.

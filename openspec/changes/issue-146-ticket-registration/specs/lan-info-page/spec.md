@@ -13,7 +13,7 @@ The Info page SHALL use a localized page heading that identifies the event's com
 
 ### Requirement: Info ticket cards open their configured registration form
 
-Each ticket option SHALL be a clearly interactive, accessible link to its configured Google Forms registration URL. The form URL and field mappings SHALL be read from application configuration. When the Info page loads for an authenticated visitor, it MAY fetch that visitor's current application profile and include available first name, last name, and username values in the rendered ticket link. Anonymous visitors and visitors whose profile cannot be loaded SHALL retain usable ticket-only registration links. Profile values are included only in the authenticated page's ticket link and are not cached or logged by the application. The interface SHALL disclose that available account details are sent to Google when opening the form.
+Each ticket option SHALL be a clearly interactive, accessible link to its configured Google Forms registration URL. The form URL and field mappings SHALL be read from application configuration. When the Info page loads for an authenticated visitor, it MAY fetch that visitor's current application profile and include available first name, last name, and username values in the rendered ticket link. Anonymous visitors and visitors whose profile cannot be loaded SHALL retain usable ticket-only registration links. Profile values are included only in the authenticated page's ticket link and are not cached or logged by the application.
 
 #### Scenario: Visitor opens a ticket form
 - **WHEN** a visitor activates any part of a configured ticket card by mouse, touch, or keyboard
@@ -31,11 +31,6 @@ Each ticket option SHALL be a clearly interactive, accessible link to its config
 - **WHEN** the visitor is anonymous, profile loading fails, a profile field is empty, or a field mapping is missing
 - **THEN** registration continues using the configured ticket-only URL with available mapped fields omitted
 - **AND** missing or invalid optional form configuration does not prevent the Info page from rendering
-
-#### Scenario: Visitor is informed about profile transfer
-- **WHEN** the visitor views the ticket cards
-- **THEN** localized English and Dutch text explains that opening a form transfers available account details to Google Forms
-- **AND** the form is never submitted automatically
 
 #### Scenario: Visitor signs out and reloads the Info page
 - **WHEN** an authenticated visitor signs out and the Info page is rendered again without an authenticated user
