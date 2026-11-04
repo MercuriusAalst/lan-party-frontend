@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Playwright;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Xunit;
 using static Microsoft.Playwright.Assertions;
@@ -215,6 +216,87 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             Assert.False(query.ContainsKey("entry.727955101"));
             Assert.False(query.ContainsKey("entry.106529928"));
         }
+    }
+
+    [Fact]
+    public async Task TicketLinkUsesTheAccountFromTheCurrentBrowserCookieAfterAnotherTabSwitchesAccounts()
+    {
+        var firstPersona = await app.CreatePersonaAsync("first tab user");
+        var secondPersona = await app.CreatePersonaAsync("second tab user");
+        await using var context = await app.NewAuthenticatedContextAsync(firstPersona);
+        await context.RouteAsync("https://docs.google.com/forms/**", route => route.FulfillAsync(new()
+        {
+            ContentType = "text/html",
+            Body = "<title>Registration test</title>"
+        }));
+
+        var firstTab = context.Pages[0];
+        var secondTab = await context.NewPageAsync();
+        await firstTab.GotoAsync($"{app.BaseUrl}info");
+        await firstTab.WaitForInteractiveAsync();
+        await secondTab.GotoAsync($"{app.BaseUrl}info");
+        await secondTab.WaitForInteractiveAsync();
+
+        await secondTab.GetByRole(AriaRole.Button, new() { Name = $"{firstPersona.Username} account menu" }).ClickAsync();
+        await secondTab.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
+        await Expect(secondTab.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+        await app.LoginAsync(secondTab, secondPersona);
+
+        var ticketLink = firstTab.Locator("a.lan-ticket--gamer");
+        var popup = await firstTab.RunAndWaitForPopupAsync(async () =>
+        {
+            await ticketLink.FocusAsync();
+            await firstTab.Keyboard.PressAsync("Enter");
+        });
+        await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
+
+        var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
+        Assert.Equal("second tab user", query["entry.171194938"].ToString());
+        Assert.Equal("E2E", query["entry.727955101"].ToString());
+        Assert.Equal(secondPersona.Username, query["entry.106529928"].ToString());
+        Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
+        Assert.NotEqual(firstPersona.Username, query["entry.106529928"].ToString());
+    }
+
+    [Fact]
+    public async Task TicketLinkFallsBackIfTheBrowserAccountChangesWhileProfileIsLoading()
+    {
+        var firstPersona = await app.CreatePersonaAsync("race first user");
+        var secondPersona = await app.CreatePersonaAsync("race second user");
+        await using var context = await app.NewAuthenticatedContextAsync(firstPersona);
+        await context.RouteAsync("https://docs.google.com/forms/**", route => route.FulfillAsync(new()
+        {
+            ContentType = "text/html",
+            Body = "<title>Registration test</title>"
+        }));
+
+        var firstTab = context.Pages[0];
+        var secondTab = await context.NewPageAsync();
+        await firstTab.GotoAsync($"{app.BaseUrl}info");
+        await firstTab.WaitForInteractiveAsync();
+        await secondTab.GotoAsync($"{app.BaseUrl}info");
+        await secondTab.WaitForInteractiveAsync();
+
+        await using var heldUsers = await HoldMappedTableAsync("User");
+        var popup = await firstTab.RunAndWaitForPopupAsync(async () =>
+        {
+            await firstTab.Locator("a.lan-ticket--gamer").FocusAsync();
+            await firstTab.Keyboard.PressAsync("Enter");
+        });
+        await WaitForMappedTableLockWaitAsync("User");
+
+        await secondTab.GetByRole(AriaRole.Button, new() { Name = $"{firstPersona.Username} account menu" }).ClickAsync();
+        await secondTab.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
+        await Expect(secondTab.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+        await app.LoginAsync(secondTab, secondPersona);
+
+        await heldUsers.DisposeAsync();
+        await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
+        var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
+        Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
+        Assert.False(query.ContainsKey("entry.171194938"));
+        Assert.False(query.ContainsKey("entry.727955101"));
+        Assert.False(query.ContainsKey("entry.106529928"));
     }
 
     [Fact]
@@ -1325,6 +1407,53 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             await connection.DisposeAsync();
             throw;
         }
+    }
+
+    private async Task<NpgsqlConnection> HoldMappedTableAsync(string entityName)
+    {
+        await using var db = app.CreateDbContext();
+        var entity = db.Model.GetEntityTypes().First(type =>
+            string.Equals(type.ClrType.Name, entityName, StringComparison.Ordinal));
+        var table = entity.GetTableName() ?? throw new InvalidOperationException($"The '{entityName}' entity has no table mapping.");
+        var schema = entity.GetSchema() ?? "public";
+        var connection = new NpgsqlConnection(app.DatabaseConnectionString);
+        try
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"BEGIN; SET LOCAL lock_timeout = '15s'; LOCK TABLE \"{schema.Replace("\"", "\"\"")}\".\"{table.Replace("\"", "\"\"")}\" IN ACCESS EXCLUSIVE MODE";
+            await command.ExecuteNonQueryAsync();
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
+    }
+
+    private async Task WaitForMappedTableLockWaitAsync(string entityName)
+    {
+        await using var db = app.CreateDbContext();
+        var entity = db.Model.GetEntityTypes().First(type =>
+            string.Equals(type.ClrType.Name, entityName, StringComparison.Ordinal));
+        var table = entity.GetTableName() ?? throw new InvalidOperationException($"The '{entityName}' entity has no table mapping.");
+        var schema = entity.GetSchema() ?? "public";
+        var relation = $"\"{schema.Replace("\"", "\"\"")}\".\"{table.Replace("\"", "\"\"")}\"";
+        await using var connection = new NpgsqlConnection(app.DatabaseConnectionString);
+        await connection.OpenAsync();
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (DateTime.UtcNow < deadline)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT EXISTS (SELECT 1 FROM pg_locks WHERE relation = to_regclass(@relation) AND NOT granted)";
+            command.Parameters.AddWithValue("relation", relation);
+            if ((bool)(await command.ExecuteScalarAsync() ?? false))
+                return;
+            await Task.Delay(100);
+        }
+
+        throw new TimeoutException($"No blocked query reached the '{entityName}' table within 10 seconds.");
     }
 
     [Fact]

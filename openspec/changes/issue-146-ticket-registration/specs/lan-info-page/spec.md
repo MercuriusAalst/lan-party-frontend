@@ -38,5 +38,5 @@ Each ticket option SHALL be a clearly interactive, accessible link to its config
 - **AND** the form is never submitted automatically
 
 #### Scenario: Account changes while profile data loads
-- **WHEN** the visitor signs out or another account becomes current while profile data is loading
+- **WHEN** the visitor signs out or another account becomes current in a different tab while profile data is loading
 - **THEN** the form opens with the ticket-only URL and no profile values from the previous account

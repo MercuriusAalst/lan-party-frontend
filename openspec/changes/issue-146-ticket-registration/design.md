@@ -5,8 +5,8 @@ The Info page is public and interactive-server rendered. Profile details must no
 ## Decisions
 
 - Keep the ticket-only configured URL as the card's rendered `href` and fallback destination.
-- On click, a small browser-side handler opens a blank tab synchronously, then asks the component for the current user's configured profile fields and navigates that tab. This avoids popup blocking while keeping personal values out of markup.
-- Fetch authentication state and the current user's own profile for each activation with a five-second cancellation deadline. Recheck the authenticated identity after the fetch. Do not cache values. If anonymous, signed out, identity changed, misconfigured, or profile loading fails, use the ticket-only URL.
+- On click, a small browser-side handler opens a blank tab synchronously, then makes a fresh same-origin request for the current browser cookie's profile and navigates that tab. This avoids popup blocking and stale Blazor circuit identity while keeping personal values out of markup.
+- Fetch the current user's profile for each activation with a five-second cancellation deadline. Return personalized URLs with `Cache-Control: no-store` and a ten-second protected identity proof; the browser confirms that proof in a second no-store request before navigation. Do not cache values or log URLs/proofs. If anonymous, signed out, identity changed during loading, proof expired, a replica lacks the issuing Data Protection key, configuration is invalid, or profile loading fails, use the ticket-only URL.
 - Build query strings with the framework query-string encoder. Accept only numeric configured entry IDs, omit empty values and IDs that already appear in the ticket URL, and avoid duplicate mapping keys.
 - Use an event-wide set of optional field IDs and per-ticket full registration URLs. Missing or invalid URLs disable the relevant link without preventing startup.
 

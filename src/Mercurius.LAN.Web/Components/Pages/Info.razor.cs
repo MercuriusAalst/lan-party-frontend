@@ -1,9 +1,7 @@
 using Blazored.Toast.Services;
-using Mercurius.LAN.Web.APIClients;
 using Mercurius.LAN.Web.Options;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using System.Globalization;
@@ -15,7 +13,6 @@ public partial class Info : IAsyncDisposable
     private ContactMessage _contactModel = new();
     private bool _isSendingContact;
     private IJSObjectReference? _ticketModule;
-    private DotNetObjectReference<Info>? _dotNetReference;
 
     private static readonly IReadOnlyDictionary<string, string> ValidationFieldLabelKeys = new Dictionary<string, string>
     {
@@ -25,8 +22,6 @@ public partial class Info : IAsyncDisposable
     };
 
     [Inject] private IOptions<LanEventOptions> EventOptions { get; set; } = null!;
-    [Inject] private IUserClient UserClient { get; set; } = null!;
-    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
     [Inject] private IContactEmailService ContactEmailService { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
@@ -92,49 +87,16 @@ public partial class Info : IAsyncDisposable
         try
         {
             _ticketModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/info-ticket-registration.js");
-            _dotNetReference = DotNetObjectReference.Create(this);
-            await _ticketModule.InvokeVoidAsync("attach", _dotNetReference);
+            await _ticketModule.InvokeVoidAsync("attach");
         }
         catch (JSException)
         {
-            _dotNetReference?.Dispose();
-            _dotNetReference = null;
             _ticketModule = null;
-        }
-    }
-
-    [JSInvokable]
-    public async Task<string?> GetTicketRegistrationUrlAsync(string ticketKind)
-    {
-        var ticket = Event.Tickets.FirstOrDefault(option =>
-            string.Equals(option.Kind, ticketKind, StringComparison.OrdinalIgnoreCase));
-        var url = TicketRegistrationUrlBuilder.GetValidUrl(ticket?.RegistrationUrl);
-        if (url is null)
-            return null;
-
-        try
-        {
-            var initialUser = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-            if (initialUser.Identity?.IsAuthenticated != true)
-                return url;
-
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var profile = await UserClient.GetCurrentUserProfileAsync(timeout.Token);
-            var currentUser = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-            if (!TicketRegistrationUrlBuilder.IsSameAuthenticatedUser(initialUser, currentUser))
-                return url;
-
-            return TicketRegistrationUrlBuilder.AddProfileValues(url, Event.Registration, profile.User);
-        }
-        catch
-        {
-            return url;
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        _dotNetReference?.Dispose();
         if (_ticketModule is not null)
         {
             try

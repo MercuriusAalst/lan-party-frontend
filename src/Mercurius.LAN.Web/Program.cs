@@ -1,5 +1,7 @@
 using Auth0.AspNetCore.Authentication;
 using Blazored.Toast;
+using Mercurius.LAN.Web.APIClients;
+using Mercurius.LAN.Web.Components.Pages;
 using Mercurius.LAN.Web.Components;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Middleware;
@@ -13,8 +15,12 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using MudBlazor.Services;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
+using System.Security.Claims;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 #if INCLUDE_MOCK_BACKEND
@@ -153,11 +159,96 @@ else
     }).AllowAnonymous();
 }
 
+app.MapGet("/account/ticket-registration/{ticketKind}", async (
+    string ticketKind,
+    HttpContext httpContext,
+    IOptions<LanEventOptions> eventOptions,
+    IUserClient userClient,
+    IDataProtectionProvider dataProtectionProvider) =>
+{
+    SetNoStore(httpContext.Response);
+
+    var ticket = eventOptions.Value.Tickets.FirstOrDefault(option =>
+        string.Equals(option.Kind, ticketKind, StringComparison.OrdinalIgnoreCase));
+    var url = TicketRegistrationUrlBuilder.GetValidUrl(ticket?.RegistrationUrl);
+    if (url is null)
+        return Results.NotFound();
+
+    if (httpContext.User.Identity?.IsAuthenticated == true)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(httpContext.RequestAborted);
+            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            var profile = await userClient.GetCurrentUserProfileAsync(timeout.Token);
+            var personalizedUrl = TicketRegistrationUrlBuilder.AddProfileValues(url, eventOptions.Value.Registration, profile.User);
+            var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId is not null && !string.Equals(personalizedUrl, url, StringComparison.Ordinal))
+            {
+                var expiresAt = DateTimeOffset.UtcNow.AddSeconds(10).ToUnixTimeSeconds();
+                var proof = dataProtectionProvider
+                    .CreateProtector("Mercurius.LAN.Info.TicketRegistration.Session")
+                    .Protect($"{expiresAt.ToString(CultureInfo.InvariantCulture)}\n{userId}");
+                return Results.Json(new { url = personalizedUrl, proof });
+            }
+        }
+        catch
+        {
+            // Profile failures must not prevent the visitor from registering with the selected ticket.
+        }
+    }
+
+    return Results.Json(new { url });
+}).AllowAnonymous();
+
+app.MapPost("/account/ticket-registration/confirm", async (
+    HttpContext httpContext,
+    IDataProtectionProvider dataProtectionProvider) =>
+{
+    SetNoStore(httpContext.Response);
+    if (httpContext.User.Identity?.IsAuthenticated != true)
+        return Results.Json(new { confirmed = false }, statusCode: StatusCodes.Status401Unauthorized);
+
+    try
+    {
+        var confirmation = await httpContext.Request.ReadFromJsonAsync<Dictionary<string, string>>(
+            cancellationToken: httpContext.RequestAborted);
+        if (confirmation is null || !confirmation.TryGetValue("proof", out var proof))
+            return Results.Json(new { confirmed = false }, statusCode: StatusCodes.Status400BadRequest);
+
+        var payload = dataProtectionProvider
+            .CreateProtector("Mercurius.LAN.Info.TicketRegistration.Session")
+            .Unprotect(proof);
+        var separator = payload.IndexOf('\n');
+        var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (separator < 1 || userId is null ||
+            !long.TryParse(payload[..separator], NumberStyles.None, CultureInfo.InvariantCulture, out var expiresAt) ||
+            expiresAt < DateTimeOffset.UtcNow.ToUnixTimeSeconds() ||
+            !string.Equals(payload[(separator + 1)..], userId, StringComparison.Ordinal))
+        {
+            return Results.Json(new { confirmed = false }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        return Results.NoContent();
+    }
+    catch (CryptographicException)
+    {
+        // A replica without the issuing key, an expired proof, or malformed data must fall back safely.
+        return Results.Json(new { confirmed = false }, statusCode: StatusCodes.Status401Unauthorized);
+    }
+}).AllowAnonymous();
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+static void SetNoStore(HttpResponse response)
+{
+    response.Headers.CacheControl = "private, no-store";
+    response.Headers.Pragma = "no-cache";
+}
 
 static string BuildRegistrationRedirectUri(string? returnUrl)
 {

@@ -2,7 +2,6 @@ using Mercurius.LAN.Web.Components.Pages;
 using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Options;
 using Microsoft.AspNetCore.WebUtilities;
-using System.Security.Claims;
 using Xunit;
 
 namespace Mercurius.LAN.Web.ContractTests;
@@ -57,19 +56,6 @@ public class TicketRegistrationUrlBuilderTests
         Assert.False(query.ContainsKey("entry.106529928"));
     }
 
-    [Fact]
-    public void IsSameAuthenticatedUserRejectsAnonymousAndChangedIdentities()
-    {
-        var userA = AuthenticatedUser("user-a");
-        var userB = AuthenticatedUser("user-b");
-        var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
-
-        Assert.True(TicketRegistrationUrlBuilder.IsSameAuthenticatedUser(userA, AuthenticatedUser("user-a")));
-        Assert.False(TicketRegistrationUrlBuilder.IsSameAuthenticatedUser(userA, userB));
-        Assert.False(TicketRegistrationUrlBuilder.IsSameAuthenticatedUser(userA, anonymous));
-        Assert.False(TicketRegistrationUrlBuilder.IsSameAuthenticatedUser(anonymous, userB));
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -77,7 +63,4 @@ public class TicketRegistrationUrlBuilderTests
     [InlineData("http://example.test/form")]
     public void GetValidUrlRejectsMissingOrNonHttpsUrls(string? value) =>
         Assert.Null(TicketRegistrationUrlBuilder.GetValidUrl(value));
-
-    private static ClaimsPrincipal AuthenticatedUser(string id) => new(
-        new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, id)], "test"));
 }
