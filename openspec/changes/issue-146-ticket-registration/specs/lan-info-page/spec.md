@@ -20,6 +20,7 @@ Each ticket option SHALL be a clearly interactive, accessible link to its config
 - **THEN** the matching ticket registration form opens in a new tab with its configured ticket choice selected
 - **AND** the visitor can still change the selection in Google Forms
 - **AND** the link exposes a localized accessible name and visible keyboard focus
+- **AND** the form is never submitted automatically
 
 #### Scenario: Signed-in visitor loads the Info page
 - **WHEN** an authenticated visitor loads the Info page and their current application profile is available
