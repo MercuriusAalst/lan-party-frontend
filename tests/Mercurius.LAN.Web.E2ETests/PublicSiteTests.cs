@@ -287,6 +287,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         });
 
         IPage popup;
+        Task<IResponse>? confirmationResponse = null;
         try
         {
             popup = await firstTab.RunAndWaitForPopupAsync(async () =>
@@ -307,12 +308,16 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             await secondTab.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
             await Expect(secondTab.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
             await app.LoginAsync(secondTab, secondPersona);
+            confirmationResponse = firstTab.WaitForResponseAsync(response =>
+                response.Url.EndsWith("/account/ticket-registration/confirm", StringComparison.Ordinal));
         }
         finally
         {
             releaseCandidate.TrySetResult();
         }
 
+        Assert.NotNull(confirmationResponse);
+        Assert.Equal(401, (await confirmationResponse).Status);
         await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
         var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
         Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
