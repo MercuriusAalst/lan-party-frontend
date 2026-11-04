@@ -6,8 +6,8 @@ The Info page is public and interactive-server rendered. Profile details must no
 
 - Keep the ticket-only configured URL as the card's rendered `href` and fallback destination.
 - On click, a small browser-side handler opens a blank tab synchronously, then asks the component for the current user's configured profile fields and navigates that tab. This avoids popup blocking while keeping personal values out of markup.
-- Fetch authentication state and the current user's own profile for each activation. Do not cache values. If anonymous, misconfigured, or profile loading fails, use the ticket-only URL.
-- Build query strings with the framework query-string encoder and append only configured field mappings with non-empty values.
+- Fetch authentication state and the current user's own profile for each activation with a five-second cancellation deadline. Recheck the authenticated identity after the fetch. Do not cache values. If anonymous, signed out, identity changed, misconfigured, or profile loading fails, use the ticket-only URL.
+- Build query strings with the framework query-string encoder. Accept only numeric configured entry IDs, omit empty values and IDs that already appear in the ticket URL, and avoid duplicate mapping keys.
 - Use an event-wide set of optional field IDs and per-ticket full registration URLs. Missing or invalid URLs disable the relevant link without preventing startup.
 
 ## Risks / Trade-offs

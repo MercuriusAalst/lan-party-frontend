@@ -36,3 +36,7 @@ Each ticket option SHALL be a clearly interactive, accessible link to its config
 - **WHEN** the visitor views the ticket cards
 - **THEN** localized English and Dutch text explains that opening a form transfers available account details to Google Forms
 - **AND** the form is never submitted automatically
+
+#### Scenario: Account changes while profile data loads
+- **WHEN** the visitor signs out or another account becomes current while profile data is loading
+- **THEN** the form opens with the ticket-only URL and no profile values from the previous account
