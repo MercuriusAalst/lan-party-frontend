@@ -1,16 +1,16 @@
 ## Context
 
-The Info page is public and interactive-server rendered. Profile details must not be added to rendered links or shared state. The existing `IUserClient.GetCurrentUserProfileAsync` endpoint provides the authenticated user's application profile.
+The Info page is public and interactive-server rendered. The existing `IUserClient.GetCurrentUserProfileAsync` API provides the authenticated user's application profile; the user has approved adding available profile fields to rendered ticket links.
 
 ## Decisions
 
-- Keep the ticket-only configured URL as the card's rendered `href` and fallback destination.
-- On click, a small browser-side handler opens a blank tab synchronously, then makes a fresh same-origin request for the current browser cookie's profile and navigates that tab. This avoids popup blocking and stale Blazor circuit identity while keeping personal values out of markup.
-- Fetch the current user's profile for each activation with a five-second cancellation deadline. Return personalized URLs with `Cache-Control: no-store` and a ten-second protected identity proof; the browser confirms that proof in a second no-store request before navigation. Do not cache values or log URLs/proofs. If anonymous, signed out, identity changed during loading, proof expired, a replica lacks the issuing Data Protection key, configuration is invalid, or profile loading fails, use the ticket-only URL.
+- Keep the ticket-only configured URL as the card's rendered `href` and fallback destination for anonymous visitors and when profile loading fails.
+- During Info page initialization, use the existing server-side `IUserClient.GetCurrentUserProfileAsync` API to load the authenticated visitor's profile. Add mapped values to each ticket's native `_blank` link before rendering. No JavaScript, frontend registration endpoint, or proof is needed.
+- Bound profile loading to five seconds. Do not cache or log profile values or generated URLs. A fresh page render after normal logout omits profile values; an already-open Info page keeps its loaded link until it is re-rendered.
 - Build query strings with the framework query-string encoder. Accept only numeric configured entry IDs, omit empty values and IDs that already appear in the ticket URL, and avoid duplicate mapping keys.
 - Use an event-wide set of optional field IDs and per-ticket full registration URLs. Missing or invalid URLs disable the relevant link without preventing startup.
 
 ## Risks / Trade-offs
 
 - Opening registration transfers the configured profile fields to Google and may place them in browser history; localized text discloses this before activation.
-- If a browser blocks a blank tab despite a direct user click, the normal ticket-only card link remains available as fallback.
+- The generated ticket URL contains profile values in its rendered link and may remain available in an already-open Info page after another tab signs out. Normal logout navigation refreshes the page before the logged-out visitor can use it.

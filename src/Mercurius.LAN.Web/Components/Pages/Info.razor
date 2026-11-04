@@ -98,11 +98,10 @@
         <div class="ticket-grid">
             @foreach(var ticket in Event.Tickets)
             {
-                @if(TicketRegistrationUrlBuilder.GetValidUrl(ticket.RegistrationUrl) is { } ticketUrl)
+                @if(GetTicketRegistrationUrl(ticket) is { } ticketUrl)
                 {
                     <a class="lan-ticket lan-ticket--@ticket.Kind" href="@ticketUrl" target="_blank" rel="noopener noreferrer"
-                       aria-label='@Localization.Get("General.Info.Ticket.Register", GetTicketName(ticket))'
-                       data-ticket-kind="@ticket.Kind">
+                       aria-label='@Localization.Get("General.Info.Ticket.Register", GetTicketName(ticket))'>
                         <div class="lan-ticket-main">
                             <h3>@GetTicketName(ticket)</h3>
                             <p>@GetTicketDescription(ticket)</p>

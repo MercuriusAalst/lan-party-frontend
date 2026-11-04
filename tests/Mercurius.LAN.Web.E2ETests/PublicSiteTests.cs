@@ -139,7 +139,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
-    public async Task SignedInTicketCardPrefillsOnlyTheCurrentApplicationProfile()
+    public async Task SignedInTicketCardPrefillsTheCurrentApiProfileAndLogoutRefreshRemovesIt()
     {
         var persona = await app.CreatePersonaAsync("Émilie Ticket");
         await using var context = await app.NewAuthenticatedContextAsync(persona);
@@ -153,6 +153,11 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await page.WaitForInteractiveAsync();
 
         var link = page.Locator("a.lan-ticket--gamer");
+        var renderedQuery = QueryHelpers.ParseQuery(new Uri(await link.GetAttributeAsync("href")!).Query);
+        Assert.Equal("Émilie Ticket", renderedQuery["entry.171194938"].ToString());
+        Assert.Equal("E2E", renderedQuery["entry.727955101"].ToString());
+        Assert.Equal(persona.Username, renderedQuery["entry.106529928"].ToString());
+        Assert.False(renderedQuery.ContainsKey("entry.email"));
         var popup = await page.RunAndWaitForPopupAsync(async () =>
         {
             await link.FocusAsync();
@@ -186,7 +191,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
-    public async Task SignedInTicketCardFallsBackWhenCurrentProfileCannotBeLoaded()
+    public async Task SignedInTicketCardFallsBackWhenProfileApiFailsDuringPageLoad()
     {
         var persona = await app.CreatePersonaAsync("profile unavailable");
         await using var context = await app.NewAuthenticatedContextAsync(persona);
@@ -196,12 +201,18 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             Body = "<title>Registration test</title>"
         }));
         var page = context.Pages[0];
-        await page.GotoAsync($"{app.BaseUrl}info");
-        await page.WaitForInteractiveAsync();
-
         await using (await DatabaseReadFault.InstallAsync(app, "users"))
         {
+            await page.GotoAsync($"{app.BaseUrl}info");
+            await page.WaitForInteractiveAsync();
+
             var link = page.Locator("a.lan-ticket--gamer");
+            var renderedQuery = QueryHelpers.ParseQuery(new Uri(await link.GetAttributeAsync("href")!).Query);
+            Assert.Equal("Basic – € 10", renderedQuery["entry.327008568"].ToString());
+            Assert.False(renderedQuery.ContainsKey("entry.171194938"));
+            Assert.False(renderedQuery.ContainsKey("entry.727955101"));
+            Assert.False(renderedQuery.ContainsKey("entry.106529928"));
+
             var popup = await page.RunAndWaitForPopupAsync(async () =>
             {
                 await link.FocusAsync();
@@ -215,151 +226,6 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             Assert.False(query.ContainsKey("entry.727955101"));
             Assert.False(query.ContainsKey("entry.106529928"));
         }
-    }
-
-    [Fact]
-    public async Task TicketLinkUsesTheAccountFromTheCurrentBrowserCookieAfterAnotherTabSwitchesAccounts()
-    {
-        var firstPersona = await app.CreatePersonaAsync("first tab user");
-        var secondPersona = await app.CreatePersonaAsync("second tab user");
-        await using var context = await app.NewAuthenticatedContextAsync(firstPersona);
-        await context.RouteAsync("https://docs.google.com/forms/**", route => route.FulfillAsync(new()
-        {
-            ContentType = "text/html",
-            Body = "<title>Registration test</title>"
-        }));
-
-        var firstTab = context.Pages[0];
-        var secondTab = await context.NewPageAsync();
-        await firstTab.GotoAsync($"{app.BaseUrl}info");
-        await firstTab.WaitForInteractiveAsync();
-        await secondTab.GotoAsync($"{app.BaseUrl}info");
-        await secondTab.WaitForInteractiveAsync();
-
-        await secondTab.GetByRole(AriaRole.Button, new() { Name = $"{firstPersona.Username} account menu" }).ClickAsync();
-        await secondTab.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
-        await Expect(secondTab.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
-        await app.LoginAsync(secondTab, secondPersona);
-
-        var ticketLink = firstTab.Locator("a.lan-ticket--gamer");
-        var popup = await firstTab.RunAndWaitForPopupAsync(async () =>
-        {
-            await ticketLink.FocusAsync();
-            await firstTab.Keyboard.PressAsync("Enter");
-        });
-        await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
-
-        var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
-        Assert.Equal("second tab user", query["entry.171194938"].ToString());
-        Assert.Equal("E2E", query["entry.727955101"].ToString());
-        Assert.Equal(secondPersona.Username, query["entry.106529928"].ToString());
-        Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
-        Assert.NotEqual(firstPersona.Username, query["entry.106529928"].ToString());
-    }
-
-    [Fact]
-    public async Task TicketLinkFallsBackIfTheBrowserAccountChangesWhileProfileIsLoading()
-    {
-        var firstPersona = await app.CreatePersonaAsync("race first user");
-        var secondPersona = await app.CreatePersonaAsync("race second user");
-        await using var context = await app.NewAuthenticatedContextAsync(firstPersona);
-        await context.RouteAsync("https://docs.google.com/forms/**", route => route.FulfillAsync(new()
-        {
-            ContentType = "text/html",
-            Body = "<title>Registration test</title>"
-        }));
-
-        var firstTab = context.Pages[0];
-        var secondTab = await context.NewPageAsync();
-        await firstTab.GotoAsync($"{app.BaseUrl}info");
-        await firstTab.WaitForInteractiveAsync();
-        await secondTab.GotoAsync($"{app.BaseUrl}info");
-        await secondTab.WaitForInteractiveAsync();
-
-        var candidateResponse = new TaskCompletionSource<IAPIResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var releaseCandidate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        await context.RouteAsync("**/account/ticket-registration/gamer", async route =>
-        {
-            var response = await route.FetchAsync();
-            candidateResponse.TrySetResult(response);
-            await releaseCandidate.Task.WaitAsync(TimeSpan.FromSeconds(15));
-            await route.FulfillAsync(new() { Response = response });
-        });
-
-        IPage popup;
-        Task<IResponse>? confirmationResponse = null;
-        try
-        {
-            popup = await firstTab.RunAndWaitForPopupAsync(async () =>
-            {
-                await firstTab.Locator("a.lan-ticket--gamer").FocusAsync();
-                await firstTab.Keyboard.PressAsync("Enter");
-            });
-            var capturedResponse = await candidateResponse.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            var candidate = await capturedResponse.JsonAsync() ?? throw new InvalidOperationException("The ticket endpoint returned no JSON response.");
-            Assert.True(candidate.TryGetProperty("url", out var candidateUrlValue));
-            var candidateQuery = QueryHelpers.ParseQuery(new Uri(candidateUrlValue.GetString()!).Query);
-            Assert.Equal("race first user", candidateQuery["entry.171194938"].ToString());
-            Assert.Equal(firstPersona.Username, candidateQuery["entry.106529928"].ToString());
-            Assert.True(candidate.TryGetProperty("proof", out var proof));
-            Assert.False(string.IsNullOrWhiteSpace(proof.GetString()));
-
-            await secondTab.GetByRole(AriaRole.Button, new() { Name = $"{firstPersona.Username} account menu" }).ClickAsync();
-            await secondTab.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
-            await Expect(secondTab.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
-            await app.LoginAsync(secondTab, secondPersona);
-            confirmationResponse = firstTab.WaitForResponseAsync(response =>
-                response.Url.EndsWith("/account/ticket-registration/confirm", StringComparison.Ordinal));
-        }
-        finally
-        {
-            releaseCandidate.TrySetResult();
-        }
-
-        Assert.NotNull(confirmationResponse);
-        Assert.Equal(401, (await confirmationResponse).Status);
-        await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
-        var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
-        Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
-        Assert.False(query.ContainsKey("entry.171194938"));
-        Assert.False(query.ContainsKey("entry.727955101"));
-        Assert.False(query.ContainsKey("entry.106529928"));
-    }
-
-    [Fact]
-    public async Task TicketRegistrationConfirmationRejectsMissingAndMalformedProofsAsBadRequests()
-    {
-        var persona = await app.CreatePersonaAsync("invalid registration proof");
-        await using var context = await app.NewAuthenticatedContextAsync(persona);
-        var page = context.Pages[0];
-        await page.GotoAsync($"{app.BaseUrl}info");
-        await page.WaitForInteractiveAsync();
-
-        var statuses = await page.EvaluateAsync<int[]>(
-            """
-            async () => {
-            const responses = [];
-            for (const body of [{}, { proof: null }, { proof: '' }, { proof: 'not-a-proof' }]) {
-                const response = await fetch('/account/ticket-registration/confirm', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                responses.push(response.status);
-            }
-            const malformed = await fetch('/account/ticket-registration/confirm', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: '{'
-            });
-            responses.push(malformed.status);
-            return responses;
-            }
-            """);
-
-        Assert.Equal(new[] { 400, 400, 400, 400, 400 }, statuses);
     }
 
     [Fact]

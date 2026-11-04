@@ -1,18 +1,21 @@
 using Blazored.Toast.Services;
+using Mercurius.LAN.Web.APIClients;
+using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Options;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
-using Microsoft.JSInterop;
+using Refit;
 using System.Globalization;
 
 namespace Mercurius.LAN.Web.Components.Pages;
 
-public partial class Info : IAsyncDisposable
+public partial class Info
 {
     private ContactMessage _contactModel = new();
     private bool _isSendingContact;
-    private IJSObjectReference? _ticketModule;
+    private UserProfileDTO? _currentUserProfile;
 
     private static readonly IReadOnlyDictionary<string, string> ValidationFieldLabelKeys = new Dictionary<string, string>
     {
@@ -22,12 +25,21 @@ public partial class Info : IAsyncDisposable
     };
 
     [Inject] private IOptions<LanEventOptions> EventOptions { get; set; } = null!;
-    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
+    [Inject] private IUserClient UserClient { get; set; } = null!;
     [Inject] private IContactEmailService ContactEmailService { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
 
     private LanEventOptions Event => EventOptions.Value;
     private string? GeneralRegistrationUrl => TicketRegistrationUrlBuilder.GetValidUrl(Event.Registration?.GeneralUrl);
+    private string? GetTicketRegistrationUrl(TicketOption ticket)
+    {
+        var ticketUrl = TicketRegistrationUrlBuilder.GetValidUrl(ticket.RegistrationUrl);
+        return ticketUrl is null
+            ? null
+            : TicketRegistrationUrlBuilder.AddProfileValues(ticketUrl, Event.Registration, _currentUserProfile);
+    }
+
     private string GamerTicketPrice => Event.Tickets
         .FirstOrDefault(ticket => string.Equals(ticket.Kind, "gamer", StringComparison.OrdinalIgnoreCase))
         ?.Price is { } price ? GetTicketPrice(price) : "10 EUR";
@@ -79,34 +91,29 @@ public partial class Info : IAsyncDisposable
         ? Localization["General.Info.Ticket.Free"]
         : price;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (!firstRender)
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authenticationState.User.Identity?.IsAuthenticated != true)
             return;
 
         try
         {
-            _ticketModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/info-ticket-registration.js");
-            await _ticketModule.InvokeVoidAsync("attach");
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var profile = await UserClient.GetCurrentUserProfileAsync(timeout.Token);
+            _currentUserProfile = profile.User;
         }
-        catch (JSException)
+        catch (ApiException)
         {
-            _ticketModule = null;
+            _currentUserProfile = null;
         }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_ticketModule is not null)
+        catch (HttpRequestException)
         {
-            try
-            {
-                await _ticketModule.InvokeVoidAsync("detach");
-                await _ticketModule.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-            }
+            _currentUserProfile = null;
+        }
+        catch (OperationCanceledException)
+        {
+            _currentUserProfile = null;
         }
     }
 
