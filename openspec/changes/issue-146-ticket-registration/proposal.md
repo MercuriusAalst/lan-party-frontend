@@ -6,7 +6,7 @@ Visitors can read ticket details but cannot start registration from the ticket t
 
 - Make each configured ticket card an accessible link to its matching prefilled registration form.
 - Keep the general registration link and venue purchase guidance.
-- For signed-in users, prefill available profile name and username on the Info page.
+- For signed-in users, prefill available profile name, username, and email on the Info page.
 - Keep ticket URLs and optional Google Forms field mappings in application configuration.
 
 ## Capabilities

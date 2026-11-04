@@ -79,6 +79,7 @@ public sealed class RegistrationFormOptions
     public string? FirstNameEntryId { get; set; }
     public string? LastNameEntryId { get; set; }
     public string? UsernameEntryId { get; set; }
+    public string? EmailEntryId { get; set; }
 }
 
 public sealed class MenuSectionOptions

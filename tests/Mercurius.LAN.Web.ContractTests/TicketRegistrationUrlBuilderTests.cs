@@ -17,7 +17,8 @@ public class TicketRegistrationUrlBuilderTests
         {
             FirstNameEntryId = "171194938",
             LastNameEntryId = "727955101",
-            UsernameEntryId = "106529928"
+            UsernameEntryId = "106529928",
+            EmailEntryId = "793859948"
         };
         var profile = new UserProfileDTO
         {
@@ -26,14 +27,14 @@ public class TicketRegistrationUrlBuilderTests
             Username = "player?one=value"
         };
 
-        var result = TicketRegistrationUrlBuilder.AddProfileValues(TicketUrl, options, profile);
+        var result = TicketRegistrationUrlBuilder.AddProfileValues(TicketUrl, options, profile, "zoe+lan@example.test");
         var query = QueryHelpers.ParseQuery(new Uri(result).Query);
 
         Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
         Assert.Equal("Zoë + Kai", query["entry.171194938"].ToString());
         Assert.Equal("O'Neil & Sons", query["entry.727955101"].ToString());
         Assert.Equal("player?one=value", query["entry.106529928"].ToString());
-        Assert.False(query.Keys.Any(key => key.Contains("email", StringComparison.OrdinalIgnoreCase)));
+        Assert.Equal("zoe+lan@example.test", query["entry.793859948"].ToString());
     }
 
     [Fact]
@@ -43,17 +44,29 @@ public class TicketRegistrationUrlBuilderTests
         {
             FirstNameEntryId = "327008568",
             LastNameEntryId = "727955101&entry.327008568=wrong",
-            UsernameEntryId = "106529928"
+            UsernameEntryId = "106529928",
+            EmailEntryId = "327008568"
         };
         var profile = new UserProfileDTO { Firstname = "Ada", Lastname = "Lovelace", Username = " " };
 
-        var result = TicketRegistrationUrlBuilder.AddProfileValues(TicketUrl, options, profile);
+        var result = TicketRegistrationUrlBuilder.AddProfileValues(TicketUrl, options, profile, "collision@example.test");
         var query = QueryHelpers.ParseQuery(new Uri(result).Query);
 
         Assert.Single(query["entry.327008568"]);
         Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
         Assert.False(query.ContainsKey("entry.727955101&entry.327008568=wrong"));
         Assert.False(query.ContainsKey("entry.106529928"));
+    }
+
+    [Fact]
+    public void AddProfileValuesOmitsEmailWhenTheCurrentApplicationProfileHasNoEmail()
+    {
+        var options = new RegistrationFormOptions { EmailEntryId = "793859948" };
+
+        var result = TicketRegistrationUrlBuilder.AddProfileValues(TicketUrl, options, new UserProfileDTO(), email: null);
+        var query = QueryHelpers.ParseQuery(new Uri(result).Query);
+
+        Assert.False(query.ContainsKey("entry.793859948"));
     }
 
     [Fact]

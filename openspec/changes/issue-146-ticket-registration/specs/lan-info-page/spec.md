@@ -13,7 +13,7 @@ The Info page SHALL use a localized page heading that identifies the event's com
 
 ### Requirement: Info ticket cards open their configured registration form
 
-Each ticket option SHALL be a clearly interactive, accessible link to its configured Google Forms registration URL. The form URL and field mappings SHALL be read from application configuration. When the Info page loads for an authenticated visitor, it MAY fetch that visitor's current application profile and include available first name, last name, and username values in the rendered ticket link. Anonymous visitors and visitors whose profile cannot be loaded SHALL retain usable ticket-only registration links. Profile values are included only in the authenticated page's ticket link and are not cached or logged by the application.
+Each ticket option SHALL be a clearly interactive, accessible link to its configured Google Forms registration URL. The form URL and field mappings SHALL be read from application configuration. When the Info page loads for an authenticated visitor, it MAY fetch that visitor's current application profile and include available first name, last name, username, and email values in the rendered ticket link. Anonymous visitors and visitors whose profile cannot be loaded SHALL retain usable ticket-only registration links. Profile values are included only in the authenticated page's ticket link and are not cached or logged by the application.
 
 #### Scenario: Visitor opens a ticket form
 - **WHEN** a visitor activates any part of a configured ticket card by mouse, touch, or keyboard
@@ -24,9 +24,9 @@ Each ticket option SHALL be a clearly interactive, accessible link to its config
 
 #### Scenario: Signed-in visitor loads the Info page
 - **WHEN** an authenticated visitor loads the Info page and their current application profile is available
-- **THEN** available first name, last name, and username from that profile are added to each ticket link using the configured form field mappings
+- **THEN** available first name, last name, username, and email from that profile are added to each ticket link using the configured form field mappings
 - **AND** the values are URL-encoded and remain editable in the form
-- **AND** no email address is added
+- **AND** email comes from the application's current-user profile API response
 
 #### Scenario: Profile or optional configuration is unavailable
 - **WHEN** the visitor is anonymous, profile loading fails, a profile field is empty, or a field mapping is missing

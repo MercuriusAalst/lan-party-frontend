@@ -157,7 +157,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         Assert.Equal("Émilie Ticket", renderedQuery["entry.171194938"].ToString());
         Assert.Equal("E2E", renderedQuery["entry.727955101"].ToString());
         Assert.Equal(persona.Username, renderedQuery["entry.106529928"].ToString());
-        Assert.False(renderedQuery.ContainsKey("entry.email"));
+        Assert.Equal(persona.Email, renderedQuery["entry.793859948"].ToString());
         var popup = await page.RunAndWaitForPopupAsync(async () =>
         {
             await link.FocusAsync();
@@ -170,7 +170,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         Assert.Equal("E2E", query["entry.727955101"].ToString());
         Assert.Equal(persona.Username, query["entry.106529928"].ToString());
         Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
-        Assert.False(query.ContainsKey("entry.email"));
+        Assert.Equal(persona.Email, query["entry.793859948"].ToString());
 
         await page.GetByRole(AriaRole.Button, new() { Name = $"{persona.Username} account menu" }).ClickAsync();
         await page.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
@@ -178,6 +178,11 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await page.GotoAsync($"{app.BaseUrl}info");
         await page.WaitForInteractiveAsync();
         link = page.Locator("a.lan-ticket--gamer");
+        var signedOutQuery = QueryHelpers.ParseQuery(new Uri(await link.GetAttributeAsync("href")!).Query);
+        Assert.False(signedOutQuery.ContainsKey("entry.171194938"));
+        Assert.False(signedOutQuery.ContainsKey("entry.727955101"));
+        Assert.False(signedOutQuery.ContainsKey("entry.106529928"));
+        Assert.False(signedOutQuery.ContainsKey("entry.793859948"));
         var anonymousPopup = await page.RunAndWaitForPopupAsync(async () =>
         {
             await link.FocusAsync();
@@ -188,6 +193,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         Assert.False(anonymousQuery.ContainsKey("entry.171194938"));
         Assert.False(anonymousQuery.ContainsKey("entry.727955101"));
         Assert.False(anonymousQuery.ContainsKey("entry.106529928"));
+        Assert.False(anonymousQuery.ContainsKey("entry.793859948"));
     }
 
     [Fact]
@@ -212,6 +218,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             Assert.False(renderedQuery.ContainsKey("entry.171194938"));
             Assert.False(renderedQuery.ContainsKey("entry.727955101"));
             Assert.False(renderedQuery.ContainsKey("entry.106529928"));
+            Assert.False(renderedQuery.ContainsKey("entry.793859948"));
 
             var popup = await page.RunAndWaitForPopupAsync(async () =>
             {
@@ -225,6 +232,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             Assert.False(query.ContainsKey("entry.171194938"));
             Assert.False(query.ContainsKey("entry.727955101"));
             Assert.False(query.ContainsKey("entry.106529928"));
+            Assert.False(query.ContainsKey("entry.793859948"));
         }
     }
 

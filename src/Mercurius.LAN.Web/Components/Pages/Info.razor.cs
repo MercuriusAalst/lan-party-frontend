@@ -16,6 +16,7 @@ public partial class Info
     private ContactMessage _contactModel = new();
     private bool _isSendingContact;
     private UserProfileDTO? _currentUserProfile;
+    private string? _currentUserEmail;
 
     private static readonly IReadOnlyDictionary<string, string> ValidationFieldLabelKeys = new Dictionary<string, string>
     {
@@ -37,7 +38,7 @@ public partial class Info
         var ticketUrl = TicketRegistrationUrlBuilder.GetValidUrl(ticket.RegistrationUrl);
         return ticketUrl is null
             ? null
-            : TicketRegistrationUrlBuilder.AddProfileValues(ticketUrl, Event.Registration, _currentUserProfile);
+            : TicketRegistrationUrlBuilder.AddProfileValues(ticketUrl, Event.Registration, _currentUserProfile, _currentUserEmail);
     }
 
     private string GamerTicketPrice => Event.Tickets
@@ -102,18 +103,22 @@ public partial class Info
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             var profile = await UserClient.GetCurrentUserProfileAsync(timeout.Token);
             _currentUserProfile = profile.User;
+            _currentUserEmail = profile.Email;
         }
         catch (ApiException)
         {
             _currentUserProfile = null;
+            _currentUserEmail = null;
         }
         catch (HttpRequestException)
         {
             _currentUserProfile = null;
+            _currentUserEmail = null;
         }
         catch (OperationCanceledException)
         {
             _currentUserProfile = null;
+            _currentUserEmail = null;
         }
     }
 
