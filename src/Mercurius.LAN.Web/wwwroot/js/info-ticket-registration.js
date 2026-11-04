@@ -20,7 +20,8 @@ export function attach() {
             const response = await fetch(`/account/ticket-registration/${encodeURIComponent(link.dataset.ticketKind)}`, {
                 credentials: "same-origin",
                 cache: "no-store",
-                headers: { Accept: "application/json" }
+                headers: { Accept: "application/json" },
+                signal: AbortSignal.timeout(7000)
             });
             const result = response.ok ? await response.json() : null;
             const fallback = new URL(link.href);
