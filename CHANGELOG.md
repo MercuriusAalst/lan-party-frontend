@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.4...frontend-v0.9.0) (2026-11-05)
+
+
+### Features
+
+* Link Info Ticket Cards To Registration ([#147](https://github.com/MercuriusAalst/lan-party-frontend/issues/147)) ([d57afa1](https://github.com/MercuriusAalst/lan-party-frontend/commit/d57afa12db73fe38d8a65959ce7dc9c614afb3b2))
+
 ## [0.8.4](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.3...frontend-v0.8.4) (2026-10-30)
 
 
