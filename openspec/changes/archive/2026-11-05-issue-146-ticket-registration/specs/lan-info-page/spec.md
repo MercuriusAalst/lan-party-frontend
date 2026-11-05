@@ -11,6 +11,8 @@ The Info page SHALL use a localized page heading that identifies the event's com
 - **AND** the general Google Forms link MUST open the configured registration URL
 - **AND** the guidance MUST remain readable without horizontal overflow at supported desktop and mobile widths
 
+## ADDED Requirements
+
 ### Requirement: Info ticket cards open their configured registration form
 
 Each ticket option SHALL be a clearly interactive, accessible link to its configured Google Forms registration URL. The form URL and field mappings SHALL be read from application configuration. When the Info page loads for an authenticated visitor, it MAY fetch that visitor's current application profile and include available first name, last name, username, and email values in the rendered ticket link. Anonymous visitors and visitors whose profile cannot be loaded SHALL retain usable ticket-only registration links. Profile values are included only in the authenticated page's ticket link and are not cached or logged by the application.
