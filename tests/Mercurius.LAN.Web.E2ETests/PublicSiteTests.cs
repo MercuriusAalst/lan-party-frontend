@@ -3,6 +3,7 @@ using System.Net.Mail;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Playwright;
 using Npgsql;
 using Xunit;
@@ -79,6 +80,9 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Pick your pass." })).ToBeVisibleAsync();
         await Expect(page.Locator(".lan-ticket--gamer")).ToContainTextAsync("Basic");
         await Expect(page.Locator(".lan-ticket--visitor")).ToContainTextAsync("5 EUR");
+        await Expect(page.GetByText("Opening a ticket form sends your available first name, last name, and username to Google Forms.")).ToHaveCountAsync(0);
+        await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Google Forms" }))
+            .ToHaveAttributeAsync("href", "https://forms.gle/B6Jwgbb51KU2Hmds6");
 
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Our menu" })).ToBeVisibleAsync();
         await Expect(page.GetByText("Croque Monsieur")).ToBeVisibleAsync();
@@ -86,6 +90,150 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
         await Expect(page.Locator("#contact-info")).ToBeVisibleAsync();
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Contact us" })).ToBeVisibleAsync();
         await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Join the Mercurius Aalst Discord server" })).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task AnonymousTicketCardsExposeConfiguredLinksAndOpenTheTicketOnlyFallbackByKeyboard()
+    {
+        await using var context = await app.NewContextAsync();
+        await context.RouteAsync("https://docs.google.com/forms/**", route => route.FulfillAsync(new()
+        {
+            ContentType = "text/html",
+            Body = "<title>Registration test</title>"
+        }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"{app.BaseUrl}info");
+        await page.WaitForInteractiveAsync();
+
+        var links = page.Locator("a.lan-ticket");
+        await Expect(links).ToHaveCountAsync(3);
+        foreach (var (kind, name, choice) in new[]
+        {
+            ("visitor", "Fun", "Fun+%E2%80%93+%E2%82%AC+5"),
+            ("gamer", "Basic", "Basic+%E2%80%93+%E2%82%AC+10"),
+            ("chair", "Comfort", "Comfort+%E2%80%93+%E2%82%AC+15")
+        })
+        {
+            var link = page.Locator($"a.lan-ticket--{kind}");
+            await Expect(link).ToHaveAttributeAsync("aria-label", $"Register for {name}");
+            await Expect(link).ToHaveAttributeAsync("target", "_blank");
+            await Expect(link).ToHaveAttributeAsync("rel", "noopener noreferrer");
+            await Expect(link).ToHaveAttributeAsync("href", new Regex($"entry\\.327008568={Regex.Escape(choice)}"));
+            await link.FocusAsync();
+            await Expect(link).ToBeFocusedAsync();
+            Assert.NotEqual("none", await link.EvaluateAsync<string>("element => getComputedStyle(element).outlineStyle"));
+        }
+
+        var selected = page.Locator("a.lan-ticket--gamer");
+        var popup = await page.RunAndWaitForPopupAsync(async () =>
+        {
+            await selected.FocusAsync();
+            await page.Keyboard.PressAsync("Enter");
+        });
+        await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
+        var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
+        Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
+        Assert.False(popup.Url.Contains("entry.171194938", StringComparison.Ordinal));
+        Assert.False(popup.Url.Contains("entry.727955101", StringComparison.Ordinal));
+        Assert.False(popup.Url.Contains("entry.106529928", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task SignedInTicketCardPrefillsTheCurrentApiProfileAndLogoutRefreshRemovesIt()
+    {
+        var persona = await app.CreatePersonaAsync("Émilie Ticket");
+        await using var context = await app.NewAuthenticatedContextAsync(persona);
+        await context.RouteAsync("https://docs.google.com/forms/**", route => route.FulfillAsync(new()
+        {
+            ContentType = "text/html",
+            Body = "<title>Registration test</title>"
+        }));
+        var page = context.Pages[0];
+        await page.GotoAsync($"{app.BaseUrl}info");
+        await page.WaitForInteractiveAsync();
+
+        var link = page.Locator("a.lan-ticket--gamer");
+        var renderedQuery = QueryHelpers.ParseQuery(new Uri(await link.GetAttributeAsync("href")!).Query);
+        Assert.Equal("Émilie Ticket", renderedQuery["entry.171194938"].ToString());
+        Assert.Equal("E2E", renderedQuery["entry.727955101"].ToString());
+        Assert.Equal(persona.Username, renderedQuery["entry.106529928"].ToString());
+        Assert.Equal(persona.Email, renderedQuery["entry.793859948"].ToString());
+        var popup = await page.RunAndWaitForPopupAsync(async () =>
+        {
+            await link.FocusAsync();
+            await page.Keyboard.PressAsync("Enter");
+        });
+        await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
+
+        var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
+        Assert.Equal("Émilie Ticket", query["entry.171194938"].ToString());
+        Assert.Equal("E2E", query["entry.727955101"].ToString());
+        Assert.Equal(persona.Username, query["entry.106529928"].ToString());
+        Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
+        Assert.Equal(persona.Email, query["entry.793859948"].ToString());
+
+        await page.GetByRole(AriaRole.Button, new() { Name = $"{persona.Username} account menu" }).ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Logout" }).ClickAsync();
+        await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Log in" })).ToBeVisibleAsync();
+        await page.GotoAsync($"{app.BaseUrl}info");
+        await page.WaitForInteractiveAsync();
+        link = page.Locator("a.lan-ticket--gamer");
+        var signedOutQuery = QueryHelpers.ParseQuery(new Uri(await link.GetAttributeAsync("href")!).Query);
+        Assert.False(signedOutQuery.ContainsKey("entry.171194938"));
+        Assert.False(signedOutQuery.ContainsKey("entry.727955101"));
+        Assert.False(signedOutQuery.ContainsKey("entry.106529928"));
+        Assert.False(signedOutQuery.ContainsKey("entry.793859948"));
+        var anonymousPopup = await page.RunAndWaitForPopupAsync(async () =>
+        {
+            await link.FocusAsync();
+            await page.Keyboard.PressAsync("Enter");
+        });
+        await anonymousPopup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
+        var anonymousQuery = QueryHelpers.ParseQuery(new Uri(anonymousPopup.Url).Query);
+        Assert.False(anonymousQuery.ContainsKey("entry.171194938"));
+        Assert.False(anonymousQuery.ContainsKey("entry.727955101"));
+        Assert.False(anonymousQuery.ContainsKey("entry.106529928"));
+        Assert.False(anonymousQuery.ContainsKey("entry.793859948"));
+    }
+
+    [Fact]
+    public async Task SignedInTicketCardFallsBackWhenProfileApiFailsDuringPageLoad()
+    {
+        var persona = await app.CreatePersonaAsync("profile unavailable");
+        await using var context = await app.NewAuthenticatedContextAsync(persona);
+        await context.RouteAsync("https://docs.google.com/forms/**", route => route.FulfillAsync(new()
+        {
+            ContentType = "text/html",
+            Body = "<title>Registration test</title>"
+        }));
+        var page = context.Pages[0];
+        await using (await DatabaseReadFault.InstallAsync(app, "users"))
+        {
+            await page.GotoAsync($"{app.BaseUrl}info");
+            await page.WaitForInteractiveAsync();
+
+            var link = page.Locator("a.lan-ticket--gamer");
+            var renderedQuery = QueryHelpers.ParseQuery(new Uri(await link.GetAttributeAsync("href")!).Query);
+            Assert.Equal("Basic – € 10", renderedQuery["entry.327008568"].ToString());
+            Assert.False(renderedQuery.ContainsKey("entry.171194938"));
+            Assert.False(renderedQuery.ContainsKey("entry.727955101"));
+            Assert.False(renderedQuery.ContainsKey("entry.106529928"));
+            Assert.False(renderedQuery.ContainsKey("entry.793859948"));
+
+            var popup = await page.RunAndWaitForPopupAsync(async () =>
+            {
+                await link.FocusAsync();
+                await page.Keyboard.PressAsync("Enter");
+            });
+            await popup.WaitForURLAsync(url => url.StartsWith("https://docs.google.com/forms/", StringComparison.Ordinal));
+            var query = QueryHelpers.ParseQuery(new Uri(popup.Url).Query);
+
+            Assert.Equal("Basic – € 10", query["entry.327008568"].ToString());
+            Assert.False(query.ContainsKey("entry.171194938"));
+            Assert.False(query.ContainsKey("entry.727955101"));
+            Assert.False(query.ContainsKey("entry.106529928"));
+            Assert.False(query.ContainsKey("entry.793859948"));
+        }
     }
 
     [Fact]
@@ -1197,6 +1345,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             throw;
         }
     }
+
 
     [Fact]
     public async Task SponsorsPageLoadFailureReportsFailureToastAndRecoversOnReload()

@@ -1,8 +1,12 @@
 using Blazored.Toast.Services;
+using Mercurius.LAN.Web.APIClients;
+using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Options;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Options;
+using Refit;
 using System.Globalization;
 
 namespace Mercurius.LAN.Web.Components.Pages;
@@ -11,6 +15,8 @@ public partial class Info
 {
     private ContactMessage _contactModel = new();
     private bool _isSendingContact;
+    private UserProfileDTO? _currentUserProfile;
+    private string? _currentUserEmail;
 
     private static readonly IReadOnlyDictionary<string, string> ValidationFieldLabelKeys = new Dictionary<string, string>
     {
@@ -20,10 +26,21 @@ public partial class Info
     };
 
     [Inject] private IOptions<LanEventOptions> EventOptions { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
+    [Inject] private IUserClient UserClient { get; set; } = null!;
     [Inject] private IContactEmailService ContactEmailService { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
 
     private LanEventOptions Event => EventOptions.Value;
+    private string? GeneralRegistrationUrl => TicketRegistrationUrlBuilder.GetValidUrl(Event.Registration?.GeneralUrl);
+    private string? GetTicketRegistrationUrl(TicketOption ticket)
+    {
+        var ticketUrl = TicketRegistrationUrlBuilder.GetValidUrl(ticket.RegistrationUrl);
+        return ticketUrl is null
+            ? null
+            : TicketRegistrationUrlBuilder.AddProfileValues(ticketUrl, Event.Registration, _currentUserProfile, _currentUserEmail);
+    }
+
     private string GamerTicketPrice => Event.Tickets
         .FirstOrDefault(ticket => string.Equals(ticket.Kind, "gamer", StringComparison.OrdinalIgnoreCase))
         ?.Price is { } price ? GetTicketPrice(price) : "10 EUR";
@@ -74,6 +91,36 @@ public partial class Info
     private string GetTicketPrice(string price) => price == "Free"
         ? Localization["General.Info.Ticket.Free"]
         : price;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authenticationState.User.Identity?.IsAuthenticated != true)
+            return;
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var profile = await UserClient.GetCurrentUserProfileAsync(timeout.Token);
+            _currentUserProfile = profile.User;
+            _currentUserEmail = profile.Email;
+        }
+        catch (ApiException)
+        {
+            _currentUserProfile = null;
+            _currentUserEmail = null;
+        }
+        catch (HttpRequestException)
+        {
+            _currentUserProfile = null;
+            _currentUserEmail = null;
+        }
+        catch (OperationCanceledException)
+        {
+            _currentUserProfile = null;
+            _currentUserEmail = null;
+        }
+    }
 
     private string GetMenuSectionName(string name) => name switch
     {

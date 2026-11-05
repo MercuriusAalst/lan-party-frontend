@@ -32,6 +32,8 @@ public sealed class LanEventOptions
 
     public List<TicketOption> Tickets { get; set; } = [];
 
+    public RegistrationFormOptions? Registration { get; set; } = new();
+
     public List<MenuSectionOptions> MenuSections { get; set; } = [];
 
     public List<SocialLinkOptions> SocialLinks { get; set; } = [];
@@ -67,6 +69,17 @@ public sealed class TicketOption
 
     [Required]
     public string Description { get; set; } = string.Empty;
+
+    public string? RegistrationUrl { get; set; }
+}
+
+public sealed class RegistrationFormOptions
+{
+    public string? GeneralUrl { get; set; }
+    public string? FirstNameEntryId { get; set; }
+    public string? LastNameEntryId { get; set; }
+    public string? UsernameEntryId { get; set; }
+    public string? EmailEntryId { get; set; }
 }
 
 public sealed class MenuSectionOptions
