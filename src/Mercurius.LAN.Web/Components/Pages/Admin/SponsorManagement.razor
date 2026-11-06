@@ -90,8 +90,8 @@ else
                             <div class="sponsor-admin-logo-preview">
                                 <span>@Localization["Admin.previewLight"]</span>
                                 <div class="sponsor-admin-logo-preview-surface sponsor-admin-logo-preview-surface--light">
-                                    <ThemeAwareSponsorLogo LogoUrl="@_selectedSponsor.LogoUrl"
-                                                           LightLogoUrl="@(_selectedSponsor.RemoveLightLogo ? null : _selectedSponsor.LightLogoUrl)"
+                                    <ThemeAwareSponsorLogo LogoUrl="@(_logoInputRef?.PreviewDataUrl ?? _selectedSponsor.LogoUrl)"
+                                                           LightLogoUrl="@(_selectedSponsor.RemoveLightLogo ? null : _lightLogoInputRef?.PreviewDataUrl ?? _selectedSponsor.LightLogoUrl)"
                                                            ForcedTheme="light"
                                                            AltText='@Localization.Get("shared.sponsorLogo", string.IsNullOrWhiteSpace(_selectedSponsor.Name) ? Localization["Admin.logoPreviewFallbackName"] : _selectedSponsor.Name)'
                                                            EmptyText='@Localization["Admin.noLogoPreview"]' />
@@ -100,8 +100,8 @@ else
                             <div class="sponsor-admin-logo-preview">
                                 <span>@Localization["Admin.previewDark"]</span>
                                 <div class="sponsor-admin-logo-preview-surface sponsor-admin-logo-preview-surface--dark">
-                                    <ThemeAwareSponsorLogo LogoUrl="@_selectedSponsor.LogoUrl"
-                                                           LightLogoUrl="@(_selectedSponsor.RemoveLightLogo ? null : _selectedSponsor.LightLogoUrl)"
+                                    <ThemeAwareSponsorLogo LogoUrl="@(_logoInputRef?.PreviewDataUrl ?? _selectedSponsor.LogoUrl)"
+                                                           LightLogoUrl="@(_selectedSponsor.RemoveLightLogo ? null : _lightLogoInputRef?.PreviewDataUrl ?? _selectedSponsor.LightLogoUrl)"
                                                            ForcedTheme="dark"
                                                            AltText='@Localization.Get("shared.sponsorLogo", string.IsNullOrWhiteSpace(_selectedSponsor.Name) ? Localization["Admin.logoPreviewFallbackName"] : _selectedSponsor.Name)'
                                                            EmptyText='@Localization["Admin.noLogoPreview"]' />

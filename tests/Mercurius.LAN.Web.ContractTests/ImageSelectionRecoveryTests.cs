@@ -108,6 +108,39 @@ public sealed class ImageSelectionRecoveryTests
         Assert.Empty(editContext.GetValidationMessages());
     }
 
+    [Fact]
+    public async Task SharedPickerPreviewTracksValidSelectionAndClearsOnResetOrFailure()
+    {
+        using var input = new CustomInputFile();
+        SetProperty(input, "Localization", TestLocalizationService.Instance);
+        SetProperty(input, "Configuration", Configuration);
+        var model = new TestFileModel();
+        SetProperty(input, "EditContext", new EditContext(model));
+        SetProperty(input, "ValueExpression", (System.Linq.Expressions.Expression<Func<IBrowserFile>>)(() => model.File!));
+        Invoke(input, "OnInitialized");
+        Invoke(input, "OnParametersSet");
+        SetProperty(input, "FieldIdentifier", new FieldIdentifier(model, nameof(TestFileModel.File)));
+
+        var imageBytes = new byte[] { 0, 1, 2, 255 };
+        await SelectSharedFileAsync(input, new MemoryBrowserFile("logo.png", "image/png", imageBytes));
+        var replacementBytes = new byte[] { 9, 8, 7 };
+        await SelectSharedFileAsync(input, new MemoryBrowserFile("replacement.png", "image/png", replacementBytes));
+
+        var tempFilePath = ReadProperty<string>(input, "TempFilePath");
+        Assert.Equal($"data:image/png;base64,{Convert.ToBase64String(replacementBytes)}", ReadProperty<string?>(input, "PreviewDataUrl"));
+
+        input.ClearSelection();
+
+        Assert.Null(ReadProperty<string?>(input, "PreviewDataUrl"));
+        Assert.False(File.Exists(tempFilePath));
+
+        await SelectSharedFileAsync(input, new MemoryBrowserFile("logo.png", "image/png", imageBytes));
+        await SelectSharedFileAsync(input, new FailingBrowserFile(new IOException("read interrupted")));
+
+        Assert.Null(ReadProperty<string?>(input, "PreviewDataUrl"));
+        Assert.Null(ReadProperty<string?>(input, "TempFilePath"));
+    }
+
     private static Profile CreateProfile()
     {
         var page = new Profile();

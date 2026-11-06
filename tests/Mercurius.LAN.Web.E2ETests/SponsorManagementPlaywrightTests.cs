@@ -45,6 +45,98 @@ public class SponsorManagementPlaywrightTests : TournamentE2ETestBase
     }
 
     [Fact]
+    public async Task PendingSponsorLogosPreviewOnBothThemesAndClearWithTheForm()
+    {
+        var admin = await App.CreatePersonaAsync("sponsor-logo-preview", isAdmin: true);
+        var context = await App.NewAuthenticatedContextAsync(admin);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, "/admin/sponsors");
+
+        var imageBytes = await File.ReadAllBytesAsync(TournamentE2E.TestImagePath());
+        var expectedDefaultUrl = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+        await page.Locator("#sponsorLogo").SetInputFilesAsync(new FilePayload
+        {
+            Name = "default.png",
+            MimeType = "image/png",
+            Buffer = imageBytes
+        });
+
+        var previewSurfaces = page.Locator(".sponsor-admin-logo-preview-surface");
+        await Expect(previewSurfaces).ToHaveCountAsync(2);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__default")).ToHaveCountAsync(2);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__default").First).ToHaveAttributeAsync("src", expectedDefaultUrl);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__light")).ToHaveCountAsync(0);
+
+        var expectedLightUrl = expectedDefaultUrl;
+        await page.Locator("#sponsorLightLogo").SetInputFilesAsync(new FilePayload
+        {
+            Name = "light.png",
+            MimeType = "image/png",
+            Buffer = imageBytes
+        });
+
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__default")).ToHaveCountAsync(2);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__light")).ToHaveCountAsync(2);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__default").First).ToHaveAttributeAsync("src", expectedDefaultUrl);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__light").First).ToHaveAttributeAsync("src", expectedLightUrl);
+
+        await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.Clear }).ClickAsync();
+
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__default")).ToHaveCountAsync(0);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__empty")).ToHaveCountAsync(2);
+    }
+
+    [Fact]
+    public async Task EditingSponsorKeepsSavedVariantAndPreviewsReplacementAndRemovalFallback()
+    {
+        var admin = await App.CreatePersonaAsync("sponsor-logo-edit-preview", isAdmin: true);
+        var adminApi = App.CreateApiClient(admin);
+        var name = TournamentE2E.Unique("E2E Sponsor Preview Edit");
+        using(var form = TournamentE2E.SponsorForm(name, "Gold", "https://example.test/preview", includeLightLogo: true))
+        using(var response = await adminApi.PostAsync("v1/lan/sponsors", form))
+            Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+
+        var context = await App.NewAuthenticatedContextAsync(admin);
+        var page = await context.NewPageAsync();
+        await TournamentE2E.GotoInteractiveAsync(page, "/admin/sponsors");
+        await SelectSponsorAsync(page, name);
+
+        var previewSurfaces = page.Locator(".sponsor-admin-logo-preview-surface");
+        var lightLogoImages = previewSurfaces.Locator(".theme-aware-sponsor-logo__light");
+        await Expect(lightLogoImages).ToHaveCountAsync(2);
+        var retainedLightUrl = await lightLogoImages.First.GetAttributeAsync("src");
+        Assert.False(string.IsNullOrWhiteSpace(retainedLightUrl));
+
+        await page.Locator("#removeLightLogo").CheckAsync();
+        await Expect(lightLogoImages).ToHaveCountAsync(0);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__default")).ToHaveCountAsync(2);
+
+        await page.Locator("#removeLightLogo").UncheckAsync();
+        var imageBytes = await File.ReadAllBytesAsync(TournamentE2E.TestImagePath());
+        var replacementUrl = $"data:image/png;base64,{Convert.ToBase64String(imageBytes)}";
+        await page.Locator("#sponsorLogo").SetInputFilesAsync(new FilePayload
+        {
+            Name = "replacement.png",
+            MimeType = "image/png",
+            Buffer = imageBytes
+        });
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__default").First).ToHaveAttributeAsync("src", replacementUrl);
+        await Expect(lightLogoImages.First).ToHaveAttributeAsync("src", retainedLightUrl!);
+
+        await page.Locator("#sponsorLightLogo").SetInputFilesAsync(new FilePayload
+        {
+            Name = "replacement-light.png",
+            MimeType = "image/png",
+            Buffer = imageBytes
+        });
+        await Expect(lightLogoImages.First).ToHaveAttributeAsync("src", replacementUrl);
+
+        await page.GetByRole(AriaRole.Button, new() { Name = TournamentE2E.Text.Clear }).ClickAsync();
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__default")).ToHaveCountAsync(0);
+        await Expect(previewSurfaces.Locator(".theme-aware-sponsor-logo__empty")).ToHaveCountAsync(2);
+    }
+
+    [Fact]
     public async Task AdminCanEditSponsorAndChangePersists()
     {
         var admin = await App.CreatePersonaAsync("sponsor-editor", isAdmin: true);

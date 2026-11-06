@@ -182,9 +182,14 @@ public partial class SponsorManagement
                 ToastService.ShowSuccess(Localization["Admin.updated"]);
             }
         }
-        catch(ApiException ex)
+        catch(Exception ex)
         {
-            ToastService.ShowError(GetApiError(ex));
+            // The service removes its temporary upload files even when the request fails. Clear the
+            // corresponding picker state so the form cannot display a preview for an unavailable file.
+            ClearLogoInputs();
+            ToastService.ShowError(ex is ApiException apiException
+                ? GetApiError(apiException)
+                : Localization["common.unexpectedError"]);
         }
     }
 
