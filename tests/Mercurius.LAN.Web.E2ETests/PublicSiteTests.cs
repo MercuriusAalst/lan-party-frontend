@@ -581,6 +581,16 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             var expectedLogoMaxHeight = sponsor.Tier == "Presenting" ? "152px" : "96px";
             Assert.Equal(expectedLogoMaxHeight, await logo.EvaluateAsync<string>(
                 "image => getComputedStyle(image).maxHeight"));
+
+            foreach (var aspectRatio in new[] { "100 400", "400 400" })
+            {
+                var renderedHeight = await logo.EvaluateAsync<double>("async (image, dimensions) => { " +
+                    "const [width, height] = dimensions.split(' ').map(Number); " +
+                    "image.src = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"${width}\" height=\"${height}\"></svg>`); " +
+                    "await image.decode(); return image.getBoundingClientRect().height; }", aspectRatio);
+                var maxHeight = sponsor.Tier == "Presenting" ? 152 : 96;
+                Assert.InRange(renderedHeight, 0, maxHeight);
+            }
         }
 
         // Only the Presenting and Gold tiers publish the partner description.
