@@ -1,0 +1,51 @@
+.theme-aware-sponsor-logo {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-aware-sponsor-logo img {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.theme-aware-sponsor-logo__light {
+    display: none;
+}
+
+[data-theme-state="dark"] .theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__default {
+    display: none;
+}
+
+[data-theme-state="dark"] .theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light {
+    display: block;
+}
+
+.theme-aware-sponsor-logo--dark.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__default {
+    display: none;
+}
+
+.theme-aware-sponsor-logo--dark.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light {
+    display: block;
+}
+
+.theme-aware-sponsor-logo--light.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__default {
+    display: block;
+}
+
+.theme-aware-sponsor-logo--light.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light {
+    display: none;
+}
+
+.theme-aware-sponsor-logo__empty {
+    color: var(--color-muted-text);
+    font-size: 0.9rem;
+    text-align: center;
+}

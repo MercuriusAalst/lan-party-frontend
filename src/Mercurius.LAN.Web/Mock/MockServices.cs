@@ -578,10 +578,25 @@ internal sealed class MockSponsorService : ISponsorService
 
     public Task<Sponsor> GetSponsorByIdAsync(int id) => Task.FromResult(_store.GetSponsorById(id));
 
-    public Task<Sponsor> CreateSponsorAsync(SponsorManagementDTO createSponsorDTO, string? tempFilePath, string? contentType, string? fileName) =>
+    public Task<Sponsor> CreateSponsorAsync(
+        SponsorManagementDTO createSponsorDTO,
+        string? logoTempFilePath,
+        string? logoContentType,
+        string? logoFileName,
+        string? lightLogoTempFilePath,
+        string? lightLogoContentType,
+        string? lightLogoFileName) =>
         Task.FromResult(_store.CreateSponsor(createSponsorDTO));
 
-    public Task<Sponsor> UpdateSponsorAsync(int id, SponsorManagementDTO updateSponsorDTO, string? tempFilePath, string? contentType, string? fileName) =>
+    public Task<Sponsor> UpdateSponsorAsync(
+        int id,
+        SponsorManagementDTO updateSponsorDTO,
+        string? logoTempFilePath,
+        string? logoContentType,
+        string? logoFileName,
+        string? lightLogoTempFilePath,
+        string? lightLogoContentType,
+        string? lightLogoFileName) =>
         Task.FromResult(_store.UpdateSponsor(id, updateSponsorDTO));
 
     public Task DeleteSponsorAsync(int id)

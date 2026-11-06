@@ -67,7 +67,9 @@ else
                         {
                             <a class="@GetSponsorCardClass(tier)" href="@sponsor.InfoUrl" target="_blank" rel="noopener noreferrer" aria-label='@Localization.Get("General.Sponsors.VisitSponsor", sponsor.Name)'>
                                 <div class="@GetSponsorCardLogoClass(tier)">
-                                    <img src="@sponsor.LogoUrl" alt="@sponsor.Name logo" />
+                                    <ThemeAwareSponsorLogo LogoUrl="@sponsor.LogoUrl"
+                                                           LightLogoUrl="@sponsor.LightLogoUrl"
+                                                           AltText='@Localization.Get("shared.sponsorLogo", sponsor.Name)' />
                                 </div>
                                 <div class="brand-sponsor-card-body sponsor-card-body">
                                     <h3>@sponsor.Name</h3>

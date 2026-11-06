@@ -40,6 +40,74 @@
     gap: 1rem;
 }
 
+.sponsor-admin-logo-fields {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.sponsor-admin-logo-fields .form-group {
+    display: grid;
+    align-content: start;
+}
+
+.sponsor-admin-logo-fields .form-text {
+    margin-top: 0.35rem;
+    color: var(--color-muted-text);
+}
+
+.sponsor-admin-remove-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+}
+
+.sponsor-admin-preview-section {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.sponsor-admin-preview-section h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.sponsor-admin-logo-previews {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.sponsor-admin-logo-preview {
+    display: grid;
+    gap: 0.4rem;
+    color: var(--color-muted-text);
+    font-size: 0.88rem;
+}
+
+.sponsor-admin-logo-preview-surface {
+    display: flex;
+    min-height: 7rem;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+}
+
+.sponsor-admin-logo-preview-surface--light {
+    background: #fffefa;
+}
+
+.sponsor-admin-logo-preview-surface--dark {
+    background: #171b20;
+}
+
 .sponsor-admin-sidebar {
     display: grid;
     gap: 1.5rem;
@@ -59,7 +127,9 @@
 }
 
 @media (max-width: 640px) {
-    .sponsor-admin-form-grid {
+    .sponsor-admin-form-grid,
+    .sponsor-admin-logo-fields,
+    .sponsor-admin-logo-previews {
         grid-template-columns: 1fr;
     }
 

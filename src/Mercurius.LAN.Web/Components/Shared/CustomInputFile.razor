@@ -38,6 +38,15 @@
     public string? FileContentType { get; private set; }
     public string? FileName { get; private set; }
 
+    public void ClearSelection()
+    {
+        ClearTemporaryFile();
+        CurrentValue = null;
+        _readError = string.Empty;
+        messageStore?.Clear(FieldIdentifier);
+        EditContext?.NotifyFieldChanged(FieldIdentifier);
+    }
+
     private string SelectedFileText => FileName ?? (string.IsNullOrWhiteSpace(EmptyText) ? Localization["form.noFile"] : EmptyText);
     private string ResolvedLabelText => string.IsNullOrWhiteSpace(LabelText) ? Localization["shared.chooseImage"] : LabelText;
 

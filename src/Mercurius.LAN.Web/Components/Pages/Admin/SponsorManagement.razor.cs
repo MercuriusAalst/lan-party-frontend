@@ -19,7 +19,8 @@ public partial class SponsorManagement
     private bool _isLoading = true;
     private EditContext? _editContext;
     private ValidationMessageStore? _validationMessages;
-    private CustomInputFile? _imageInputRef;
+    private CustomInputFile? _logoInputRef;
+    private CustomInputFile? _lightLogoInputRef;
 
     private CustomAutocomplete<SponsorManagementDTO> _autoCompleteComponent = null!;
 
@@ -71,6 +72,9 @@ public partial class SponsorManagement
 
     private void HandleFieldChanged(object? sender, FieldChangedEventArgs args)
     {
+        if(args.FieldIdentifier.FieldName == nameof(SponsorManagementDTO.LightLogo) && _selectedSponsor.LightLogo is not null)
+            _selectedSponsor.RemoveLightLogo = false;
+
         _editContext?.Validate();
     }
 
@@ -88,6 +92,12 @@ public partial class SponsorManagement
             var field = new FieldIdentifier(_selectedSponsor, nameof(SponsorManagementDTO.Logo));
             _validationMessages.Add(field, Localization.Get("form.requiredField", Localization["Admin.logo"]));
         }
+
+        if(_selectedSponsor.LightLogo is not null && _selectedSponsor.RemoveLightLogo)
+        {
+            var field = new FieldIdentifier(_selectedSponsor, nameof(SponsorManagementDTO.RemoveLightLogo));
+            _validationMessages.Add(field, Localization["Admin.removeLightLogoConflict"]);
+        }
     }
 
     private void AddRequiredMessage(string propertyName, string? value, string labelKey)
@@ -100,6 +110,7 @@ public partial class SponsorManagement
     }
     private void OnSponsorSelected(SponsorManagementDTO sponsor)
     {
+        ClearLogoInputs();
         _selectedSponsor = sponsor;
         _isCreateMode = false;
         ReInitEditContext();
@@ -109,6 +120,7 @@ public partial class SponsorManagement
 
     private void ClearForm()
     {
+        ClearLogoInputs();
         _selectedSponsor = new SponsorManagementDTO();
         _isCreateMode = true;
         _selectedSponsor.IsCreateMode = true;
@@ -119,45 +131,53 @@ public partial class SponsorManagement
     }
     private async Task HandleSubmit()
     {
-        string? tempFilePath = _imageInputRef?.TempFilePath;
-        string? contentType = _imageInputRef?.FileContentType;
-        string? fileName = _imageInputRef?.FileName;
+        string? logoTempFilePath = _logoInputRef?.TempFilePath;
+        string? logoContentType = _logoInputRef?.FileContentType;
+        string? logoFileName = _logoInputRef?.FileName;
+        string? lightLogoTempFilePath = _lightLogoInputRef?.TempFilePath;
+        string? lightLogoContentType = _lightLogoInputRef?.FileContentType;
+        string? lightLogoFileName = _lightLogoInputRef?.FileName;
+
         try
         {
             if(_isCreateMode)
             {
-                var sponsor = await SponsorService.CreateSponsorAsync(new SponsorManagementDTO
-                {
-                    Name = _selectedSponsor!.Name,
-                    InfoUrl = _selectedSponsor.InfoUrl,
-                    SponsorTier = _selectedSponsor.SponsorTier,
-                    Description = _selectedSponsor.Description
-                }, tempFilePath,
-            contentType,
-            fileName);
+                var sponsor = await SponsorService.CreateSponsorAsync(
+                    _selectedSponsor,
+                    logoTempFilePath,
+                    logoContentType,
+                    logoFileName,
+                    lightLogoTempFilePath,
+                    lightLogoContentType,
+                    lightLogoFileName);
                 _sponsors.Add(sponsor);
+                _selectedSponsor.Logo = null;
+                _selectedSponsor.LightLogo = null;
+                _selectedSponsor.LogoUrl = sponsor.LogoUrl;
+                _selectedSponsor.LightLogoUrl = sponsor.LightLogoUrl;
+                ClearLogoInputs();
                 SyncDisplaySponsors();
                 ToastService.ShowSuccess(Localization["Admin.created"]);
             }
             else
             {
-                await SponsorService.UpdateSponsorAsync(_selectedSponsor.Id, new SponsorManagementDTO
-                {
-                    Name = _selectedSponsor.Name,
-                    InfoUrl = _selectedSponsor.InfoUrl,
-                    SponsorTier = _selectedSponsor.SponsorTier,
-                    Description = _selectedSponsor.Description
-                }, tempFilePath,
-            contentType,
-            fileName);
-                var existingSponsor = _sponsors.SingleOrDefault(sponsor => sponsor.Id == _selectedSponsor.Id);
-                if(existingSponsor != null)
-                {
-                    existingSponsor.Name = _selectedSponsor.Name;
-                    existingSponsor.InfoUrl = _selectedSponsor.InfoUrl;
-                    existingSponsor.SponsorTier = _selectedSponsor.SponsorTier;
-                    existingSponsor.Description = _selectedSponsor.Description;
-                }
+                var sponsor = await SponsorService.UpdateSponsorAsync(
+                    _selectedSponsor.Id,
+                    _selectedSponsor,
+                    logoTempFilePath,
+                    logoContentType,
+                    logoFileName,
+                    lightLogoTempFilePath,
+                    lightLogoContentType,
+                    lightLogoFileName);
+                var index = _sponsors.FindIndex(existing => existing.Id == sponsor.Id);
+                if(index >= 0)
+                    _sponsors[index] = sponsor;
+
+                _selectedSponsor = new SponsorManagementDTO(sponsor);
+                _isCreateMode = false;
+                ClearLogoInputs();
+                ReInitEditContext();
                 SyncDisplaySponsors();
                 ToastService.ShowSuccess(Localization["Admin.updated"]);
             }
@@ -194,15 +214,20 @@ public partial class SponsorManagement
 
     private void SyncDisplaySponsors()
     {
-        _displaySponsors = _sponsors.Select(sponsor => new SponsorManagementDTO
-        {
-            Name = sponsor.Name,
-            InfoUrl = sponsor.InfoUrl,
-            SponsorTier = sponsor.SponsorTier,
-            Description = sponsor.Description,
-            Id = sponsor.Id,
-            IsCreateMode = _isCreateMode
-        }).ToList();
+        _displaySponsors = _sponsors
+            .Select(sponsor =>
+            {
+                var dto = new SponsorManagementDTO(sponsor);
+                dto.IsCreateMode = _isCreateMode;
+                return dto;
+            })
+            .ToList();
+    }
+
+    private void ClearLogoInputs()
+    {
+        _logoInputRef?.ClearSelection();
+        _lightLogoInputRef?.ClearSelection();
     }
 
     private string GetTierLabel(SponsorTier tier)

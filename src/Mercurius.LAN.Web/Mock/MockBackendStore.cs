@@ -729,6 +729,7 @@ internal sealed class MockBackendStore
                         SponsorName = sponsor.Name,
                         SponsorTier = sponsor.SponsorTier,
                         SponsorLogoUrl = sponsor.LogoUrl,
+                        SponsorLightLogoUrl = sponsor.LightLogoUrl,
                         SponsorInfoUrl = sponsor.InfoUrl,
                         SponsorDescription = sponsor.Description,
                         Context = placement.Context,
@@ -2882,7 +2883,8 @@ internal sealed class MockBackendStore
                 SponsorTier = dto.SponsorTier,
                 InfoUrl = dto.InfoUrl,
                 Description = dto.Description,
-                LogoUrl = "/mock-data-local/sponsors/mock-sponsor.svg"
+                LogoUrl = "/mock-data-local/sponsors/mock-sponsor.svg",
+                LightLogoUrl = dto.LightLogo is null ? null : "/img/lan_logo_wide_light.svg"
             };
 
             _document.Sponsors.Add(sponsor);
@@ -2902,6 +2904,10 @@ internal sealed class MockBackendStore
 
             if(dto.Logo != null)
                 sponsor.LogoUrl = "/mock-data-local/sponsors/mock-sponsor.svg";
+            if(dto.LightLogo != null)
+                sponsor.LightLogoUrl = "/img/lan_logo_wide_light.svg";
+            else if(dto.RemoveLightLogo)
+                sponsor.LightLogoUrl = null;
 
             return Clone(sponsor)!;
         }

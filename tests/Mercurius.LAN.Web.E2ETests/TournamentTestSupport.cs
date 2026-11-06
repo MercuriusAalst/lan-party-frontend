@@ -105,7 +105,9 @@ internal static class TournamentE2E
         string tier,
         string infoUrl,
         string? description = null,
-        bool includeLogo = true)
+        bool includeLogo = true,
+        bool includeLightLogo = false,
+        bool removeLightLogo = false)
     {
         var form = new MultipartFormDataContent
         {
@@ -121,6 +123,14 @@ internal static class TournamentE2E
             logo.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             form.Add(logo, "Logo", "logo.png");
         }
+        if (includeLightLogo)
+        {
+            var lightLogo = new ByteArrayContent(PngBytes);
+            lightLogo.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            form.Add(lightLogo, "LightLogo", "light-logo.png");
+        }
+        if (removeLightLogo)
+            form.Add(new StringContent("true"), "RemoveLightLogo");
 
         return form;
     }
