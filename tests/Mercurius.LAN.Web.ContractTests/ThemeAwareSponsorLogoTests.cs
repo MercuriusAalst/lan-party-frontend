@@ -2,7 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using Mercurius.LAN.Web.Components.Shared;
 using Mercurius.LAN.Web.DTOs.Sponsors;
 using Mercurius.LAN.Web.DTOs.Tournaments;
+#if DEBUG
 using Mercurius.LAN.Web.Mock;
+#endif
 using Mercurius.LAN.Web.Models.Sponsors;
 using Mercurius.LAN.Web.Options;
 using Mercurius.LAN.Web.Localization;
@@ -69,6 +71,7 @@ public sealed class ThemeAwareSponsorLogoTests
         Assert.Contains(results, result => result.MemberNames.Contains(nameof(SponsorManagementDTO.Logo)));
     }
 
+#if DEBUG
     [Fact]
     public void MockSponsorMutationRetainsReplacesAndRemovesTheLightLogo()
     {
@@ -116,6 +119,7 @@ public sealed class ThemeAwareSponsorLogoTests
         });
         Assert.Null(removed.LightLogoUrl);
     }
+#endif
 
     private static SponsorManagementDTO CreateSponsorDto() => new()
     {
@@ -159,16 +163,8 @@ public sealed class ThemeAwareSponsorLogoTests
         return count;
     }
 
-    private static MockBackendStore CreateStore()
-    {
-        var repositoryRoot = FindRepositoryRoot();
-        return new MockBackendStore(
-            new TestHostEnvironment(repositoryRoot),
-            Microsoft.Extensions.Options.Options.Create(new MockBackendOptions
-            {
-                DataFilePath = Path.Combine("src", "Mercurius.LAN.Web", "MockData.Local", "backend.json")
-            }));
-    }
+    private static string FindRepositoryFile(string relativePath) =>
+        Path.Combine(FindRepositoryRoot(), relativePath);
 
     private static string FindRepositoryRoot()
     {
@@ -187,8 +183,19 @@ public sealed class ThemeAwareSponsorLogoTests
         throw new DirectoryNotFoundException("Could not locate the repository root for the mock fixture.");
     }
 
-    private static string FindRepositoryFile(string relativePath) =>
-        Path.Combine(FindRepositoryRoot(), relativePath);
+#if DEBUG
+    private static MockBackendStore CreateStore()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        return new MockBackendStore(
+            new TestHostEnvironment(repositoryRoot),
+            Microsoft.Extensions.Options.Options.Create(new MockBackendOptions
+            {
+                DataFilePath = Path.Combine("src", "Mercurius.LAN.Web", "MockData.Local", "backend.json")
+            }));
+    }
+
+#endif
 
     private sealed class FakeBrowserFile(string name) : IBrowserFile
     {
@@ -200,6 +207,7 @@ public sealed class ThemeAwareSponsorLogoTests
             Stream.Null;
     }
 
+#if DEBUG
     private sealed class TestHostEnvironment(string contentRootPath) : IHostEnvironment
     {
         public string ApplicationName { get; set; } = nameof(ThemeAwareSponsorLogoTests);
@@ -207,4 +215,5 @@ public sealed class ThemeAwareSponsorLogoTests
         public string ContentRootPath { get; set; } = contentRootPath;
         public IFileProvider ContentRootFileProvider { get; set; } = new PhysicalFileProvider(contentRootPath);
     }
+#endif
 }
