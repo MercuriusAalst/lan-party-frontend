@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.9.0...frontend-v0.10.0) (2026-11-06)
+
+
+### Features
+
+* Display theme-aware sponsor logos ([#151](https://github.com/MercuriusAalst/lan-party-frontend/issues/151)) ([60daa9e](https://github.com/MercuriusAalst/lan-party-frontend/commit/60daa9e72c9095aa0bff8c3e72175f40e20d714e))
+
 ## [0.9.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.8.4...frontend-v0.9.0) (2026-11-05)
 
 
