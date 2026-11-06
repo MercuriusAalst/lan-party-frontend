@@ -26,6 +26,7 @@
     [Parameter] public string LabelText { get; set; } = "";
     [Parameter] public string EmptyText { get; set; } = "";
     [Parameter] public string Accept { get; set; } = "image/png, image/jpeg, image/webp";
+    [Parameter] public bool EnablePreview { get; set; }
 
     private ValidationMessageStore? messageStore;
     private EditContext? _messageStoreContext;
@@ -146,7 +147,8 @@
 
             FileContentType = file.ContentType;
             FileName = file.Name;
-            PreviewDataUrl = $"data:{FileContentType};base64,{Convert.ToBase64String(await File.ReadAllBytesAsync(TempFilePath, _lifetimeCancellation.Token))}";
+            if(EnablePreview)
+                PreviewDataUrl = $"data:{FileContentType};base64,{Convert.ToBase64String(await File.ReadAllBytesAsync(TempFilePath, _lifetimeCancellation.Token))}";
 
             CurrentValue = file;
         }

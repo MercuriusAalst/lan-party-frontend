@@ -112,6 +112,7 @@ public sealed class ImageSelectionRecoveryTests
     public async Task SharedPickerPreviewTracksValidSelectionAndClearsOnResetOrFailure()
     {
         using var input = new CustomInputFile();
+        SetProperty(input, "EnablePreview", true);
         SetProperty(input, "Localization", TestLocalizationService.Instance);
         SetProperty(input, "Configuration", Configuration);
         var model = new TestFileModel();
@@ -139,6 +140,26 @@ public sealed class ImageSelectionRecoveryTests
 
         Assert.Null(ReadProperty<string?>(input, "PreviewDataUrl"));
         Assert.Null(ReadProperty<string?>(input, "TempFilePath"));
+    }
+
+    [Fact]
+    public async Task SharedPickerSkipsPreviewForUnconfiguredConsumers()
+    {
+        using var input = new CustomInputFile();
+        SetProperty(input, "Localization", TestLocalizationService.Instance);
+        SetProperty(input, "Configuration", Configuration);
+        var model = new TestFileModel();
+        SetProperty(input, "EditContext", new EditContext(model));
+        SetProperty(input, "ValueExpression", (System.Linq.Expressions.Expression<Func<IBrowserFile>>)(() => model.File!));
+        Invoke(input, "OnInitialized");
+        Invoke(input, "OnParametersSet");
+        SetProperty(input, "FieldIdentifier", new FieldIdentifier(model, nameof(TestFileModel.File)));
+
+        await SelectSharedFileAsync(input, new MemoryBrowserFile("banner.png", "image/png", [1, 2, 3, 4]));
+
+        Assert.Null(ReadProperty<string?>(input, "PreviewDataUrl"));
+        Assert.True(File.Exists(ReadProperty<string>(input, "TempFilePath")));
+        Assert.NotNull(ReadProperty<IBrowserFile?>(input, "CurrentValue"));
     }
 
     private static Profile CreateProfile()
