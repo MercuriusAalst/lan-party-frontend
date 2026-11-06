@@ -59,6 +59,9 @@ public sealed class ThemeAwareSponsorLogoTests
         Assert.Contains("[data-theme-state=\"dark\"] .theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light", css);
         Assert.Contains(".theme-aware-sponsor-logo--light.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__default", css);
         Assert.Contains(".theme-aware-sponsor-logo--light.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light", css);
+        var appCss = File.ReadAllText(FindRepositoryFile(Path.Combine("src", "Mercurius.LAN.Web", "wwwroot", "app.css")));
+        Assert.Contains(".brand-sponsor-card-logo .theme-aware-sponsor-logo img.theme-aware-sponsor-logo__default", appCss);
+        Assert.Contains("max-height: var(--brand-sponsor-card-logo-max-height, 6rem)", appCss);
         Assert.Contains(".theme-aware-sponsor-logo--dark.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light", css);
     }
 

@@ -505,7 +505,9 @@ main {
     background: var(--sponsor-logo-bg);
 }
 
-.brand-sponsor-card-logo img {
+.brand-sponsor-card-logo img,
+.brand-sponsor-card-logo .theme-aware-sponsor-logo img.theme-aware-sponsor-logo__default,
+.brand-sponsor-card-logo .theme-aware-sponsor-logo img.theme-aware-sponsor-logo__light {
     max-width: 100%;
     max-height: var(--brand-sponsor-card-logo-max-height, 6rem);
     object-fit: contain;

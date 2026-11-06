@@ -567,6 +567,20 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             await Expect(card.GetByText("Visit website")).ToBeVisibleAsync();
             await Expect(card).ToHaveAttributeAsync("href", "https://example.test/e2e-sponsor");
             await Expect(card).ToHaveAttributeAsync("aria-label", $"Visit {sponsor.Name}");
+            var expectedLogoMaxHeight = sponsor.Tier == "Presenting" ? "152px" : "96px";
+            Assert.Equal(expectedLogoMaxHeight, await card.GetByAltText($"{sponsor.Name} logo").EvaluateAsync<string>(
+                "image => getComputedStyle(image).maxHeight"));
+        }
+
+        await page.SetViewportSizeAsync(390, 844);
+        foreach (var sponsor in sponsors.Where(item => item.Tier is "Presenting" or "Gold"))
+        {
+            var logo = page.Locator("#current-partners .sponsor-card")
+                .Filter(new() { HasText = sponsor.Name })
+                .GetByAltText($"{sponsor.Name} logo");
+            var expectedLogoMaxHeight = sponsor.Tier == "Presenting" ? "152px" : "96px";
+            Assert.Equal(expectedLogoMaxHeight, await logo.EvaluateAsync<string>(
+                "image => getComputedStyle(image).maxHeight"));
         }
 
         // Only the Presenting and Gold tiers publish the partner description.
