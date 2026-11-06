@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Mercurius.LAN.Web.Components.Shared;
+using Mercurius.LAN.Web.APIClients;
 using Mercurius.LAN.Web.DTOs.Sponsors;
 using Mercurius.LAN.Web.DTOs.Tournaments;
 #if DEBUG
@@ -8,6 +9,7 @@ using Mercurius.LAN.Web.Mock;
 using Mercurius.LAN.Web.Models.Sponsors;
 using Mercurius.LAN.Web.Options;
 using Mercurius.LAN.Web.Localization;
+using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
@@ -15,6 +17,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using System.Reflection;
 using Xunit;
 
 namespace Mercurius.LAN.Web.ContractTests;
@@ -53,7 +57,8 @@ public sealed class ThemeAwareSponsorLogoTests
 
         Assert.Contains("[data-theme-state=\"dark\"] .theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__default", css);
         Assert.Contains("[data-theme-state=\"dark\"] .theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light", css);
-        Assert.Contains(".theme-aware-sponsor-logo--light .theme-aware-sponsor-logo__default", css);
+        Assert.Contains(".theme-aware-sponsor-logo--light.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__default", css);
+        Assert.Contains(".theme-aware-sponsor-logo--light.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light", css);
         Assert.Contains(".theme-aware-sponsor-logo--dark.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light", css);
     }
 
@@ -69,6 +74,19 @@ public sealed class ThemeAwareSponsorLogoTests
 
         Assert.False(valid);
         Assert.Contains(results, result => result.MemberNames.Contains(nameof(SponsorManagementDTO.Logo)));
+    }
+
+    [Fact]
+    public async Task SponsorUploadsDeleteTemporaryFilesAfterRequestFailure()
+    {
+        var tempFile = Path.GetTempFileName();
+        var client = DispatchProxy.Create<ILANClient, FailingLanClientProxy>();
+        var service = new SponsorService(client, new ConfigurationBuilder().Build());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateSponsorAsync(
+            CreateSponsorDto(), tempFile, "image/png", "logo.png", null, null, null));
+
+        Assert.False(File.Exists(tempFile));
     }
 
 #if DEBUG
@@ -205,6 +223,14 @@ public sealed class ThemeAwareSponsorLogoTests
         public string ContentType => "image/png";
         public Stream OpenReadStream(long maxAllowedSize = 512000, CancellationToken cancellationToken = default) =>
             Stream.Null;
+    }
+
+    private class FailingLanClientProxy : DispatchProxy
+    {
+        protected override object? Invoke(System.Reflection.MethodInfo? targetMethod, object?[]? args) =>
+            targetMethod?.Name == nameof(ILANClient.CreateSponsorAsync)
+                ? Task.FromException<Sponsor>(new InvalidOperationException("Expected test failure"))
+                : throw new NotSupportedException(targetMethod?.Name);
     }
 
 #if DEBUG

@@ -36,11 +36,11 @@
     display: block;
 }
 
-.theme-aware-sponsor-logo--light .theme-aware-sponsor-logo__default {
+.theme-aware-sponsor-logo--light.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__default {
     display: block;
 }
 
-.theme-aware-sponsor-logo--light .theme-aware-sponsor-logo__light {
+.theme-aware-sponsor-logo--light.theme-aware-sponsor-logo--has-light .theme-aware-sponsor-logo__light {
     display: none;
 }
 

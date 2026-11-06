@@ -41,19 +41,18 @@ namespace Mercurius.LAN.Web.Services
             string? lightLogoContentType,
             string? lightLogoFileName)
         {
-            using var formData = new MultipartFormDataContent
-                {
-                    { new StringContent(createSponsorDTO.Name), "Name" },
-                    { new StringContent(createSponsorDTO.InfoUrl), "InfoUrl" },
-                    { new StringContent(createSponsorDTO.SponsorTier.ToString()), "SponsorTier" },
-                    { new StringContent(createSponsorDTO.Description ?? string.Empty), "Description" },
-                };
-
-            AddImage(formData, "Logo", logoTempFilePath, logoContentType, logoFileName);
-            AddImage(formData, "LightLogo", lightLogoTempFilePath, lightLogoContentType, lightLogoFileName);
-
             try
             {
+                using var formData = new MultipartFormDataContent
+                    {
+                        { new StringContent(createSponsorDTO.Name), "Name" },
+                        { new StringContent(createSponsorDTO.InfoUrl), "InfoUrl" },
+                        { new StringContent(createSponsorDTO.SponsorTier.ToString()), "SponsorTier" },
+                        { new StringContent(createSponsorDTO.Description ?? string.Empty), "Description" },
+                    };
+
+                AddImage(formData, "Logo", logoTempFilePath, logoContentType, logoFileName);
+                AddImage(formData, "LightLogo", lightLogoTempFilePath, lightLogoContentType, lightLogoFileName);
                 var sponsor = await _lanClient.CreateSponsorAsync(formData);
                 return ResolveLogoUrls(sponsor);
             }
@@ -73,20 +72,19 @@ namespace Mercurius.LAN.Web.Services
             string? lightLogoContentType,
             string? lightLogoFileName)
         {
-            using var formData = new MultipartFormDataContent
-                {
-                    { new StringContent(updateSponsorDTO.Name), "Name" },
-                    { new StringContent(updateSponsorDTO.InfoUrl), "InfoUrl" },
-                    { new StringContent(updateSponsorDTO.SponsorTier.ToString()), "SponsorTier" },
-                    { new StringContent(updateSponsorDTO.Description ?? string.Empty), "Description" },
-                    { new StringContent(updateSponsorDTO.RemoveLightLogo ? "true" : "false"), "RemoveLightLogo" },
-                };
-
-            AddImage(formData, "Logo", logoTempFilePath, logoContentType, logoFileName);
-            AddImage(formData, "LightLogo", lightLogoTempFilePath, lightLogoContentType, lightLogoFileName);
-
             try
             {
+                using var formData = new MultipartFormDataContent
+                    {
+                        { new StringContent(updateSponsorDTO.Name), "Name" },
+                        { new StringContent(updateSponsorDTO.InfoUrl), "InfoUrl" },
+                        { new StringContent(updateSponsorDTO.SponsorTier.ToString()), "SponsorTier" },
+                        { new StringContent(updateSponsorDTO.Description ?? string.Empty), "Description" },
+                        { new StringContent(updateSponsorDTO.RemoveLightLogo ? "true" : "false"), "RemoveLightLogo" },
+                    };
+
+                AddImage(formData, "Logo", logoTempFilePath, logoContentType, logoFileName);
+                AddImage(formData, "LightLogo", lightLogoTempFilePath, lightLogoContentType, lightLogoFileName);
                 var sponsor = await _lanClient.UpdateSponsorAsync(id, formData);
                 return ResolveLogoUrls(sponsor);
             }
@@ -121,8 +119,16 @@ namespace Mercurius.LAN.Web.Services
                 return;
 
             var streamContent = new StreamContent(File.OpenRead(tempFilePath));
-            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType!);
-            formData.Add(streamContent, fieldName, fileName!);
+            try
+            {
+                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType!);
+                formData.Add(streamContent, fieldName, fileName!);
+            }
+            catch
+            {
+                streamContent.Dispose();
+                throw;
+            }
         }
 
         private static void DeleteTemporaryFiles(params string?[] filePaths)
