@@ -22,6 +22,7 @@
         "sponsorName": "Mercurius Tech",
         "sponsorTier": "Presenting",
         "sponsorLogoUrl": "/mock-data-local/sponsors/mock-sponsor.svg",
+        "sponsorLightLogoUrl": "/img/lan_logo_wide_light.svg",
         "sponsorInfoUrl": "https://example.test/sponsors/mercurius-tech",
         "sponsorDescription": "Headline technology partner for the Mercurius LAN weekend.",
         "context": "TournamentPartner",
@@ -1644,6 +1645,7 @@
       "name": "Mercurius Tech",
       "sponsorTier": "Presenting",
       "logoUrl": "/mock-data-local/sponsors/mock-sponsor.svg",
+      "lightLogoUrl": "/img/lan_logo_wide_light.svg",
       "infoUrl": "https://example.test/sponsors/mercurius-tech",
       "description": "Headline technology partner for the Mercurius LAN weekend."
     },

@@ -16,6 +16,14 @@ namespace Mercurius.LAN.Web.DTOs.Sponsors
         [RequiredIfCreateMode(ErrorMessageResourceName = nameof(Logo))]
         public IBrowserFile? Logo { get; set; } = null!;
 
+        public IBrowserFile? LightLogo { get; set; }
+
+        public bool RemoveLightLogo { get; set; }
+
+        public string? LogoUrl { get; set; }
+
+        public string? LightLogoUrl { get; set; }
+
         public bool IsCreateMode { get; set; } = true;
 
         [Required]
@@ -32,6 +40,9 @@ namespace Mercurius.LAN.Web.DTOs.Sponsors
             InfoUrl = sponsor.InfoUrl;
             Description = sponsor.Description;
             Id = sponsor.Id;
+            LogoUrl = sponsor.LogoUrl;
+            LightLogoUrl = sponsor.LightLogoUrl;
+            IsCreateMode = false;
         }
         public SponsorManagementDTO()
         {

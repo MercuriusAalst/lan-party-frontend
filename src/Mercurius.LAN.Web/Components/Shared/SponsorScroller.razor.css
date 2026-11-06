@@ -82,7 +82,7 @@
     outline-offset: 3px;
 }
 
-.sponsor-scroller__logo img {
+.sponsor-scroller__logo ::deep img {
     width: 100%;
     height: 100%;
     max-width: 100%;
@@ -92,8 +92,8 @@
     transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.sponsor-scroller__logo:hover img,
-.sponsor-scroller__logo:focus-visible img {
+.sponsor-scroller__logo:hover ::deep img,
+.sponsor-scroller__logo:focus-visible ::deep img {
     opacity: 1;
     transform: scale(1.02);
 }
@@ -126,7 +126,7 @@
         padding: 0.65rem 0.75rem;
     }
 
-    .sponsor-scroller__logo img {
+    .sponsor-scroller__logo ::deep img {
         max-height: 4.5rem;
     }
 }
@@ -144,7 +144,7 @@
         border-radius: 16px;
     }
 
-    .sponsor-scroller__logo img {
+    .sponsor-scroller__logo ::deep img {
         max-height: 3.8rem;
     }
 }

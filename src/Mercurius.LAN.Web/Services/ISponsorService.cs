@@ -8,8 +8,23 @@ namespace Mercurius.LAN.Web.Services
     {
         Task<IEnumerable<Sponsor>> GetSponsorsAsync();
         Task<Sponsor> GetSponsorByIdAsync(int id);
-        Task<Sponsor> CreateSponsorAsync(SponsorManagementDTO createSponsorDTO, string? tempFilePath, string? contentType, string? fileName);
-        Task<Sponsor> UpdateSponsorAsync(int id, SponsorManagementDTO updateSponsorDTO, string? tempFilePath, string? contentType, string? fileName);
+        Task<Sponsor> CreateSponsorAsync(
+            SponsorManagementDTO createSponsorDTO,
+            string? logoTempFilePath,
+            string? logoContentType,
+            string? logoFileName,
+            string? lightLogoTempFilePath,
+            string? lightLogoContentType,
+            string? lightLogoFileName);
+        Task<Sponsor> UpdateSponsorAsync(
+            int id,
+            SponsorManagementDTO updateSponsorDTO,
+            string? logoTempFilePath,
+            string? logoContentType,
+            string? logoFileName,
+            string? lightLogoTempFilePath,
+            string? lightLogoContentType,
+            string? lightLogoFileName);
         Task DeleteSponsorAsync(int id);
     }
 }

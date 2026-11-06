@@ -247,7 +247,9 @@ else
                     <section class="brand-card Tournament-detail-section Tournament-detail-partner-section Tournament-detail-top-section Tournament-detail-top-section--sponsor">
                         <a class="brand-sponsor-card Tournament-detail-partner-card" href="@partner.SponsorInfoUrl" target="_blank" rel="noopener noreferrer" aria-label='@Localization.Get("Feature.tournaments.visitPartner", partner.SponsorName)'>
                             <div class="brand-sponsor-card-logo Tournament-detail-partner-logo">
-                                <img src="@GetSponsorLogoUrl(partner.SponsorLogoUrl)" alt='@Localization.Get("Feature.tournaments.partnerLogoAlt", partner.SponsorName)' />
+                                <ThemeAwareSponsorLogo LogoUrl="@GetSponsorLogoUrl(partner.SponsorLogoUrl)"
+                                                       LightLogoUrl="@GetSponsorLogoUrl(partner.SponsorLightLogoUrl)"
+                                                       AltText='@Localization.Get("Feature.tournaments.partnerLogoAlt", partner.SponsorName)' />
                             </div>
                             <div class="brand-sponsor-card-body Tournament-detail-partner-copy">
                                 <span class="sponsor-tier-label">@GetPartnerEyebrow(partner)</span>

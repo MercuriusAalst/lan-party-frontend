@@ -53,10 +53,28 @@ else
                             <ValidationMessage For="@(() => _selectedSponsor.SponsorTier)" />
                         </div>
 
-                        <div class="form-group">
-                            <label for="sponsorLogo">@Localization["Admin.logo"]</label>
-                            <CustomInputFile @ref="_imageInputRef" id="sponsorLogo" LabelText='@Localization["Admin.chooseLogo"]' @bind-Value="_selectedSponsor.Logo" />
-                            <ValidationMessage For="@(() => _selectedSponsor.Logo)" />
+                        <div class="sponsor-admin-logo-fields">
+                            <div class="form-group">
+                                <label for="sponsorLogo">@Localization["Admin.defaultLogo"]</label>
+                                <CustomInputFile @ref="_logoInputRef" id="sponsorLogo" aria-describedby="defaultLogoHelp" LabelText='@Localization["Admin.chooseDefaultLogo"]' @bind-Value="_selectedSponsor.Logo" />
+                                <small id="defaultLogoHelp" class="form-text">@Localization["Admin.defaultLogoHelp"]</small>
+                                <ValidationMessage For="@(() => _selectedSponsor.Logo)" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="sponsorLightLogo">@Localization["Admin.lightLogo"]</label>
+                                <CustomInputFile @ref="_lightLogoInputRef" id="sponsorLightLogo" aria-describedby="lightLogoHelp" LabelText='@Localization["Admin.chooseLightLogo"]' @bind-Value="_selectedSponsor.LightLogo" />
+                                <small id="lightLogoHelp" class="form-text">@Localization["Admin.lightLogoHelp"]</small>
+                                <ValidationMessage For="@(() => _selectedSponsor.LightLogo)" />
+                                @if(!_isCreateMode && !string.IsNullOrWhiteSpace(_selectedSponsor.LightLogoUrl))
+                                {
+                                    <label class="sponsor-admin-remove-logo">
+                                        <InputCheckbox id="removeLightLogo" @bind-Value="_selectedSponsor.RemoveLightLogo" disabled="@(_selectedSponsor.LightLogo is not null)" />
+                                        <span>@Localization["Admin.removeLightLogo"]</span>
+                                    </label>
+                                    <ValidationMessage For="@(() => _selectedSponsor.RemoveLightLogo)" />
+                                }
+                            </div>
                         </div>
 
                         <div class="form-group sponsor-admin-description-field">
@@ -65,6 +83,32 @@ else
                             <ValidationMessage For="@(() => _selectedSponsor.Description)" />
                         </div>
                     </div>
+
+                    <section class="sponsor-admin-preview-section" aria-labelledby="sponsor-logo-preview-heading">
+                        <h3 id="sponsor-logo-preview-heading">@Localization["Admin.logoPreview"]</h3>
+                        <div class="sponsor-admin-logo-previews">
+                            <div class="sponsor-admin-logo-preview">
+                                <span>@Localization["Admin.previewLight"]</span>
+                                <div class="sponsor-admin-logo-preview-surface sponsor-admin-logo-preview-surface--light">
+                                    <ThemeAwareSponsorLogo LogoUrl="@_selectedSponsor.LogoUrl"
+                                                           LightLogoUrl="@(_selectedSponsor.RemoveLightLogo ? null : _selectedSponsor.LightLogoUrl)"
+                                                           ForcedTheme="light"
+                                                           AltText='@Localization.Get("shared.sponsorLogo", string.IsNullOrWhiteSpace(_selectedSponsor.Name) ? Localization["Admin.logoPreviewFallbackName"] : _selectedSponsor.Name)'
+                                                           EmptyText='@Localization["Admin.noLogoPreview"]' />
+                                </div>
+                            </div>
+                            <div class="sponsor-admin-logo-preview">
+                                <span>@Localization["Admin.previewDark"]</span>
+                                <div class="sponsor-admin-logo-preview-surface sponsor-admin-logo-preview-surface--dark">
+                                    <ThemeAwareSponsorLogo LogoUrl="@_selectedSponsor.LogoUrl"
+                                                           LightLogoUrl="@(_selectedSponsor.RemoveLightLogo ? null : _selectedSponsor.LightLogoUrl)"
+                                                           ForcedTheme="dark"
+                                                           AltText='@Localization.Get("shared.sponsorLogo", string.IsNullOrWhiteSpace(_selectedSponsor.Name) ? Localization["Admin.logoPreviewFallbackName"] : _selectedSponsor.Name)'
+                                                           EmptyText='@Localization["Admin.noLogoPreview"]' />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
                     <div class="form-actions">
                         <div class="form-actions-section">

@@ -20,7 +20,8 @@ namespace Mercurius.LAN.Web.Services
         public async Task<IEnumerable<Sponsor>> GetSponsorsAsync()
         {
             var sponsors = await _lanClient.GetSponsorsAsync();
-            sponsors.ToList().ForEach(sp => sp.LogoUrl = AssetUrlResolver.Resolve(_configuration, sp.LogoUrl));
+            foreach(var sponsor in sponsors)
+                ResolveLogoUrls(sponsor);
 
             return sponsors;
         }
@@ -28,13 +29,19 @@ namespace Mercurius.LAN.Web.Services
         public async Task<Sponsor> GetSponsorByIdAsync(int id)
         {
             var sponsor = await _lanClient.GetSponsorByIdAsync(id);
-            sponsor.LogoUrl = AssetUrlResolver.Resolve(_configuration, sponsor.LogoUrl);
-            return sponsor;
+            return ResolveLogoUrls(sponsor);
         }
 
-        public async Task<Sponsor> CreateSponsorAsync(SponsorManagementDTO createSponsorDTO,string? tempFilePath,string? contentType,string? fileName)
+        public async Task<Sponsor> CreateSponsorAsync(
+            SponsorManagementDTO createSponsorDTO,
+            string? logoTempFilePath,
+            string? logoContentType,
+            string? logoFileName,
+            string? lightLogoTempFilePath,
+            string? lightLogoContentType,
+            string? lightLogoFileName)
         {
-            var createSponsorFormData = new MultipartFormDataContent
+            using var formData = new MultipartFormDataContent
                 {
                     { new StringContent(createSponsorDTO.Name), "Name" },
                     { new StringContent(createSponsorDTO.InfoUrl), "InfoUrl" },
@@ -42,86 +49,94 @@ namespace Mercurius.LAN.Web.Services
                     { new StringContent(createSponsorDTO.Description ?? string.Empty), "Description" },
                 };
 
-            bool tempFileNeedsCleanup = false;
-
-            if(!string.IsNullOrEmpty(tempFilePath) && File.Exists(tempFilePath))
-            {
-                var fileStream = File.OpenRead(tempFilePath);
-                var streamContent = new StreamContent(fileStream);
-
-                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType!);
-                createSponsorFormData.Add(streamContent, "Logo", fileName!);
-
-                tempFileNeedsCleanup = true;
-            }
+            AddImage(formData, "Logo", logoTempFilePath, logoContentType, logoFileName);
+            AddImage(formData, "LightLogo", lightLogoTempFilePath, lightLogoContentType, lightLogoFileName);
 
             try
             {
-                var sponsor = await _lanClient.CreateSponsorAsync(createSponsorFormData);
-                sponsor.LogoUrl = AssetUrlResolver.Resolve(_configuration, sponsor.LogoUrl);
-                return sponsor;
+                var sponsor = await _lanClient.CreateSponsorAsync(formData);
+                return ResolveLogoUrls(sponsor);
             }
             finally
             {
-                if(tempFileNeedsCleanup)
-                {
-                    try
-                    {
-                        File.Delete(tempFilePath!);
-                    }
-                    catch(Exception)
-                    {
-                    }
-                }
+                DeleteTemporaryFiles(logoTempFilePath, lightLogoTempFilePath);
             }
         }
 
-        public async Task<Sponsor> UpdateSponsorAsync(int id, SponsorManagementDTO updateSponsorDTO, string? tempFilePath, string? contentType, string? fileName)
+        public async Task<Sponsor> UpdateSponsorAsync(
+            int id,
+            SponsorManagementDTO updateSponsorDTO,
+            string? logoTempFilePath,
+            string? logoContentType,
+            string? logoFileName,
+            string? lightLogoTempFilePath,
+            string? lightLogoContentType,
+            string? lightLogoFileName)
         {
-            var updateSponsorFormData = new MultipartFormDataContent
+            using var formData = new MultipartFormDataContent
                 {
                     { new StringContent(updateSponsorDTO.Name), "Name" },
                     { new StringContent(updateSponsorDTO.InfoUrl), "InfoUrl" },
                     { new StringContent(updateSponsorDTO.SponsorTier.ToString()), "SponsorTier" },
                     { new StringContent(updateSponsorDTO.Description ?? string.Empty), "Description" },
+                    { new StringContent(updateSponsorDTO.RemoveLightLogo ? "true" : "false"), "RemoveLightLogo" },
                 };
 
-            bool tempFileNeedsCleanup = false;
-
-            if(!string.IsNullOrEmpty(tempFilePath) && File.Exists(tempFilePath))
-            {
-                var fileStream = File.OpenRead(tempFilePath);
-                var streamContent = new StreamContent(fileStream);
-
-                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType!);
-                updateSponsorFormData.Add(streamContent, "Logo", fileName!);
-
-                tempFileNeedsCleanup = true;
-            }
+            AddImage(formData, "Logo", logoTempFilePath, logoContentType, logoFileName);
+            AddImage(formData, "LightLogo", lightLogoTempFilePath, lightLogoContentType, lightLogoFileName);
 
             try
             {
-                var sponsor = await _lanClient.UpdateSponsorAsync(id, updateSponsorFormData);
-                sponsor.LogoUrl = AssetUrlResolver.Resolve(_configuration, sponsor.LogoUrl);
-                return sponsor;
+                var sponsor = await _lanClient.UpdateSponsorAsync(id, formData);
+                return ResolveLogoUrls(sponsor);
             }
             finally
             {
-                if(tempFileNeedsCleanup)
-                {
-                    try
-                    {
-                        File.Delete(tempFilePath!);
-                    }
-                    catch(Exception)
-                    {
-                    }
-                }
+                DeleteTemporaryFiles(logoTempFilePath, lightLogoTempFilePath);
             }
         }
+
         public Task DeleteSponsorAsync(int id)
         {
             return _lanClient.DeleteSponsorAsync(id);
+        }
+
+        private Sponsor ResolveLogoUrls(Sponsor sponsor)
+        {
+            sponsor.LogoUrl = AssetUrlResolver.Resolve(_configuration, sponsor.LogoUrl);
+            if(!string.IsNullOrWhiteSpace(sponsor.LightLogoUrl))
+                sponsor.LightLogoUrl = AssetUrlResolver.Resolve(_configuration, sponsor.LightLogoUrl);
+
+            return sponsor;
+        }
+
+        private static void AddImage(
+            MultipartFormDataContent formData,
+            string fieldName,
+            string? tempFilePath,
+            string? contentType,
+            string? fileName)
+        {
+            if(string.IsNullOrEmpty(tempFilePath) || !File.Exists(tempFilePath))
+                return;
+
+            var streamContent = new StreamContent(File.OpenRead(tempFilePath));
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType!);
+            formData.Add(streamContent, fieldName, fileName!);
+        }
+
+        private static void DeleteTemporaryFiles(params string?[] filePaths)
+        {
+            foreach(var filePath in filePaths.Where(path => !string.IsNullOrWhiteSpace(path)).Distinct())
+            {
+                try
+                {
+                    File.Delete(filePath!);
+                }
+                catch(IOException)
+                {
+                }
+            }
         }
     }
 }

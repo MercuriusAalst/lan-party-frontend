@@ -10,7 +10,9 @@
                        target="_blank"
                        rel="noopener noreferrer"
                        aria-label="@Localization.Get("shared.visitSponsor", sponsor.Name)">
-                        <img src="@sponsor.LogoUrl" alt="@Localization.Get("shared.sponsorLogo", sponsor.Name)" />
+                        <ThemeAwareSponsorLogo LogoUrl="@sponsor.LogoUrl"
+                                               LightLogoUrl="@sponsor.LightLogoUrl"
+                                               AltText='@Localization.Get("shared.sponsorLogo", sponsor.Name)' />
                     </a>
                 }
             </div>
@@ -29,7 +31,9 @@
                                rel="noopener noreferrer"
                                aria-label="@(isPrimaryLoop ? Localization.Get("shared.visitSponsor", sponsor.Name) : null)"
                                tabindex="@(isPrimaryLoop ? null : "-1")">
-                               <img src="@sponsor.LogoUrl" alt="@(isPrimaryLoop ? Localization.Get("shared.sponsorLogo", sponsor.Name) : string.Empty)" />
+                               <ThemeAwareSponsorLogo LogoUrl="@sponsor.LogoUrl"
+                                                      LightLogoUrl="@sponsor.LightLogoUrl"
+                                                      AltText='@(isPrimaryLoop ? Localization.Get("shared.sponsorLogo", sponsor.Name) : string.Empty)' />
                             </a>
                         }
                     </div>

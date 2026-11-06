@@ -1,0 +1,38 @@
+<span class="@RootClass">
+    @if(string.IsNullOrWhiteSpace(LogoUrl))
+    {
+        <span class="theme-aware-sponsor-logo__empty">@EmptyText</span>
+    }
+    else
+    {
+        <img class="theme-aware-sponsor-logo__default" src="@LogoUrl" alt="@AltText" />
+        @if(!string.IsNullOrWhiteSpace(LightLogoUrl))
+        {
+            <img class="theme-aware-sponsor-logo__light" src="@LightLogoUrl" alt="@AltText" />
+        }
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public string LogoUrl { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? LightLogoUrl { get; set; }
+
+    [Parameter, EditorRequired]
+    public string AltText { get; set; } = string.Empty;
+
+    [Parameter]
+    public string EmptyText { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? ForcedTheme { get; set; }
+
+    private string RootClass => string.Join(' ', new[]
+    {
+        "theme-aware-sponsor-logo",
+        string.IsNullOrWhiteSpace(LightLogoUrl) ? null : "theme-aware-sponsor-logo--has-light",
+        ForcedTheme is "light" or "dark" ? $"theme-aware-sponsor-logo--{ForcedTheme}" : null
+    }.Where(value => value is not null));
+}
