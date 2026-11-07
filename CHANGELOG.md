@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.10.0...frontend-v0.10.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* Preview Sponsor Logos Before Saving ([#153](https://github.com/MercuriusAalst/lan-party-frontend/issues/153)) ([4d4cb6f](https://github.com/MercuriusAalst/lan-party-frontend/commit/4d4cb6fa9710ca264af1c23aa92dffa6a226d260))
+
 ## [0.10.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.9.0...frontend-v0.10.0) (2026-11-06)
 
 
