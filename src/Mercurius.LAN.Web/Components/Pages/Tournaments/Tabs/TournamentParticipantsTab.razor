@@ -28,9 +28,20 @@
                 <div class="participants-overview-grid">
                     @foreach(var participant in _participants)
                     {
-                        <ParticipantCardComponent Participant="participant" />
+                        @* Admins only: a card opens the team roster or the player details, like other participant cards in the app. *@
+                        <ParticipantCardComponent Participant="participant" OnParticipantSelected="@GetAdminCardCallback(participant)" />
                     }
                 </div>
+
+                <TournamentAdminRosterDialog Participant="AdminRosterDialogParticipant"
+                                             Members="AdminRosterDialogMembers"
+                                             OnClose="CloseAdminRosterDialog"
+                                             OnMemberSelected="OpenAdminPlayerFromRosterAsync" />
+
+                <UserInfoDialog User="AdminPlayerDialogUser"
+                                OnClose="CloseAdminPlayerDialog"
+                                OnBack="@(_adminPlayerReturnTeamId is null ? default : EventCallback.Factory.Create(this, ReturnToAdminRoster))"
+                                BackLabel='@Localization["Feature.tournaments.backToTeamMembers"]' />
             }
 
         <section id="registration" class="registration-panel brand-section-anchor" aria-labelledby="registration-panel-heading">

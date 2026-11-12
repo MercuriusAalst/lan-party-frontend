@@ -1,5 +1,6 @@
 using System.Net;
 using Blazored.Toast.Services;
+using Mercurius.LAN.Web.APIClients;
 using Mercurius.LAN.Web.Components.Shared;
 using Mercurius.LAN.Web.DTOs.Participants.Teams;
 using Mercurius.LAN.Web.DTOs.Registrations;
@@ -43,6 +44,7 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject] private IUserClient UserClient { get; set; } = null!;
 
     private readonly List<ParticipantViewModel> _participants = [];
     private readonly List<AdminTournamentRegistrationDTO> _adminRegistrations = [];
@@ -944,6 +946,8 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
         CancellationToken cancellationToken)
     {
         _isLoadingAdmin = true;
+        // Close the roster for good: otherwise it would vanish while loading and pop open again afterwards.
+        _adminRosterDialogTeamId = null;
         try
         {
             var registrations = await TournamentService.GetAdminTournamentRegistrationsAsync(
@@ -2214,13 +2218,153 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
 
 
 
-    private string GetConfirmationLabel(RosterMemberConfirmationStatus status) => status switch
+    private Guid? _adminRosterDialogTeamId;
+
+    // The dialog only stays open while its team is still listed and its roster still resolves for an admin;
+    // a removal, a reload or a lost admin role closes it without extra bookkeeping.
+    private ParticipantViewModel? AdminRosterDialogParticipant => _adminRosterDialogTeamId is { } teamId
+        ? _participants.FirstOrDefault(participant => participant.Team?.Id == teamId)
+        : null;
+
+    private IReadOnlyList<TournamentRosterMemberDTO>? AdminRosterDialogMembers =>
+        AdminRosterDialogParticipant is { } participant ? GetAdminTeamRoster(participant) : null;
+
+    /// <summary>
+    /// One call site per card keeps the card instance alive when it switches between interactive and
+    /// plain (e.g. during an admin reload). A default callback renders a plain, non-interactive card.
+    /// </summary>
+    private EventCallback<ParticipantViewModel> GetAdminCardCallback(ParticipantViewModel participant)
     {
-        RosterMemberConfirmationStatus.AutoConfirmed => Localization["Feature.tournaments.confirmationCaptain"],
-        RosterMemberConfirmationStatus.Pending => Localization["Feature.tournaments.confirmationPending"],
-        RosterMemberConfirmationStatus.Confirmed => Localization["Feature.tournaments.confirmationConfirmed"],
-        _ => Localization.Get("Feature.tournaments.confirmationStatus", status.ToString())
-    };
+        if(CanOpenAdminPlayerDetails(participant))
+            return EventCallback.Factory.Create<ParticipantViewModel>(this, OpenAdminPlayerFromCardAsync);
+
+        return FindAdminTeamRegistration(participant) is not null
+            ? EventCallback.Factory.Create<ParticipantViewModel>(this, OpenAdminRosterDialog)
+            : default;
+    }
+
+    private void OpenAdminRosterDialog(ParticipantViewModel participant)
+    {
+        CancelAdminPlayerLookup();
+        if(FindAdminTeamRegistration(participant) is not null)
+            _adminRosterDialogTeamId = participant.Team!.Id;
+    }
+
+    private void CloseAdminRosterDialog()
+    {
+        // A player lookup still in flight must not open its dialog after the admin closed the roster.
+        CancelAdminPlayerLookup();
+        _adminRosterDialogTeamId = null;
+    }
+
+    /// <summary>
+    /// Returns the active team registration of a team participant for administrators only.
+    /// Null for non-admins, individual participants, popup-only renders, and while the admin
+    /// registrations are loading, failed, or do not contain the team.
+    /// </summary>
+    private AdminTournamentRegistrationDTO? FindAdminTeamRegistration(ParticipantViewModel participant)
+    {
+        if(!_isAdmin || PopupOnly || _isLoadingAdmin || _adminError is not null || participant.Team is null)
+            return null;
+
+        return _adminRegistrations.FirstOrDefault(candidate =>
+            candidate.Kind == TournamentRegistrationKind.Team &&
+            candidate.Status == TournamentRegistrationStatus.Active &&
+            candidate.Team?.Id == participant.Team.Id);
+    }
+
+    /// <summary>The roster of <see cref="FindAdminTeamRegistration"/>, captain first, then by username.</summary>
+    private IReadOnlyList<TournamentRosterMemberDTO>? GetAdminTeamRoster(ParticipantViewModel participant)
+    {
+        if(FindAdminTeamRegistration(participant) is not { } registration)
+            return null;
+
+        return (registration.RosterMembers ?? [])
+            .Where(member => member.User is not null)
+            .OrderByDescending(member => member.IsCaptain)
+            .ThenBy(member => GetUserLabel(member.User), StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    private PublicUserDTO? _adminPlayerDialogUser;
+    private Guid? _adminPlayerReturnTeamId;
+    private CancellationTokenSource? _adminPlayerLookup;
+
+    // Only rendered for an admin outside the registration popup; a lost role hides it.
+    private PublicUserDTO? AdminPlayerDialogUser => _isAdmin && !PopupOnly ? _adminPlayerDialogUser : null;
+
+    /// <summary>True when an administrator may open player details from this individual participant card.</summary>
+    private bool CanOpenAdminPlayerDetails(ParticipantViewModel participant) =>
+        _isAdmin && !PopupOnly && participant.Team is null && !string.IsNullOrWhiteSpace(participant.User?.Username);
+
+    private Task OpenAdminPlayerFromCardAsync(ParticipantViewModel participant) =>
+        CanOpenAdminPlayerDetails(participant)
+            ? OpenAdminPlayerDialogAsync(participant.User!.Username!, returnTeamId: null)
+            : Task.CompletedTask;
+
+    private Task OpenAdminPlayerFromRosterAsync(string username) =>
+        OpenAdminPlayerDialogAsync(username, _adminRosterDialogTeamId);
+
+    /// <summary>
+    /// Loads a player from the admin user endpoint (the data behind /users/{username}) and shows it in
+    /// <see cref="UserInfoDialog"/>. Only one dialog is open at a time: the roster dialog closes and
+    /// <paramref name="returnTeamId"/> lets the back button reopen it. On failure nothing closes.
+    /// </summary>
+    private async Task OpenAdminPlayerDialogAsync(string username, Guid? returnTeamId)
+    {
+        if(!_isAdmin || PopupOnly)
+            return;
+
+        CancelAdminPlayerLookup();
+        var lookup = new CancellationTokenSource();
+        _adminPlayerLookup = lookup;
+        try
+        {
+            var user = await UserClient.GetUserByUsernameAsync(username.Trim(), lookup.Token);
+            if(_isDisposed || lookup.IsCancellationRequested)
+                return;
+
+            _adminPlayerDialogUser = PublicUserDTO.FromUser(user);
+            _adminPlayerReturnTeamId = returnTeamId;
+            _adminRosterDialogTeamId = null;
+        }
+        catch(OperationCanceledException) when(lookup.IsCancellationRequested)
+        {
+        }
+        catch(Exception)
+        {
+            if(!_isDisposed && !lookup.IsCancellationRequested)
+                ToastService.ShowError(Localization["Feature.tournaments.playerDetailsUnavailable"]);
+        }
+        finally
+        {
+            if(ReferenceEquals(_adminPlayerLookup, lookup))
+                _adminPlayerLookup = null;
+            lookup.Dispose();
+        }
+    }
+
+    private void CloseAdminPlayerDialog()
+    {
+        _adminPlayerDialogUser = null;
+        _adminPlayerReturnTeamId = null;
+    }
+
+    private void ReturnToAdminRoster()
+    {
+        var teamId = _adminPlayerReturnTeamId;
+        CloseAdminPlayerDialog();
+        _adminRosterDialogTeamId = teamId;
+    }
+
+    private void CancelAdminPlayerLookup()
+    {
+        _adminPlayerLookup?.Cancel();
+        _adminPlayerLookup = null;
+    }
+
+    private string GetConfirmationLabel(RosterMemberConfirmationStatus status) =>
+        RosterConfirmationLabels.Get(Localization, status);
 
     private string GetTeamRegistrationStateMessage()
     {
@@ -2418,6 +2562,9 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
         _teamEligibilityById.Clear();
         _rosterCandidatesById.Clear();
         _adminRegistrations.Clear();
+        _adminRosterDialogTeamId = null;
+        CancelAdminPlayerLookup();
+        CloseAdminPlayerDialog();
         _registrationError = null;
         _registrationWarning = null;
         _adminError = null;
@@ -2495,6 +2642,7 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
         _isDisposed = true;
         _requestGeneration++;
         CancelRegistrationLoad();
+        CancelAdminPlayerLookup();
         TeamRealtimeService.TeamStateInvalidated -= HandleTeamStateInvalidatedAsync;
         NotificationService.RosterDecisionChanged -= HandleRosterDecisionChangedAsync;
     }
