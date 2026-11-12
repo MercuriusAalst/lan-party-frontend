@@ -2,10 +2,9 @@
 
 ### Requirement: Administrators can open team rosters from tournament participants
 
-On a team tournament detail page, an administrator SHALL be able to open the roster of each active
-team registration in a dialog from that team's card under Participants, following the existing
-participant-dialog pattern. The roster MUST come from the administrator registration data the page
-already loads, without a request per participant.
+On a tournament detail page, an administrator SHALL be able to open the roster of an active team
+registration in a dialog, from the team's card under Participants and from match participants,
+using the same dialogs for both. Rosters MUST NOT be requested per participant up front.
 
 #### Scenario: Administrator opens a team roster
 
@@ -42,10 +41,30 @@ already loads, without a request per participant.
 
 #### Scenario: Administrator registration data is not available
 
-- **WHEN** the administrator registration list is still loading or failed to load
+- **WHEN** the Participants section's administrator registration list is still loading or failed
+  to load
 - **THEN** team participant cards MUST NOT be interactive
 - **AND** an open roster dialog MUST close
 - **AND** the page MUST NOT show a second error for the missing roster
+
+#### Scenario: Team registration is beyond the loaded administrator page
+
+- **WHEN** an administrator activates a team card whose active registration is not in the
+  administrator registration page the section already loaded
+- **THEN** the loaded data MUST be used when it contains the team, and otherwise the roster MUST be
+  looked up for that team only, page by page, when the card is activated
+- **AND** if the team has no active registration, the roster dialog MUST NOT open and an error MUST
+  be shown
+
+#### Scenario: Administrator opens rosters and player details from a match
+
+- **WHEN** an administrator views match details and activates a team name of a team match
+- **THEN** the same roster dialog MUST open for that team
+- **AND** activating a roster member or an individual match participant MUST open the same player
+  details dialog loaded from the administrator user endpoint
+- **AND** for viewers without the administrator role, match details MUST keep their existing
+  behavior: team names link to `/teams/{teamName}` and only the authorized opponent captain opens
+  the opponent profile
 
 #### Scenario: Team leaves the participants list
 

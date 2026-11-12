@@ -27,7 +27,7 @@
             <header class="admin-roster-dialog-header">
                 <span class="admin-roster-dialog-eyebrow">@Localization["Feature.tournaments.adminTeamMembers"]</span>
                 <h2 id="@DialogTitleId">
-                    <TeamIdentityDisplay Name="@participant.DisplayName" LogoUrl="@participant.Team?.LogoUrl" Href="@ProfileRoutes.Team(participant.Team?.Name)" Variant="inline" Size="medium" />
+                    <TeamIdentityDisplay Name="@participant.DisplayName" LogoUrl="@participant.Team?.LogoUrl" Href="@GetTeamHref(participant)" Variant="inline" Size="medium" />
                 </h2>
             </header>
 

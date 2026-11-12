@@ -1,0 +1,13 @@
+@using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs
+@implements IDisposable
+
+@* Admin-only team roster and player details, shared by the Participants section and match details. *@
+<TournamentAdminRosterDialog Participant="RosterParticipant"
+                             Members="RosterMembers"
+                             OnClose="CloseRoster"
+                             OnMemberSelected="OpenPlayerFromRosterAsync" />
+
+<UserInfoDialog User="Player"
+                OnClose="ClosePlayer"
+                OnBack="@(_returnTeamId is null ? default : EventCallback.Factory.Create(this, ReturnToRoster))"
+                BackLabel='@Localization["Feature.tournaments.backToTeamMembers"]' />

@@ -81,9 +81,9 @@ else
                                 </text>;
                                 <li>
                                     @* The user-detail page is admin-only, so only administrators get a link; visitors keep plain text. *@
-                                    @if(_isAdmin && ProfileRoutes.User(member.Username) is { } profileHref)
+                                    @if(_isAdmin && !string.IsNullOrWhiteSpace(member.Username))
                                     {
-                                        <a class="public-team-member public-team-member--link" href="@profileHref">@memberContent</a>
+                                        <a class="public-team-member public-team-member--link" href="/users/@Uri.EscapeDataString(member.Username.Trim())">@memberContent</a>
                                     }
                                     else
                                     {

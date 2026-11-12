@@ -1,3 +1,4 @@
+@using Mercurius.LAN.Web.Components.Pages.Tournaments
 @using Mercurius.LAN.Web.Components.Shared
 @using Mercurius.LAN.Web.DTOs.Registrations
 @using Mercurius.LAN.Web.Models.Tournaments
@@ -33,15 +34,11 @@
                     }
                 </div>
 
-                <TournamentAdminRosterDialog Participant="AdminRosterDialogParticipant"
-                                             Members="AdminRosterDialogMembers"
-                                             OnClose="CloseAdminRosterDialog"
-                                             OnMemberSelected="OpenAdminPlayerFromRosterAsync" />
-
-                <UserInfoDialog User="AdminPlayerDialogUser"
-                                OnClose="CloseAdminPlayerDialog"
-                                OnBack="@(_adminPlayerReturnTeamId is null ? default : EventCallback.Factory.Create(this, ReturnToAdminRoster))"
-                                BackLabel='@Localization["Feature.tournaments.backToTeamMembers"]' />
+                <TournamentAdminParticipantDetails @ref="_adminDetails"
+                                                   TournamentId="Tournament.Id"
+                                                   Enabled="AdminDetailsEnabled"
+                                                   Participants="_participants"
+                                                   KnownRegistrations="_adminRegistrations" />
             }
 
         <section id="registration" class="registration-panel brand-section-anchor" aria-labelledby="registration-panel-heading">

@@ -2,7 +2,11 @@ using System.Reflection;
 using System.Security.Claims;
 using Blazored.Toast.Services;
 using Mercurius.LAN.Web.APIClients;
+using Mercurius.LAN.Web.Components.Pages.Tournaments;
 using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
+using Mercurius.LAN.Web.Components.Shared;
+using Mercurius.LAN.Web.DTOs.Participants.Teams;
+using Mercurius.LAN.Web.DTOs.PublicProfiles;
 using Mercurius.LAN.Web.DTOs.Registrations;
 using Mercurius.LAN.Web.DTOs.Users;
 using Mercurius.LAN.Web.Localization;
@@ -17,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.JSInterop;
 using Xunit;
+using TeamModel = Mercurius.LAN.Web.Models.Participants.Team;
 
 namespace Mercurius.LAN.Web.ContractTests;
 
@@ -28,163 +33,177 @@ public sealed class TournamentParticipantsAdminRosterTests
     private static readonly Guid CaptainId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
     private static readonly Guid MemberId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
+    // ---- Participants tab: which cards are interactive -------------------------------------------
+
     [Fact]
-    public async Task AdministratorCanOpenTeamRosterFromParticipantCard()
+    public async Task AdministratorTeamCardsAreInteractive()
     {
         var service = CreateTournamentService();
         var tab = CreateTab(service, isAdmin: true);
 
         await tab.LoadAfterRenderAsync();
 
-        Assert.Equal(1, service.AdminRegistrationRequestCount);
+        Assert.Single(service.AdminRegistrationRequests);
         Assert.Equal((Total: 1, Interactive: 1), tab.CountParticipantCards());
-        Assert.Null(GetProperty<object>(tab, "AdminRosterDialogMembers"));
+    }
 
-        tab.OpenRosterDialogFor(TeamId);
-        var members = GetProperty<IReadOnlyList<TournamentRosterMemberDTO>>(tab, "AdminRosterDialogMembers");
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task NonAdministratorCardsAreNotInteractive(bool authenticated)
+    {
+        var service = CreateTournamentService();
+        var teamTab = CreateTab(service, isAdmin: false, authenticated: authenticated);
+        var soloTab = CreateTab(service, isAdmin: false, authenticated: authenticated, teamTournament: false);
 
-        Assert.Equal(new string?[] { "captain-name", "member-name" }, members.Select(member => member.User.Username).ToArray());
+        await teamTab.LoadAfterRenderAsync();
+        await soloTab.LoadAfterRenderAsync();
+
+        Assert.Empty(service.AdminRegistrationRequests);
+        Assert.Equal((Total: 1, Interactive: 0), teamTab.CountParticipantCards());
+        Assert.Equal((Total: 1, Interactive: 0), soloTab.CountParticipantCards());
+    }
+
+    [Fact]
+    public async Task FailedOrLoadingAdminDataKeepsCardsNonInteractive()
+    {
+        var failing = CreateTournamentService();
+        failing.FailAdminRegistrations = true;
+        var failedTab = CreateTab(failing, isAdmin: true);
+        await failedTab.LoadAfterRenderAsync();
+
+        var loadingTab = CreateTab(CreateTournamentService(), isAdmin: true);
+        await loadingTab.LoadAfterRenderAsync();
+        SetField(loadingTab, typeof(TournamentParticipantsTab), "_isLoadingAdmin", true);
+
+        Assert.Equal((Total: 1, Interactive: 0), failedTab.CountParticipantCards());
+        Assert.Equal((Total: 1, Interactive: 0), loadingTab.CountParticipantCards());
+    }
+
+    [Fact]
+    public async Task AdministratorIndividualCardsAreInteractive()
+    {
+        var tab = CreateTab(CreateTournamentService(), isAdmin: true, teamTournament: false);
+
+        await tab.LoadAfterRenderAsync();
+
+        Assert.Equal((Total: 1, Interactive: 1), tab.CountParticipantCards());
+    }
+
+    // ---- Shared admin details: roster lookup ------------------------------------------------------
+
+    [Fact]
+    public async Task KnownRegistrationsOpenTheRosterWithoutARequest()
+    {
+        var service = CreateTournamentService();
+        var details = CreateDetails(service, knownRegistrations: CreateAdminRegistrations());
+
+        await details.OpenTeamAsync(CreateTeamParticipant());
+        var members = GetValue<IReadOnlyList<TournamentRosterMemberDTO>>(details, "RosterMembers");
+
+        Assert.Empty(service.AdminRegistrationRequests);
+        Assert.Equal(new[] { "captain-name", "member-name" }, members.Select(member => member.User.Username).ToArray());
         Assert.True(members[0].IsCaptain);
     }
 
     [Fact]
-    public async Task ClosingTheDialogClearsTheSelection()
-    {
-        var tab = CreateTab(CreateTournamentService(), isAdmin: true);
-        await tab.LoadAfterRenderAsync();
-        tab.OpenRosterDialogFor(TeamId);
-
-        typeof(TournamentParticipantsTab).GetMethod("CloseAdminRosterDialog", PrivateInstance)!.Invoke(tab, null);
-
-        Assert.Null(GetProperty<object>(tab, "AdminRosterDialogParticipant"));
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task NonAdministratorCannotOpenTeamRoster(bool authenticated)
+    public async Task TeamBeyondTheLoadedPageIsLookedUpPageByPage()
     {
         var service = CreateTournamentService();
-        var tab = CreateTab(service, isAdmin: false, authenticated: authenticated);
+        service.Pages[1] = Enumerable.Range(0, TournamentAdminParticipantDetails.LookupPageSize)
+            .Select(_ => CreateOtherTeamRegistration())
+            .ToList();
+        service.Pages[2] = CreateAdminRegistrations();
+        var details = CreateDetails(service, knownRegistrations: []);
 
-        await tab.LoadAfterRenderAsync();
-        // Even if admin data were somehow present, the non-admin render must not use it.
-        GetField<List<AdminTournamentRegistrationDTO>>(tab, "_adminRegistrations").AddRange(CreateAdminRegistrations());
-        tab.OpenRosterDialogFor(TeamId);
+        await details.OpenTeamAsync(CreateTeamParticipant());
 
-        Assert.Equal(0, service.AdminRegistrationRequestCount);
-        Assert.Equal((Total: 1, Interactive: 0), tab.CountParticipantCards());
-        Assert.Null(GetProperty<object>(tab, "AdminRosterDialogMembers"));
+        Assert.Equal(new int?[] { 1, 2 }, service.AdminRegistrationRequests.Select(request => request.Page).ToArray());
+        Assert.All(service.AdminRegistrationRequests, request => Assert.Equal(TournamentAdminParticipantDetails.LookupPageSize, request.PageSize));
+        Assert.Equal(TeamId, GetValue<ParticipantViewModel>(details, "RosterParticipant").Team!.Id);
     }
 
     [Fact]
-    public async Task FailedAdminLoadKeepsCardsNonInteractive()
+    public async Task MissingTeamRegistrationShowsAnErrorAndKeepsTheRosterClosed()
     {
         var service = CreateTournamentService();
-        service.FailAdminRegistrations = true;
-        var tab = CreateTab(service, isAdmin: true);
+        service.Pages[1] = [CreateOtherTeamRegistration()];
+        var toasts = CreateToastService();
+        var details = CreateDetails(service, toasts: toasts);
 
-        await tab.LoadAfterRenderAsync();
+        await details.OpenTeamAsync(CreateTeamParticipant());
 
-        Assert.Equal((Total: 1, Interactive: 0), tab.CountParticipantCards());
+        Assert.Equal(new int?[] { 1 }, service.AdminRegistrationRequests.Select(request => request.Page).ToArray());
+        Assert.Null(GetValue<object>(details, "RosterParticipant"));
+        Assert.Equal(new[] { "Feature.tournaments.teamMembersUnavailable" }, toasts.Errors);
     }
 
     [Fact]
-    public async Task ReloadingAdminRegistrationsClosesAnOpenDialog()
+    public async Task DisabledDetailsOpenNothingAndRequestNothing()
     {
-        var tab = CreateTab(CreateTournamentService(), isAdmin: true);
-        await tab.LoadAfterRenderAsync();
-        tab.OpenRosterDialogFor(TeamId);
-        Assert.NotNull(GetProperty<object>(tab, "AdminRosterDialogMembers"));
+        var service = CreateTournamentService();
+        var users = CreateUserClient();
+        var details = CreateDetails(service, users: users, enabled: false);
 
-        SetPrivateField(tab, "_isLoadingAdmin", true);
+        await details.OpenTeamAsync(CreateTeamParticipant());
+        await details.OpenPlayerAsync("member-name");
 
-        Assert.Equal((Total: 1, Interactive: 0), tab.CountParticipantCards());
-        Assert.Null(GetProperty<object>(tab, "AdminRosterDialogMembers"));
+        Assert.Empty(service.AdminRegistrationRequests);
+        Assert.Empty(users.RequestedUsernames);
+        Assert.Null(GetValue<object>(details, "RosterParticipant"));
+        Assert.Null(GetValue<object>(details, "Player"));
     }
 
     [Fact]
-    public async Task ReloadedAdminRegistrationsDoNotReopenTheRoster()
+    public async Task DisablingOrRemovingTheTeamClosesTheRoster()
     {
-        var tab = CreateTab(CreateTournamentService(), isAdmin: true);
-        await tab.LoadAfterRenderAsync();
-        tab.OpenRosterDialogFor(TeamId);
+        var details = CreateDetails(CreateTournamentService(), knownRegistrations: CreateAdminRegistrations());
+        await details.OpenTeamAsync(CreateTeamParticipant());
 
-        await tab.ReloadAdminRegistrationsAsync();
+        details.Participants = [];
+        Assert.Null(GetValue<object>(details, "RosterParticipant"));
 
-        Assert.Equal((Total: 1, Interactive: 1), tab.CountParticipantCards());
-        Assert.Null(GetProperty<object>(tab, "AdminRosterDialogParticipant"));
+        details.Participants = [CreateTeamParticipant()];
+        details.Enabled = false;
+        InvokeOnParametersSet(details);
+        details.Enabled = true;
+        InvokeOnParametersSet(details);
+
+        // A reload must not bring a closed roster back.
+        Assert.Null(GetValue<object>(details, "RosterParticipant"));
     }
 
+    // ---- Shared admin details: player details -----------------------------------------------------
+
     [Fact]
-    public async Task ClosingTheRosterCancelsAPendingPlayerLookup()
+    public async Task PlayerDetailsComeFromTheAdminUserEndpoint()
     {
         var users = CreateUserClient();
-        users.Pending = new TaskCompletionSource<UserDTO>();
-        var tab = CreateTab(CreateTournamentService(), isAdmin: true, users: users);
-        await tab.LoadAfterRenderAsync();
-        tab.OpenRosterDialogFor(TeamId);
+        var details = CreateDetails(CreateTournamentService(), users: users);
 
-        var lookup = tab.OpenPlayerFromRosterAsync("member-name");
-        typeof(TournamentParticipantsTab).GetMethod("CloseAdminRosterDialog", PrivateInstance)!.Invoke(tab, null);
-        users.Pending.SetResult(new UserDTO { Username = "member-name" });
-        await lookup;
-
-        Assert.Null(GetProperty<object>(tab, "AdminPlayerDialogUser"));
-        Assert.Null(GetProperty<object>(tab, "AdminRosterDialogParticipant"));
-    }
-
-    [Fact]
-    public async Task AdministratorOpensPlayerDetailsFromAnIndividualCard()
-    {
-        var users = CreateUserClient();
-        var tab = CreateTab(CreateTournamentService(), isAdmin: true, teamTournament: false, users: users);
-        await tab.LoadAfterRenderAsync();
-
-        Assert.Equal((Total: 1, Interactive: 1), tab.CountParticipantCards());
-
-        await tab.OpenPlayerFromCardAsync();
-        var shown = GetProperty<PublicUserDTO>(tab, "AdminPlayerDialogUser");
+        await details.OpenPlayerAsync("solo-player");
+        var player = GetValue<PublicUserDTO>(details, "Player");
 
         Assert.Equal(new[] { "solo-player" }, users.RequestedUsernames);
-        Assert.Equal("solo-player", shown.Username);
-        Assert.Equal("Steam-solo-player", shown.SteamId);
-        Assert.Null(GetField<Guid?>(tab, "_adminPlayerReturnTeamId"));
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task NonAdministratorCannotOpenPlayerDetails(bool authenticated)
-    {
-        var users = CreateUserClient();
-        var tab = CreateTab(CreateTournamentService(), isAdmin: false, authenticated: authenticated, teamTournament: false, users: users);
-        await tab.LoadAfterRenderAsync();
-
-        await tab.OpenPlayerFromCardAsync();
-
-        Assert.Equal((Total: 1, Interactive: 0), tab.CountParticipantCards());
-        Assert.Empty(users.RequestedUsernames);
-        Assert.Null(GetProperty<object>(tab, "AdminPlayerDialogUser"));
+        Assert.Equal("Steam-solo-player", player.SteamId);
+        Assert.Null(GetValue<Guid?>(details, "_returnTeamId"));
     }
 
     [Fact]
     public async Task RosterMemberOpensPlayerDetailsAndBackReturnsToTheSameRoster()
     {
-        var users = CreateUserClient();
-        var tab = CreateTab(CreateTournamentService(), isAdmin: true, users: users);
-        await tab.LoadAfterRenderAsync();
-        tab.OpenRosterDialogFor(TeamId);
+        var details = CreateDetails(CreateTournamentService(), knownRegistrations: CreateAdminRegistrations());
+        await details.OpenTeamAsync(CreateTeamParticipant());
 
-        await tab.OpenPlayerFromRosterAsync("member-name");
+        await InvokeAsync(details, "OpenPlayerFromRosterAsync", "member-name");
 
-        Assert.Equal("member-name", GetProperty<PublicUserDTO>(tab, "AdminPlayerDialogUser").Username);
-        Assert.Null(GetProperty<object>(tab, "AdminRosterDialogParticipant"));
+        Assert.Equal("member-name", GetValue<PublicUserDTO>(details, "Player").Username);
+        Assert.Null(GetValue<object>(details, "RosterParticipant"));
 
-        typeof(TournamentParticipantsTab).GetMethod("ReturnToAdminRoster", PrivateInstance)!.Invoke(tab, null);
+        await InvokeAsync(details, "ReturnToRoster");
 
-        Assert.Null(GetProperty<object>(tab, "AdminPlayerDialogUser"));
-        Assert.Equal(TeamId, GetProperty<Mercurius.LAN.Web.Components.Shared.ParticipantViewModel>(tab, "AdminRosterDialogParticipant").Team!.Id);
+        Assert.Null(GetValue<object>(details, "Player"));
+        Assert.Equal(TeamId, GetValue<ParticipantViewModel>(details, "RosterParticipant").Team!.Id);
     }
 
     [Fact]
@@ -193,35 +212,42 @@ public sealed class TournamentParticipantsAdminRosterTests
         var users = CreateUserClient();
         users.Fail = true;
         var toasts = CreateToastService();
-        var tab = CreateTab(CreateTournamentService(), isAdmin: true, users: users, toasts: toasts);
-        await tab.LoadAfterRenderAsync();
-        tab.OpenRosterDialogFor(TeamId);
+        var details = CreateDetails(CreateTournamentService(), users: users, toasts: toasts, knownRegistrations: CreateAdminRegistrations());
+        await details.OpenTeamAsync(CreateTeamParticipant());
 
-        await tab.OpenPlayerFromRosterAsync("member-name");
+        await InvokeAsync(details, "OpenPlayerFromRosterAsync", "member-name");
 
-        Assert.Null(GetProperty<object>(tab, "AdminPlayerDialogUser"));
-        Assert.NotNull(GetProperty<object>(tab, "AdminRosterDialogParticipant"));
+        Assert.Null(GetValue<object>(details, "Player"));
+        Assert.NotNull(GetValue<object>(details, "RosterParticipant"));
         Assert.Equal(new[] { "Feature.tournaments.playerDetailsUnavailable" }, toasts.Errors);
     }
+
+    [Fact]
+    public async Task ClosingTheRosterCancelsAPendingPlayerLookup()
+    {
+        var users = CreateUserClient();
+        users.Pending = new TaskCompletionSource<UserDTO>();
+        var details = CreateDetails(CreateTournamentService(), users: users, knownRegistrations: CreateAdminRegistrations());
+        await details.OpenTeamAsync(CreateTeamParticipant());
+
+        var lookup = InvokeAsync(details, "OpenPlayerFromRosterAsync", "member-name");
+        await InvokeAsync(details, "CloseRoster");
+        users.Pending.SetResult(new UserDTO { Username = "member-name" });
+        await lookup;
+
+        Assert.Null(GetValue<object>(details, "Player"));
+        Assert.Null(GetValue<object>(details, "RosterParticipant"));
+    }
+
+    // ---- Roster dialog --------------------------------------------------------------------------
 
     [Fact]
     public void DialogListsUsernamesCaptainAndStatusesWithoutPrivateFields()
     {
         var registration = CreateAdminRegistrations()[0];
-        var members = registration.RosterMembers.OrderByDescending(member => member.IsCaptain).ToList();
-        var dialog = new TournamentAdminRosterDialog
-        {
-            Participant = new Mercurius.LAN.Web.Components.Shared.ParticipantViewModel
-            {
-                Id = TeamId,
-                DisplayName = "Team Rocket",
-                Team = new Mercurius.LAN.Web.Models.Participants.Team { Id = TeamId, Name = "Team Rocket", CaptainUserId = CaptainId }
-            },
-            Members = members
-        };
-        typeof(TournamentAdminRosterDialog).GetProperty("Localization", PrivateInstance)!.SetValue(dialog, TestLocalizationService.Instance);
+        var dialog = CreateDialog(registration.RosterMembers.OrderByDescending(member => member.IsCaptain).ToList());
 
-        var text = RenderText(dialog, typeof(TournamentAdminRosterDialog));
+        var text = RenderText(dialog);
 
         Assert.Contains("Feature.tournaments.adminTeamMembers", text);
         Assert.Contains("captain-name", text);
@@ -237,45 +263,57 @@ public sealed class TournamentParticipantsAdminRosterTests
     [Fact]
     public void DialogOffersPlayerDetailsInsteadOfProfileLinksAndLinksTheTeam()
     {
-        var dialog = new TournamentAdminRosterDialog
-        {
-            Participant = new Mercurius.LAN.Web.Components.Shared.ParticipantViewModel
-            {
-                Id = TeamId,
-                DisplayName = "Team Rocket",
-                Team = new Mercurius.LAN.Web.Models.Participants.Team { Id = TeamId, Name = "Team Rocket", CaptainUserId = CaptainId }
-            },
-            Members = CreateAdminRegistrations()[0].RosterMembers,
-            OnMemberSelected = EventCallback.Factory.Create<string>(new object(), (string _) => { })
-        };
-        typeof(TournamentAdminRosterDialog).GetProperty("Localization", PrivateInstance)!.SetValue(dialog, TestLocalizationService.Instance);
+        var dialog = CreateDialog(CreateAdminRegistrations()[0].RosterMembers);
+        dialog.OnMemberSelected = EventCallback.Factory.Create<string>(new object(), (string _) => { });
 
-        var builder = new RenderTreeBuilder();
-        typeof(TournamentAdminRosterDialog).GetMethod("BuildRenderTree", PrivateInstance)!.Invoke(dialog, [builder]);
-        var frames = builder.GetFrames();
-        var attributes = frames.Array.Take(frames.Count)
-            .Where(frame => frame.FrameType == RenderTreeFrameType.Attribute)
-            .Select(frame => (frame.AttributeName, Value: frame.AttributeValue?.ToString()))
-            .ToList();
+        var attributes = RenderAttributes(dialog);
 
         Assert.DoesNotContain(attributes, attribute => attribute.Value?.StartsWith("/users/", StringComparison.Ordinal) == true);
         Assert.Equal(2, attributes.Count(attribute => attribute == ("aria-haspopup", "dialog")));
         Assert.Contains(("Href", "/teams/Team%20Rocket"), attributes);
     }
 
-    [Theory]
-    [InlineData("alice", "/users/alice")]
-    [InlineData(" a b/c ", "/users/a%20b%2Fc")]
-    [InlineData(null, null)]
-    [InlineData("  ", null)]
-    public void UserProfileRouteEscapesAndSkipsMissingUsernames(string? username, string? expected) =>
-        Assert.Equal(expected, Mercurius.LAN.Web.Components.Shared.ProfileRoutes.User(username));
+    [Fact]
+    public void DialogRendersNothingWhenClosed()
+    {
+        var dialog = new TournamentAdminRosterDialog();
+        SetLocalization(dialog);
 
-    [Theory]
-    [InlineData("Team Rocket", "/teams/Team%20Rocket")]
-    [InlineData(null, null)]
-    public void TeamProfileRouteEscapesAndSkipsMissingNames(string? teamName, string? expected) =>
-        Assert.Equal(expected, Mercurius.LAN.Web.Components.Shared.ProfileRoutes.Team(teamName));
+        Assert.Equal(string.Empty, RenderText(dialog));
+    }
+
+    // ---- Match participants ---------------------------------------------------------------------
+
+    [Fact]
+    public void ParticipantComponentKeepsTeamLinkAndCaptainOnlyByDefault()
+    {
+        var component = CreateParticipantComponent();
+        component.CanViewUserDetails = true;
+        component.OnUserSelected = EventCallback.Factory.Create<PublicUserDTO>(new object(), (PublicUserDTO _) => { });
+
+        var attributes = RenderAttributes(component);
+
+        Assert.Contains(("Href", "/teams/Team%20Rocket"), attributes);
+        Assert.Equal(1, CountMemberButtons(attributes));
+    }
+
+    [Fact]
+    public void AdministratorMatchParticipantOpensTheRosterAndEveryMember()
+    {
+        var component = CreateParticipantComponent();
+        component.CanViewUserDetails = true;
+        component.CanSelectAllMembers = true;
+        component.OnUserSelected = EventCallback.Factory.Create<PublicUserDTO>(new object(), (PublicUserDTO _) => { });
+        component.OnTeamSelected = EventCallback.Factory.Create<ParticipantViewModel>(new object(), (ParticipantViewModel _) => { });
+
+        var attributes = RenderAttributes(component);
+
+        Assert.DoesNotContain(attributes, attribute => attribute.AttributeName == "Href" && attribute.Value?.StartsWith("/teams/", StringComparison.Ordinal) == true);
+        Assert.Contains(("class", "participant-team-button"), attributes);
+        Assert.Equal(2, CountMemberButtons(attributes));
+    }
+
+    // ---- Public team page -----------------------------------------------------------------------
 
     [Theory]
     [InlineData(true, new[] { "/users/captain-name", "/users/member-name" })]
@@ -283,74 +321,157 @@ public sealed class TournamentParticipantsAdminRosterTests
     public void PublicTeamPageLinksMembersToProfilesForAdministratorsOnly(bool isAdmin, string[] expectedLinks)
     {
         var page = new Mercurius.LAN.Web.Components.Pages.Teams.PublicTeamProfile();
-        var type = page.GetType();
-        type.GetProperty("Localization", PrivateInstance)!.SetValue(page, TestLocalizationService.Instance);
-        type.GetField("_isAdmin", PrivateInstance)!.SetValue(page, isAdmin);
-        type.GetField("_team", PrivateInstance)!.SetValue(page, new Mercurius.LAN.Web.DTOs.PublicProfiles.PublicTeamProfileDTO
+        SetLocalization(page);
+        SetField(page, page.GetType(), "_isAdmin", isAdmin);
+        SetField(page, page.GetType(), "_team", new PublicTeamProfileDTO
         {
             TeamName = "Team Rocket",
             CaptainUsername = "captain-name",
             Members =
             [
-                new Mercurius.LAN.Web.DTOs.PublicProfiles.PublicTeamMemberDTO { Username = "captain-name" },
-                new Mercurius.LAN.Web.DTOs.PublicProfiles.PublicTeamMemberDTO { Username = "member-name" }
+                new PublicTeamMemberDTO { Username = "captain-name" },
+                new PublicTeamMemberDTO { Username = "member-name" }
             ]
         });
 
-        var builder = new RenderTreeBuilder();
-        type.GetMethod("BuildRenderTree", PrivateInstance)!.Invoke(page, [builder]);
-        var frames = builder.GetFrames();
-        var userLinks = frames.Array.Take(frames.Count)
-            .Where(frame => frame.FrameType == RenderTreeFrameType.Attribute && frame.AttributeName == "href")
-            .Select(frame => frame.AttributeValue?.ToString())
-            .Where(href => href?.StartsWith("/users/", StringComparison.Ordinal) == true)
+        var userLinks = RenderAttributes(page)
+            .Where(attribute => attribute.AttributeName == "href" && attribute.Value?.StartsWith("/users/", StringComparison.Ordinal) == true)
+            .Select(attribute => attribute.Value)
             .ToArray();
 
         Assert.Equal(expectedLinks, userLinks);
     }
 
-    [Fact]
-    public void DialogRendersNothingWhenClosed()
-    {
-        var dialog = new TournamentAdminRosterDialog();
-        typeof(TournamentAdminRosterDialog).GetProperty("Localization", PrivateInstance)!.SetValue(dialog, TestLocalizationService.Instance);
+    // ---- Helpers --------------------------------------------------------------------------------
 
-        Assert.Equal(string.Empty, RenderText(dialog, typeof(TournamentAdminRosterDialog)));
+    private static TournamentAdminParticipantDetails CreateDetails(
+        RecordingTournamentServiceProxy service,
+        RecordingUserClientProxy? users = null,
+        RecordingToastServiceProxy? toasts = null,
+        IReadOnlyList<AdminTournamentRegistrationDTO>? knownRegistrations = null,
+        bool enabled = true)
+    {
+        var details = new TournamentAdminParticipantDetails
+        {
+            TournamentId = TournamentId,
+            Enabled = enabled,
+            Participants = [CreateTeamParticipant()],
+            KnownRegistrations = knownRegistrations
+        };
+        SetLocalization(details);
+        SetProperty(details, "TournamentService", service.Proxy);
+        SetProperty(details, "UserClient", (users ?? CreateUserClient()).Proxy);
+        SetProperty(details, "ToastService", (toasts ?? CreateToastService()).Proxy);
+        InvokeOnParametersSet(details);
+        return details;
     }
 
-    private static string RenderText(object component, Type componentType)
+    private static TournamentAdminRosterDialog CreateDialog(IReadOnlyList<TournamentRosterMemberDTO> members)
+    {
+        var dialog = new TournamentAdminRosterDialog { Participant = CreateTeamParticipant(), Members = members };
+        SetLocalization(dialog);
+        return dialog;
+    }
+
+    private static ParticipantComponent CreateParticipantComponent()
+    {
+        var component = new ParticipantComponent
+        {
+            Participant = new ParticipantViewModel
+            {
+                Id = TeamId,
+                DisplayName = "Team Rocket",
+                Team = new TeamModel
+                {
+                    Id = TeamId,
+                    Name = "Team Rocket",
+                    CaptainUserId = CaptainId,
+                    Members =
+                    [
+                        new PublicUserDTO { Id = CaptainId, Username = "captain-name" },
+                        new PublicUserDTO { Id = MemberId, Username = "member-name" }
+                    ]
+                }
+            }
+        };
+        SetLocalization(component);
+        return component;
+    }
+
+    private static int CountMemberButtons(IEnumerable<(string AttributeName, string? Value)> attributes) =>
+        attributes.Count(attribute => attribute.AttributeName == "class" &&
+            attribute.Value?.Contains("participant-member-link", StringComparison.Ordinal) == true);
+
+    private static ParticipantViewModel CreateTeamParticipant() => new()
+    {
+        Id = TeamId,
+        DisplayName = "Team Rocket",
+        Team = new TeamModel { Id = TeamId, Name = "Team Rocket", CaptainUserId = CaptainId }
+    };
+
+    private static void InvokeOnParametersSet(TournamentAdminParticipantDetails details) =>
+        typeof(TournamentAdminParticipantDetails).GetMethod("OnParametersSet", PrivateInstance)!.Invoke(details, null);
+
+    private static Task InvokeAsync(object instance, string method, params object[] args)
+    {
+        var result = instance.GetType().GetMethod(method, PrivateInstance)!.Invoke(instance, args);
+        return result as Task ?? Task.CompletedTask;
+    }
+
+    private static T GetValue<T>(object instance, string name)
+    {
+        var type = instance.GetType();
+        var value = type.GetProperty(name, PrivateInstance)?.GetValue(instance) ??
+            type.GetField(name, PrivateInstance)?.GetValue(instance);
+        return (T)value!;
+    }
+
+    private static void SetLocalization(object component) =>
+        component.GetType().GetProperty("Localization", PrivateInstance)!.SetValue(component, TestLocalizationService.Instance);
+
+    private static void SetProperty(object instance, string name, object value) =>
+        instance.GetType().GetProperty(name, PrivateInstance)!.SetValue(instance, value);
+
+    private static void SetField(object instance, Type type, string name, object? value) =>
+        type.GetField(name, PrivateInstance)!.SetValue(instance, value);
+
+    private static RenderTreeFrame[] RenderFrames(object component)
     {
         var builder = new RenderTreeBuilder();
-        componentType.GetMethod("BuildRenderTree", PrivateInstance)!.Invoke(component, [builder]);
+        component.GetType().GetMethod("BuildRenderTree", PrivateInstance)!.Invoke(component, [builder]);
         var frames = builder.GetFrames();
-        return string.Concat(frames.Array.Take(frames.Count)
-            .Where(frame => frame.FrameType == RenderTreeFrameType.Text)
-            .Select(frame => frame.TextContent));
+        return frames.Array.Take(frames.Count).ToArray();
     }
 
-    private static T GetProperty<T>(object instance, string name) =>
-        (T)typeof(TournamentParticipantsTab).GetProperty(name, PrivateInstance)!.GetValue(instance)!;
+    private static string RenderText(object component) =>
+        string.Concat(RenderFrames(component)
+            .Where(frame => frame.FrameType == RenderTreeFrameType.Text)
+            .Select(frame => frame.TextContent));
+
+    private static List<(string AttributeName, string? Value)> RenderAttributes(object component) =>
+        RenderFrames(component)
+            .Where(frame => frame.FrameType == RenderTreeFrameType.Attribute)
+            .Select(frame => (frame.AttributeName, Value: frame.AttributeValue?.ToString()))
+            .ToList();
 
     private static TestableTournamentParticipantsTab CreateTab(
         RecordingTournamentServiceProxy service,
         bool isAdmin,
         bool authenticated = true,
-        bool teamTournament = true,
-        RecordingUserClientProxy? users = null,
-        RecordingToastServiceProxy? toasts = null)
+        bool teamTournament = true)
     {
         var tab = new TestableTournamentParticipantsTab();
-        SetPrivateProperty(tab, "Localization", TestLocalizationService.Instance);
+        var type = typeof(TournamentParticipantsTab);
+        type.GetProperty("Localization", PrivateInstance)!.SetValue(tab, TestLocalizationService.Instance);
         tab.Tournament = teamTournament ? CreateTeamTournament() : CreateIndividualTournament();
         tab.PopupOnly = false;
         tab.RegistrationDialogOpen = false;
-        SetPrivateProperty(tab, "TournamentService", service.Proxy);
-        SetPrivateProperty(tab, "AuthenticationStateProvider", new FixedAuthenticationStateProvider(CreatePrincipal(isAdmin, authenticated)));
-        SetPrivateProperty(tab, "TeamRealtimeService", new NoopTeamRealtimeService());
-        SetPrivateProperty(tab, "NotificationService", new NoopNotificationService());
-        SetPrivateProperty(tab, "UserClient", (users ?? CreateUserClient()).Proxy);
-        SetPrivateProperty(tab, "ToastService", (toasts ?? CreateToastService()).Proxy);
-        SetPrivateField(tab, "_registrationFocusTrap", DispatchProxy.Create<IJSObjectReference, NoopJsObjectReferenceProxy>());
+        type.GetProperty("TournamentService", PrivateInstance)!.SetValue(tab, service.Proxy);
+        type.GetProperty("AuthenticationStateProvider", PrivateInstance)!.SetValue(tab, new FixedAuthenticationStateProvider(CreatePrincipal(isAdmin, authenticated)));
+        type.GetProperty("TeamRealtimeService", PrivateInstance)!.SetValue(tab, new NoopTeamRealtimeService());
+        type.GetProperty("NotificationService", PrivateInstance)!.SetValue(tab, new NoopNotificationService());
+        type.GetProperty("ToastService", PrivateInstance)!.SetValue(tab, CreateToastService().Proxy);
+        SetField(tab, type, "_registrationFocusTrap", DispatchProxy.Create<IJSObjectReference, NoopJsObjectReferenceProxy>());
         tab.SetParametersForTest();
         return tab;
     }
@@ -434,6 +555,28 @@ public sealed class TournamentParticipantsAdminRosterTests
         }
     ];
 
+    private static AdminTournamentRegistrationDTO CreateOtherTeamRegistration()
+    {
+        var otherTeamId = Guid.NewGuid();
+        return new AdminTournamentRegistrationDTO
+        {
+            Id = Guid.NewGuid(),
+            TournamentId = TournamentId,
+            Kind = TournamentRegistrationKind.Team,
+            Status = TournamentRegistrationStatus.Active,
+            Team = new TeamParticipantDTO { Id = otherTeamId, Name = $"Other {otherTeamId:N}", CaptainUserId = Guid.NewGuid() },
+            RosterMembers = []
+        };
+    }
+
+    private static RecordingTournamentServiceProxy CreateTournamentService()
+    {
+        var proxy = DispatchProxy.Create<ITournamentService, RecordingTournamentServiceProxy>();
+        var recording = (RecordingTournamentServiceProxy)(object)proxy;
+        recording.Proxy = proxy;
+        return recording;
+    }
+
     private static RecordingUserClientProxy CreateUserClient()
     {
         var proxy = DispatchProxy.Create<IUserClient, RecordingUserClientProxy>();
@@ -450,23 +593,6 @@ public sealed class TournamentParticipantsAdminRosterTests
         return recording;
     }
 
-    private static RecordingTournamentServiceProxy CreateTournamentService()
-    {
-        var proxy = DispatchProxy.Create<ITournamentService, RecordingTournamentServiceProxy>();
-        var recording = (RecordingTournamentServiceProxy)(object)proxy;
-        recording.Proxy = proxy;
-        return recording;
-    }
-
-    private static T GetField<T>(object instance, string name) =>
-        (T)typeof(TournamentParticipantsTab).GetField(name, PrivateInstance)!.GetValue(instance)!;
-
-    private static void SetPrivateField(object instance, string name, object? value) =>
-        typeof(TournamentParticipantsTab).GetField(name, PrivateInstance)!.SetValue(instance, value);
-
-    private static void SetPrivateProperty(object instance, string name, object value) =>
-        typeof(TournamentParticipantsTab).GetProperty(name, PrivateInstance)!.SetValue(instance, value);
-
     private sealed class TestableTournamentParticipantsTab : TournamentParticipantsTab
     {
         private readonly TestRenderer _renderer = new();
@@ -482,59 +608,27 @@ public sealed class TournamentParticipantsAdminRosterTests
 
         public (int Total, int Interactive) CountParticipantCards()
         {
-            var builder = new RenderTreeBuilder();
-            typeof(TournamentParticipantsTab)
-                .GetMethod("BuildRenderTree", PrivateInstance)!
-                .Invoke(this, [builder]);
-            var frames = builder.GetFrames();
+            var frames = RenderFrames(this);
             var total = 0;
             var interactive = 0;
-            for(var i = 0; i < frames.Count; i++)
+            for(var i = 0; i < frames.Length; i++)
             {
-                var frame = frames.Array[i];
+                var frame = frames[i];
                 if(frame.FrameType != RenderTreeFrameType.Component ||
-                   frame.ComponentType != typeof(Mercurius.LAN.Web.Components.Shared.ParticipantCardComponent))
+                   frame.ComponentType != typeof(ParticipantCardComponent))
                     continue;
 
                 total++;
                 for(var j = i + 1; j < i + frame.ComponentSubtreeLength; j++)
                 {
-                    if(frames.Array[j].FrameType == RenderTreeFrameType.Attribute &&
-                       frames.Array[j].AttributeName == "OnParticipantSelected" &&
-                       frames.Array[j].AttributeValue is EventCallback<Mercurius.LAN.Web.Components.Shared.ParticipantViewModel> { HasDelegate: true })
+                    if(frames[j].FrameType == RenderTreeFrameType.Attribute &&
+                       frames[j].AttributeName == "OnParticipantSelected" &&
+                       frames[j].AttributeValue is EventCallback<ParticipantViewModel> { HasDelegate: true })
                         interactive++;
                 }
             }
 
             return (total, interactive);
-        }
-
-        public Task OpenPlayerFromCardAsync()
-        {
-            var participants = (List<Mercurius.LAN.Web.Components.Shared.ParticipantViewModel>)typeof(TournamentParticipantsTab)
-                .GetField("_participants", PrivateInstance)!.GetValue(this)!;
-            return (Task)typeof(TournamentParticipantsTab)
-                .GetMethod("OpenAdminPlayerFromCardAsync", PrivateInstance)!
-                .Invoke(this, [participants.Single()])!;
-        }
-
-        public Task ReloadAdminRegistrationsAsync() =>
-            (Task)typeof(TournamentParticipantsTab)
-                .GetMethod("LoadAdminRegistrationsAsync", PrivateInstance)!
-                .Invoke(this, [TournamentId, (long)typeof(TournamentParticipantsTab).GetField("_requestGeneration", PrivateInstance)!.GetValue(this)!, CancellationToken.None])!;
-
-        public Task OpenPlayerFromRosterAsync(string username) =>
-            (Task)typeof(TournamentParticipantsTab)
-                .GetMethod("OpenAdminPlayerFromRosterAsync", PrivateInstance)!
-                .Invoke(this, [username])!;
-
-        public void OpenRosterDialogFor(Guid teamId)
-        {
-            var participants = (List<Mercurius.LAN.Web.Components.Shared.ParticipantViewModel>)typeof(TournamentParticipantsTab)
-                .GetField("_participants", PrivateInstance)!.GetValue(this)!;
-            typeof(TournamentParticipantsTab)
-                .GetMethod("OpenAdminRosterDialog", PrivateInstance)!
-                .Invoke(this, [participants.Single(participant => participant.Team?.Id == teamId)]);
         }
     }
 
@@ -545,6 +639,10 @@ public sealed class TournamentParticipantsAdminRosterTests
                 .AddSingleton<IJSRuntime, NoopJsRuntime>()
                 .AddSingleton<IConfiguration>(new ConfigurationBuilder().Build())
                 .AddSingleton<ILocalizationService>(TestLocalizationService.Instance)
+                // Child components rendered by the tab (the shared admin details) need these.
+                .AddSingleton(CreateTournamentService().Proxy)
+                .AddSingleton(CreateUserClient().Proxy)
+                .AddSingleton(CreateToastService().Proxy)
                 .BuildServiceProvider(), NullLoggerFactory.Instance)
         {
         }
@@ -597,7 +695,11 @@ public sealed class TournamentParticipantsAdminRosterTests
     {
         public ITournamentService Proxy { get; set; } = null!;
         public bool FailAdminRegistrations { get; set; }
-        public int AdminRegistrationRequestCount { get; private set; }
+
+        /// <summary>Admin registration pages by page number; page 1 defaults to the test team.</summary>
+        public Dictionary<int, List<AdminTournamentRegistrationDTO>> Pages { get; } = new() { [1] = CreateAdminRegistrations() };
+
+        public List<(int? Page, int? PageSize)> AdminRegistrationRequests { get; } = [];
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
@@ -607,17 +709,18 @@ public sealed class TournamentParticipantsAdminRosterTests
                     Task.FromResult(new CurrentUserTournamentRegistrationStateDTO { TournamentId = TournamentId }),
                 nameof(ITournamentService.CheckIndividualTournamentRegistrationEligibilityAsync) =>
                     Task.FromResult(new EligibilityResponseDTO { Eligible = true }),
-                nameof(ITournamentService.GetAdminTournamentRegistrationsAsync) => GetAdminRegistrations(),
+                nameof(ITournamentService.GetAdminTournamentRegistrationsAsync) => GetAdminRegistrations((int?)args![1], (int?)args[2]),
                 _ => throw new NotSupportedException($"Unexpected tournament service call: {targetMethod?.Name}")
             };
         }
 
-        private Task<List<AdminTournamentRegistrationDTO>> GetAdminRegistrations()
+        private Task<List<AdminTournamentRegistrationDTO>> GetAdminRegistrations(int? page, int? pageSize)
         {
-            AdminRegistrationRequestCount++;
-            return FailAdminRegistrations
-                ? Task.FromException<List<AdminTournamentRegistrationDTO>>(new InvalidOperationException("admin load failed"))
-                : Task.FromResult(CreateAdminRegistrations());
+            AdminRegistrationRequests.Add((page, pageSize));
+            if(FailAdminRegistrations)
+                return Task.FromException<List<AdminTournamentRegistrationDTO>>(new InvalidOperationException("admin load failed"));
+
+            return Task.FromResult(Pages.TryGetValue(page ?? 1, out var registrations) ? registrations : []);
         }
     }
 

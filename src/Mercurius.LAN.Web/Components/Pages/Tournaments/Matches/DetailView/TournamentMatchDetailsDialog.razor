@@ -3,6 +3,7 @@
 @using Mercurius.LAN.Web.Extensions
 @using Mercurius.LAN.Web.Models.Matches
 @using Microsoft.AspNetCore.Components.Authorization
+@using Mercurius.LAN.Web.Components.Pages.Tournaments
 
 @rendermode InteractiveServer
 
@@ -15,7 +16,13 @@
                 <span class="section-eyebrow">@Localization["Feature.match.details"]</span>
                 <h2 id="match-dialog-title" class="match-header">
                     <span class="match-header-name">
-                        @if(HeaderParticipant1?.Team is { } team1)
+                        @if(_isAdmin && HeaderParticipant1 is { Team: { } adminTeam1 } adminParticipant1)
+                        {
+                            <button type="button" class="match-header-team-button" aria-haspopup="dialog" @onclick="() => OpenAdminTeamAsync(adminParticipant1)">
+                                <TeamIdentityDisplay Name="@adminTeam1.Name" LogoUrl="@adminTeam1.LogoUrl" Variant="inline" Size="small" />
+                            </button>
+                        }
+                        else if(HeaderParticipant1?.Team is { } team1)
                         {
                             <TeamIdentityDisplay Name="@team1.Name" LogoUrl="@team1.LogoUrl" Href="@BuildTeamProfileHref(team1.Name)" Variant="inline" Size="small" />
                         }
@@ -27,7 +34,13 @@
                     </span>
                     <span class="match-header-vs">@Localization["Feature.match.vs"]</span>
                     <span class="match-header-name">
-                        @if(HeaderParticipant2?.Team is { } team2)
+                        @if(_isAdmin && HeaderParticipant2 is { Team: { } adminTeam2 } adminParticipant2)
+                        {
+                            <button type="button" class="match-header-team-button" aria-haspopup="dialog" @onclick="() => OpenAdminTeamAsync(adminParticipant2)">
+                                <TeamIdentityDisplay Name="@adminTeam2.Name" LogoUrl="@adminTeam2.LogoUrl" Variant="inline" Size="small" />
+                            </button>
+                        }
+                        else if(HeaderParticipant2?.Team is { } team2)
                         {
                             <TeamIdentityDisplay Name="@team2.Name" LogoUrl="@team2.LogoUrl" Href="@BuildTeamProfileHref(team2.Name)" Variant="inline" Size="small" />
                         }
@@ -97,7 +110,7 @@
                             }
                         </div>
                     }
-                    <ParticipantComponent Participant="GetParticipantById(Participant1Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant1IsBYE)" CanViewUserDetails="@CanViewParticipant1Details" OnUserSelected="DisplayUserPopup" />
+                    <ParticipantComponent Participant="GetParticipantById(Participant1Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant1IsBYE)" CanViewUserDetails="@(_isAdmin || CanViewParticipant1Details)" CanSelectAllMembers="_isAdmin" OnUserSelected="UserSelectedCallback" OnTeamSelected="TeamSelectedCallback" />
                 </section>
                 <section class="@GetCardClass(Participant2Id)">
                     @if(IsWinner(Participant2Id) || (WinnerId != null && Participant2Id != null))
@@ -113,7 +126,7 @@
                             }
                         </div>
                     }
-                    <ParticipantComponent Participant="GetParticipantById(Participant2Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant2IsBYE)" CanViewUserDetails="@CanViewParticipant2Details" OnUserSelected="DisplayUserPopup" />
+                    <ParticipantComponent Participant="GetParticipantById(Participant2Id)" EmptyLabel="@GetEmptyParticipantLabel(Match.Participant2IsBYE)" CanViewUserDetails="@(_isAdmin || CanViewParticipant2Details)" CanSelectAllMembers="_isAdmin" OnUserSelected="UserSelectedCallback" OnTeamSelected="TeamSelectedCallback" />
                 </section>
             </div>
 
@@ -297,6 +310,10 @@
         </div>
     </div>
     <UserInfoDialog User="_selectedUser" OnClose="HideUserInfoPopup" />
+    <TournamentAdminParticipantDetails @ref="_adminDetails"
+                                       TournamentId="Tournament.Id"
+                                       Enabled="_isAdmin"
+                                       Participants="MatchParticipants" />
 </CascadingValue>
 
 @code {

@@ -910,6 +910,7 @@
   "Feature.tournaments.adminTeamMembersEmpty": "Geen teamleden ingeschreven.",
   "Feature.tournaments.closeAdminTeamMembers": "Teamleden sluiten",
   "Feature.tournaments.backToTeamMembers": "Terug naar teamleden",
+  "Feature.tournaments.teamMembersUnavailable": "Teamleden zijn nu niet beschikbaar. Probeer het opnieuw.",
   "Feature.tournaments.playerDetailsUnavailable": "Spelerdetails zijn nu niet beschikbaar. Probeer het opnieuw.",
   "Feature.tournaments.confirmationConfirmed": "Bevestigd",
   "Feature.tournaments.confirmationStatus": "{0}",
