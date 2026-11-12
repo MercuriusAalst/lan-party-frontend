@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change add-global-menu-search-public-profiles. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Public user profile exposes privacy-scoped fields
 
 The system SHALL provide `/users/{username:string}` as an admin-only user-detail page. The page
@@ -55,7 +57,7 @@ user by username only.
 - **AND** no private lookup error details MUST be exposed
 
 ### Requirement: Public team profile exposes team name, members, captain label, and tournaments
-The system SHALL provide a public `/teams/{teamname:string}` route that renders a privacy-safe team profile response with team name, members, captain identity, and participating tournaments while excluding invites. Public rosters MUST render member usernames as non-navigable text.
+The system SHALL provide a public `/teams/{teamname:string}` route that renders a privacy-safe team profile response with team name, members, captain identity, and participating tournaments while excluding invites. Public rosters MUST render member usernames as non-navigable text for visitors without the administrator role; administrators MAY follow a member to the admin-only `/users/{username}` page.
 
 #### Scenario: Team page is public and excludes invites
 - **WHEN** an anonymous visitor opens `/teams/{teamname}` for a known team
@@ -76,9 +78,15 @@ The system SHALL provide a public `/teams/{teamname:string}` route that renders 
 - **AND** each listed tournament links to its game detail page
 
 #### Scenario: Team member click does not open a public user profile
-- **WHEN** a visitor selects a team member on a public team page
+- **WHEN** an anonymous visitor or authenticated non-admin selects a team member on a public team page
 - **THEN** the member is rendered as username text without a `/users/{username}` link
 - **AND** the captain may be identified inline
+
+#### Scenario: Administrator opens a member profile from the team page
+- **WHEN** an administrator views a known team on `/teams/{teamname}`, for example after selecting it in the global search
+- **THEN** each member with a returned username links to `/users/{username}` with the username escaped
+- **AND** the link has an accessible name that identifies the member
+- **AND** a member without a returned username is rendered as text without a link
 
 #### Scenario: Team profile uses focused branded layout
 - **WHEN** a visitor opens `/teams/{teamname}` for a known team
@@ -106,10 +114,10 @@ The tournament participant list SHALL render user identities by username only an
 - **AND** no separate captain row or duplicate captain entry is rendered
 
 ### Requirement: Participant surfaces link only returned public identifiers
-Tournament participant surfaces SHALL display user identities by username only and MUST NOT link them to `/users/{username}`; team name links MAY continue to use a returned team name and MUST NOT be discovered through an extra endpoint.
+Tournament participant surfaces SHALL display user identities by username only and MUST NOT link them to `/users/{username}` for visitors without the administrator role; team name links MAY continue to use a returned team name and MUST NOT be discovered through an extra endpoint. Administrator-only participant surfaces MAY link a returned username to the admin-only `/users/{username}` page.
 
 #### Scenario: Public username is present
-- **WHEN** a public participant surface renders an individual participant or team member with a returned username
+- **WHEN** a public participant surface renders an individual participant or team member with a returned username for a viewer without the administrator role
 - **THEN** that username is rendered as text without a `/users/{username}` link
 - **AND** the surface does not call a profile, current-user, or admin endpoint to discover a missing username
 
@@ -127,6 +135,11 @@ Tournament participant surfaces SHALL display user identities by username only a
 - **WHEN** a public participant surface renders a team participant without a returned team route name
 - **THEN** the surface renders the available public team display label without a team profile link
 - **AND** the surface does not call a team profile or admin team endpoint to discover a missing route name
+
+#### Scenario: Administrator opens player details from a tournament
+- **WHEN** an administrator activates an individual participant card or a roster member with a returned username on a tournament page
+- **THEN** the player details are shown in a dialog on the same page, loaded by that username from the administrator user endpoint
+- **AND** no player details are requested for a participant without a returned username
 
 ### Requirement: Public profile services use the current public resource contracts
 Admin user-detail and public participant pages SHALL load their data through the versioned resource

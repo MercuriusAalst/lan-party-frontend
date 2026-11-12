@@ -16,4 +16,4 @@
 - [x] Review: confirm server-side admin enforcement of `GET /v1/lan/users/{username}` and reply with the reference.
 - [x] Run the contract tests (`dotnet test tests/Mercurius.LAN.Web.ContractTests`).
 - [x] Validate the change with `openspec validate admin-tournament-team-members --strict`.
-- [ ] Archive the specification delta after merge.
+- [x] Archive the specification delta.
