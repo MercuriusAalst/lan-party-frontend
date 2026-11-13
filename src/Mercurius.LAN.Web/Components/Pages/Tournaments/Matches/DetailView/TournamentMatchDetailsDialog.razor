@@ -300,7 +300,8 @@
     <UserInfoDialog User="_selectedUser" OnClose="HideUserInfoPopup" />
     <TournamentAdminParticipantDetails @ref="_adminDetails"
                                        TournamentId="Tournament.Id"
-                                       Enabled="_isAdmin" />
+                                       Enabled="_isAdmin"
+                                       Participants="MatchParticipants" />
 </CascadingValue>
 
 @code {

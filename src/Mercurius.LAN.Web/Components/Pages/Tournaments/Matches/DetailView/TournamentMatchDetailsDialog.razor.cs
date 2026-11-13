@@ -46,6 +46,13 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private bool _isAdmin;
     private TournamentAdminParticipantDetails? _adminDetails;
 
+    // Required even though no roster opens from here: a list parameter always counts as changed, so
+    // the shared details re-render with this dialog after an open call (see its class comment).
+    private IReadOnlyList<ParticipantViewModel> MatchParticipants =>
+        new[] { HeaderParticipant1, HeaderParticipant2 }
+            .OfType<ParticipantViewModel>()
+            .ToList();
+
     private EventCallback<PublicUserDTO> UserSelectedCallback => _isAdmin
         ? EventCallback.Factory.Create<PublicUserDTO>(this, OpenAdminPlayerAsync)
         : EventCallback.Factory.Create<PublicUserDTO>(this, DisplayUserPopup);
