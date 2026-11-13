@@ -1,4 +1,3 @@
-/* Mirrors Shared/UserInfoDialog.razor.css so both participant popups look the same. */
 .admin-roster-dialog-overlay {
     position: fixed;
     inset: 0;

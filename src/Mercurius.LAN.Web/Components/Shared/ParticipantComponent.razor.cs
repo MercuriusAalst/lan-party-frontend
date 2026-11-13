@@ -11,7 +11,6 @@ public partial class ParticipantComponent
     [Parameter] public bool CanViewUserDetails { get; set; }
     [Parameter] public EventCallback<PublicUserDTO> OnUserSelected { get; set; }
 
-    /// <summary>When true every team member can be selected, not only the captain (administrators).</summary>
     [Parameter] public bool CanSelectAllMembers { get; set; }
 
     private bool CanOpenUserInfo => OnUserSelected.HasDelegate;

@@ -3,7 +3,6 @@ using Mercurius.LAN.Web.Localization;
 
 namespace Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
 
-/// <summary>Text for a roster member's confirmation state, shared by the participants tab and the roster dialog.</summary>
 internal static class RosterConfirmationLabels
 {
     public static string Get(ILocalizationService localization, RosterMemberConfirmationStatus status) => status switch

@@ -33,8 +33,6 @@ public sealed class TournamentParticipantsAdminRosterTests
     private static readonly Guid CaptainId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
     private static readonly Guid MemberId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
-    // ---- Participants tab: which cards are interactive -------------------------------------------
-
     [Fact]
     public async Task AdministratorTeamCardsAreInteractive()
     {
@@ -89,8 +87,6 @@ public sealed class TournamentParticipantsAdminRosterTests
 
         Assert.Equal((Total: 1, Interactive: 1), tab.CountParticipantCards());
     }
-
-    // ---- Shared admin details: roster lookup ------------------------------------------------------
 
     [Fact]
     public async Task KnownRegistrationsOpenTheRosterWithoutARequest()
@@ -173,8 +169,6 @@ public sealed class TournamentParticipantsAdminRosterTests
         Assert.Null(GetValue<object>(details, "RosterParticipant"));
     }
 
-    // ---- Shared admin details: player details -----------------------------------------------------
-
     [Fact]
     public async Task PlayerDetailsComeFromTheAdminUserEndpoint()
     {
@@ -239,8 +233,6 @@ public sealed class TournamentParticipantsAdminRosterTests
         Assert.Null(GetValue<object>(details, "RosterParticipant"));
     }
 
-    // ---- Roster dialog --------------------------------------------------------------------------
-
     [Fact]
     public void DialogListsUsernamesCaptainAndStatusesWithoutPrivateFields()
     {
@@ -282,8 +274,6 @@ public sealed class TournamentParticipantsAdminRosterTests
         Assert.Equal(string.Empty, RenderText(dialog));
     }
 
-    // ---- Match participants ---------------------------------------------------------------------
-
     [Fact]
     public void ParticipantComponentKeepsTeamLinkAndCaptainOnlyByDefault()
     {
@@ -311,8 +301,6 @@ public sealed class TournamentParticipantsAdminRosterTests
         Assert.Equal(2, CountMemberButtons(attributes));
     }
 
-    // ---- Public team page -----------------------------------------------------------------------
-
     [Theory]
     [InlineData(true, new[] { "/users/captain-name", "/users/member-name" })]
     [InlineData(false, new string[0])]
@@ -339,8 +327,6 @@ public sealed class TournamentParticipantsAdminRosterTests
 
         Assert.Equal(expectedLinks, userLinks);
     }
-
-    // ---- Helpers --------------------------------------------------------------------------------
 
     private static TournamentAdminParticipantDetails CreateDetails(
         RecordingTournamentServiceProxy service,
@@ -637,7 +623,6 @@ public sealed class TournamentParticipantsAdminRosterTests
                 .AddSingleton<IJSRuntime, NoopJsRuntime>()
                 .AddSingleton<IConfiguration>(new ConfigurationBuilder().Build())
                 .AddSingleton<ILocalizationService>(TestLocalizationService.Instance)
-                // Child components rendered by the tab (the shared admin details) need these.
                 .AddSingleton(CreateTournamentService().Proxy)
                 .AddSingleton(CreateUserClient().Proxy)
                 .AddSingleton(CreateToastService().Proxy)
@@ -694,7 +679,6 @@ public sealed class TournamentParticipantsAdminRosterTests
         public ITournamentService Proxy { get; set; } = null!;
         public bool FailAdminRegistrations { get; set; }
 
-        /// <summary>Admin registration pages by page number; page 1 defaults to the test team.</summary>
         public Dictionary<int, List<AdminTournamentRegistrationDTO>> Pages { get; } = new() { [1] = CreateAdminRegistrations() };
 
         public List<(int? Page, int? PageSize)> AdminRegistrationRequests { get; } = [];

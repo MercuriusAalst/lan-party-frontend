@@ -8,17 +8,9 @@ using Microsoft.AspNetCore.Components;
 
 namespace Mercurius.LAN.Web.Components.Pages.Tournaments;
 
-/// <summary>
-/// Owns the admin-only team roster dialog and player details dialog plus their lookups, so every
-/// entry point (Participants section, match details) behaves the same. Only one dialog is open at a
-/// time. The host decides who is an administrator through <see cref="Enabled"/>; the backend enforces
-/// the admin role on both endpoints used here. The open methods are called from the host's event
-/// handlers, after which the host re-renders and this component re-renders with it (its list
-/// parameters always count as changed), so no explicit StateHasChanged is needed.
-/// </summary>
+// Never calls StateHasChanged: it re-renders with its host because list parameters always count as changed.
 public partial class TournamentAdminParticipantDetails
 {
-    /// <summary>Page size used when a team is not in <see cref="KnownRegistrations"/>.</summary>
     internal const int LookupPageSize = 100;
     private const int MaxLookupPages = 50;
 
@@ -28,13 +20,10 @@ public partial class TournamentAdminParticipantDetails
 
     [Parameter] public Guid TournamentId { get; set; }
 
-    /// <summary>False closes and blocks everything (non-admin, popup-only render, admin data unavailable).</summary>
     [Parameter] public bool Enabled { get; set; }
 
-    /// <summary>Teams that may be shown; a roster closes when its team is no longer in this list.</summary>
     [Parameter] public IReadOnlyList<ParticipantViewModel> Participants { get; set; } = [];
 
-    /// <summary>Admin registrations the host already loaded: the fast path before any lookup.</summary>
     [Parameter] public IReadOnlyList<AdminTournamentRegistrationDTO>? KnownRegistrations { get; set; }
 
     private Guid? _teamId;
@@ -68,7 +57,6 @@ public partial class TournamentAdminParticipantDetails
         _tournamentId = TournamentId;
     }
 
-    /// <summary>Opens the roster of a team participant; looks the team up page by page only when it is not already known.</summary>
     public async Task OpenTeamAsync(ParticipantViewModel participant)
     {
         if(!Enabled || participant.Team is not { } team)
@@ -112,16 +100,10 @@ public partial class TournamentAdminParticipantDetails
         _teamId = team.Id;
     }
 
-    /// <summary>Opens player details without a way back to a roster (e.g. an individual participant).</summary>
     public Task OpenPlayerAsync(string username) => OpenPlayerDialogAsync(username, returnTeamId: null);
 
     private Task OpenPlayerFromRosterAsync(string username) => OpenPlayerDialogAsync(username, _teamId);
 
-    /// <summary>
-    /// Loads a player from the admin user endpoint (the data behind /users/{username}) and shows it in
-    /// <see cref="UserInfoDialog"/>. The roster closes; <paramref name="returnTeamId"/> lets the back
-    /// button reopen it. On failure nothing closes.
-    /// </summary>
     private async Task OpenPlayerDialogAsync(string username, Guid? returnTeamId)
     {
         if(!Enabled || string.IsNullOrWhiteSpace(username))

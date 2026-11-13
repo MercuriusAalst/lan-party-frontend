@@ -2212,18 +2212,11 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
         _ => Localization.Get("Feature.tournaments.registrationStatus", GetRegistrationStatusLabel(status))
     };
 
-
-
     private TournamentAdminParticipantDetails? _adminDetails;
 
-    // Team rosters and player details need the admin registrations of this section (fast path),
-    // so they are offered only while those loaded without error.
     private bool AdminDetailsEnabled => _isAdmin && !PopupOnly && !_isLoadingAdmin && _adminError is null;
 
-    /// <summary>
-    /// One call site per card keeps the card instance alive when it switches between interactive and
-    /// plain (e.g. during an admin reload). A default callback renders a plain, non-interactive card.
-    /// </summary>
+    // A default callback renders a plain card; one call site keeps the card instance when it toggles.
     private EventCallback<ParticipantViewModel> GetAdminCardCallback(ParticipantViewModel participant)
     {
         if(!AdminDetailsEnabled)

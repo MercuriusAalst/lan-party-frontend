@@ -14,7 +14,7 @@ public partial class PublicTeamProfile
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    // The user-detail page /users/{username} is admin-only, so only administrators get member links.
+    // /users/{username} is admin-only.
     private bool _isAdmin;
 
     private PublicTeamProfileDTO? _team;

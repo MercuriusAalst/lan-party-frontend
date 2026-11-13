@@ -40,14 +40,10 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    // Administrators open player details for every listed member through the shared admin dialog.
-    // Team names keep linking to the team page for everyone (members are already listed here, so
-    // no roster popup), and non-admins keep only the authorized opponent-captain profile.
     private bool _isAdmin;
     private TournamentAdminParticipantDetails? _adminDetails;
 
-    // Required even though no roster opens from here: a list parameter always counts as changed, so
-    // the shared details re-render with this dialog after an open call (see its class comment).
+    // Not for rosters: a list parameter makes the shared details re-render after an open call.
     private IReadOnlyList<ParticipantViewModel> MatchParticipants =>
         new[] { HeaderParticipant1, HeaderParticipant2 }
             .OfType<ParticipantViewModel>()

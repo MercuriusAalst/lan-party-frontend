@@ -9,7 +9,6 @@ public partial class UserInfoDialog
     [Parameter] public PublicUserDTO? User { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    /// <summary>Optional: shows a back button with <see cref="BackLabel"/> (e.g. back to a team roster).</summary>
     [Parameter] public EventCallback OnBack { get; set; }
     [Parameter] public string? BackLabel { get; set; }
 

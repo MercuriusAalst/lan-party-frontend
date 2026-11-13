@@ -5,17 +5,12 @@ using Microsoft.AspNetCore.Components.Web;
 
 namespace Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
 
-/// <summary>
-/// Admin-only popup listing a team participant's registered roster. Modelled on <see cref="UserInfoDialog"/>.
-/// Renders nothing while <see cref="Participant"/> or <see cref="Members"/> is null.
-/// </summary>
 public partial class TournamentAdminRosterDialog
 {
     [Parameter] public ParticipantViewModel? Participant { get; set; }
     [Parameter] public IReadOnlyList<TournamentRosterMemberDTO>? Members { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    /// <summary>Raised with the member's username when an administrator wants to see that player's details.</summary>
     [Parameter] public EventCallback<string> OnMemberSelected { get; set; }
 
     private ElementReference _dialogElement;

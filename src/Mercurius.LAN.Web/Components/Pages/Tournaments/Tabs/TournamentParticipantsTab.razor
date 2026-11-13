@@ -29,7 +29,6 @@
                 <div class="participants-overview-grid">
                     @foreach(var participant in _participants)
                     {
-                        @* Admins only: a card opens the team roster or the player details, like other participant cards in the app. *@
                         <ParticipantCardComponent Participant="participant" OnParticipantSelected="@GetAdminCardCallback(participant)" />
                     }
                 </div>
