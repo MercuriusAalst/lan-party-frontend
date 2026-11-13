@@ -24,12 +24,12 @@ visitors do not need this detail, and showing every roster inline would clutter 
   a "back to team members" control reopens that team's roster. Only one dialog is open at a time.
 - One component, `TournamentAdminParticipantDetails`, owns both dialogs and their lookups. It is
   used by the Participants section and by match details (`TournamentMatchDetailsDialog`), so both
-  entry points behave the same. In match details, administrators open a team's roster from its name
-  and player details from a member or individual participant. Other viewers keep today's match
-  details: team names link to `/teams/{teamName}` and only the authorized opponent captain opens
-  the opponent profile.
+  entry points behave the same. Match details already list each team's members, so there
+  administrators open player details directly from any listed member or individual participant;
+  team names keep linking to `/teams/{teamName}` and no roster popup is offered. Other viewers keep
+  today's match details: only the authorized opponent captain opens the opponent profile.
 - The roster comes from the admin registration list the Participants section already loads. When
-  the selected team is not on that page (or the caller loaded nothing, as in match details), only
+  the selected team is not on that page, only
   that team is looked up on demand by paging the existing admin registrations endpoint. Nothing is
   fetched per participant up front, and no new endpoint is added.
 - Visitors, signed-in players and team captains who are not administrators see the participants

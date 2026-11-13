@@ -14,6 +14,7 @@
 - [x] Review: drop `ProfileRoutes`; build the two escaped routes at their call sites like the rest of the app.
 - [x] Review: share the focus-trap lifecycle of `UserInfoDialog` and `TournamentAdminRosterDialog` through a small `ModalFocusTrap` helper.
 - [x] Review: confirm server-side admin enforcement of `GET /v1/lan/users/{username}` and reply with the reference.
+- [x] Review: in match details keep team names linking to `/teams/{teamName}` and drop the admin roster popup there; admins open player details directly from every listed member.
 - [x] Run the contract tests (`dotnet test tests/Mercurius.LAN.Web.ContractTests`).
 - [x] Validate the change with `openspec validate admin-tournament-team-members --strict`.
 - [x] Archive the specification delta.

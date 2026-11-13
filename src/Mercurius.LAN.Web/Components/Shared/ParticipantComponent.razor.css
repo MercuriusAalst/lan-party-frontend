@@ -59,31 +59,10 @@
     text-align: left;
 }
 
-.participant-profile-button,
-.participant-team-button {
+.participant-profile-button {
     padding: 0;
     border: 0;
     background: transparent;
-}
-
-.participant-team-button {
-    appearance: none;
-    color: inherit;
-    cursor: pointer;
-    font: inherit;
-    /* Buttons do not inherit these by default; match the linked team name in the heading. */
-    letter-spacing: inherit;
-    text-transform: inherit;
-}
-
-.participant-team-button:hover {
-    text-decoration: underline;
-    text-underline-offset: 0.18em;
-}
-
-.participant-team-button:focus-visible {
-    outline: 3px solid rgba(34, 197, 94, 0.22);
-    outline-offset: 3px;
 }
 
 .participant-profile-link:hover {

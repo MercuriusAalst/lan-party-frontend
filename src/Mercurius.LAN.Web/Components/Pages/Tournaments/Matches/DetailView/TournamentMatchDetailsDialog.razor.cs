@@ -40,26 +40,15 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    // Administrators open team rosters and player details through the shared admin dialogs;
-    // everyone else keeps team-page links and the authorized opponent-captain profile.
+    // Administrators open player details for every listed member through the shared admin dialog.
+    // Team names keep linking to the team page for everyone (members are already listed here, so
+    // no roster popup), and non-admins keep only the authorized opponent-captain profile.
     private bool _isAdmin;
     private TournamentAdminParticipantDetails? _adminDetails;
-
-    private IReadOnlyList<ParticipantViewModel> MatchParticipants =>
-        new[] { HeaderParticipant1, HeaderParticipant2 }
-            .OfType<ParticipantViewModel>()
-            .ToList();
-
-    private EventCallback<ParticipantViewModel> TeamSelectedCallback => _isAdmin
-        ? EventCallback.Factory.Create<ParticipantViewModel>(this, OpenAdminTeamAsync)
-        : default;
 
     private EventCallback<PublicUserDTO> UserSelectedCallback => _isAdmin
         ? EventCallback.Factory.Create<PublicUserDTO>(this, OpenAdminPlayerAsync)
         : EventCallback.Factory.Create<PublicUserDTO>(this, DisplayUserPopup);
-
-    private Task OpenAdminTeamAsync(ParticipantViewModel participant) =>
-        _adminDetails?.OpenTeamAsync(participant) ?? Task.CompletedTask;
 
     private Task OpenAdminPlayerAsync(PublicUserDTO user) =>
         _adminDetails?.OpenPlayerAsync(user.Username ?? string.Empty) ?? Task.CompletedTask;

@@ -11,9 +11,6 @@ public partial class ParticipantComponent
     [Parameter] public bool CanViewUserDetails { get; set; }
     [Parameter] public EventCallback<PublicUserDTO> OnUserSelected { get; set; }
 
-    /// <summary>Optional: the team name becomes a button raising this instead of a link to the team page.</summary>
-    [Parameter] public EventCallback<ParticipantViewModel> OnTeamSelected { get; set; }
-
     /// <summary>When true every team member can be selected, not only the captain (administrators).</summary>
     [Parameter] public bool CanSelectAllMembers { get; set; }
 

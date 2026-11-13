@@ -69,29 +69,6 @@
     color: inherit;
 }
 
-/* Administrators: the team name opens the roster popup instead of linking to the team page. */
-.match-header-team-button {
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    letter-spacing: inherit;
-    text-transform: inherit;
-    cursor: pointer;
-}
-
-.match-header-team-button:hover {
-    text-decoration: underline;
-    text-underline-offset: 0.18em;
-}
-
-.match-header-team-button:focus-visible {
-    border-radius: 4px;
-    outline: 3px solid rgba(57, 201, 101, 0.4);
-    outline-offset: 2px;
-}
-
 .match-header-name ::deep .team-identity-name {
     font-family: "Saira", system-ui, sans-serif;
     font-size: inherit;

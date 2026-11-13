@@ -298,18 +298,16 @@ public sealed class TournamentParticipantsAdminRosterTests
     }
 
     [Fact]
-    public void AdministratorMatchParticipantOpensTheRosterAndEveryMember()
+    public void AdministratorMatchParticipantKeepsTeamLinkAndOpensEveryMember()
     {
         var component = CreateParticipantComponent();
         component.CanViewUserDetails = true;
         component.CanSelectAllMembers = true;
         component.OnUserSelected = EventCallback.Factory.Create<PublicUserDTO>(new object(), (PublicUserDTO _) => { });
-        component.OnTeamSelected = EventCallback.Factory.Create<ParticipantViewModel>(new object(), (ParticipantViewModel _) => { });
 
         var attributes = RenderAttributes(component);
 
-        Assert.DoesNotContain(attributes, attribute => attribute.AttributeName == "Href" && attribute.Value?.StartsWith("/teams/", StringComparison.Ordinal) == true);
-        Assert.Contains(("class", "participant-team-button"), attributes);
+        Assert.Contains(("Href", "/teams/Team%20Rocket"), attributes);
         Assert.Equal(2, CountMemberButtons(attributes));
     }
 

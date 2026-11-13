@@ -570,8 +570,9 @@ For single and double elimination tournaments, administrators MUST NOT remove in
 ### Requirement: Administrators can open team rosters from tournament participants
 
 On a tournament detail page, an administrator SHALL be able to open the roster of an active team
-registration in a dialog, from the team's card under Participants and from match participants,
-using the same dialogs for both. Rosters MUST NOT be requested per participant up front.
+registration in a dialog from the team's card under Participants, and open player details from
+there and from match participants using the same player details dialog. Rosters MUST NOT be
+requested per participant up front.
 
 #### Scenario: Administrator opens a team roster
 
@@ -623,12 +624,14 @@ using the same dialogs for both. Rosters MUST NOT be requested per participant u
 - **AND** if the team has no active registration, the roster dialog MUST NOT open and an error MUST
   be shown
 
-#### Scenario: Administrator opens rosters and player details from a match
+#### Scenario: Administrator opens player details from a match
 
-- **WHEN** an administrator views match details and activates a team name of a team match
-- **THEN** the same roster dialog MUST open for that team
-- **AND** activating a roster member or an individual match participant MUST open the same player
-  details dialog loaded from the administrator user endpoint
+- **WHEN** an administrator views match details and activates a listed team member or an
+  individual match participant
+- **THEN** the same player details dialog MUST open, loaded from the administrator user endpoint
+- **AND** every listed team member MUST be activatable, not only the captain
+- **AND** team names MUST keep linking to `/teams/{teamName}`; no roster dialog MAY be opened from
+  match details, because the members are already listed there
 - **AND** for viewers without the administrator role, match details MUST keep their existing
   behavior: team names link to `/teams/{teamName}` and only the authorized opponent captain opens
   the opponent profile

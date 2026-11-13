@@ -57,17 +57,7 @@ else if(Participant?.Team is Models.Participants.Team team)
                     @Localization["shared.team"]
                 </span>
                 <h4 class="participant-name">
-                    @if(OnTeamSelected.HasDelegate)
-                    {
-                        <button type="button"
-                                class="participant-team-button"
-                                aria-haspopup="dialog"
-                                aria-label='@Localization.Get("shared.viewDetails", Participant.DisplayName)'
-                                @onclick="() => OnTeamSelected.InvokeAsync(Participant)">
-                            <TeamIdentityDisplay Name="@Participant.DisplayName" LogoUrl="@team.LogoUrl" Variant="inline" Size="small" />
-                        </button>
-                    }
-                    else if(HasTeamName(team))
+                    @if(HasTeamName(team))
                     {
                         <TeamIdentityDisplay Name="@team.Name" LogoUrl="@team.LogoUrl" Href="@GetTeamProfileHref(team)" Variant="inline" Size="small" />
                     }
