@@ -14,7 +14,6 @@ public partial class PublicTeamProfile
 
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    // /users/{username} is admin-only.
     private bool _isAdmin;
 
     private PublicTeamProfileDTO? _team;

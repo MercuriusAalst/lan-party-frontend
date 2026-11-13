@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Components;
 
 namespace Mercurius.LAN.Web.Components.Pages.Tournaments;
 
-// Never calls StateHasChanged: it re-renders with its host because list parameters always count as changed.
 public partial class TournamentAdminParticipantDetails
 {
     internal const int LookupPageSize = 100;
@@ -165,7 +164,6 @@ public partial class TournamentAdminParticipantDetails
 
     private void CloseRoster()
     {
-        // A lookup still in flight must not open its dialog after the admin closed the roster.
         CancelLookup();
         _teamId = null;
     }

@@ -2216,7 +2216,6 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
 
     private bool AdminDetailsEnabled => _isAdmin && !PopupOnly && !_isLoadingAdmin && _adminError is null;
 
-    // A default callback renders a plain card; one call site keeps the card instance when it toggles.
     private EventCallback<ParticipantViewModel> GetAdminCardCallback(ParticipantViewModel participant)
     {
         if(!AdminDetailsEnabled)

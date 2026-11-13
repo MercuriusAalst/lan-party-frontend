@@ -165,7 +165,6 @@ public sealed class TournamentParticipantsAdminRosterTests
         details.Enabled = true;
         InvokeOnParametersSet(details);
 
-        // A reload must not bring a closed roster back.
         Assert.Null(GetValue<object>(details, "RosterParticipant"));
     }
 

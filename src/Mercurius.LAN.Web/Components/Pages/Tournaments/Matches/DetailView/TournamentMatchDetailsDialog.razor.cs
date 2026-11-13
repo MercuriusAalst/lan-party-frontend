@@ -43,7 +43,6 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     private bool _isAdmin;
     private TournamentAdminParticipantDetails? _adminDetails;
 
-    // Not for rosters: a list parameter makes the shared details re-render after an open call.
     private IReadOnlyList<ParticipantViewModel> MatchParticipants =>
         new[] { HeaderParticipant1, HeaderParticipant2 }
             .OfType<ParticipantViewModel>()
