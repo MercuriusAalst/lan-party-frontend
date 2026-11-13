@@ -1,0 +1,72 @@
+@using Mercurius.LAN.Web.Components.Shared
+@using Mercurius.LAN.Web.DTOs.Registrations
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+@if(Participant is { } participant && Members is { } members)
+{
+    <div class="admin-roster-dialog-overlay"
+         role="presentation"
+         @onclick="CloseAsync"
+         @onkeydown="HandleKeyDown">
+        <div class="admin-roster-dialog"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="@DialogTitleId"
+             tabindex="-1"
+             @ref="_dialogElement"
+             @onclick:stopPropagation>
+            <button type="button"
+                    class="admin-roster-dialog-close"
+                    aria-label='@Localization["Feature.tournaments.closeAdminTeamMembers"]'
+                    autofocus
+                    @onclick="CloseAsync">
+                <span class="bi bi-x-lg" aria-hidden="true"></span>
+            </button>
+
+            <header class="admin-roster-dialog-header">
+                <span class="admin-roster-dialog-eyebrow">@Localization["Feature.tournaments.adminTeamMembers"]</span>
+                <h2 id="@DialogTitleId">
+                    <TeamIdentityDisplay Name="@participant.DisplayName" LogoUrl="@participant.Team?.LogoUrl" Href="@GetTeamHref(participant)" Variant="inline" Size="medium" />
+                </h2>
+            </header>
+
+            @if(members.Count == 0)
+            {
+                <p class="admin-roster-dialog-empty">@Localization["Feature.tournaments.adminTeamMembersEmpty"]</p>
+            }
+            else
+            {
+                <ul class="admin-roster-dialog-list">
+                    @foreach(var member in members)
+                    {
+                        var label = GetUserLabel(member);
+                        <li class="admin-roster-dialog-member">
+                            <UserAvatar Name="@label" PictureUrl="@member.User?.ProfilePictureUrl" Size="compact" Decorative="true" />
+                            <span class="admin-roster-dialog-name">
+                                @if(!string.IsNullOrWhiteSpace(member.User?.Username))
+                                {
+                                    var username = member.User.Username.Trim();
+                                    <button type="button"
+                                            class="admin-roster-dialog-profile-link"
+                                            aria-haspopup="dialog"
+                                            aria-label='@Localization.Get("shared.viewDetails", label)'
+                                            @onclick="() => OnMemberSelected.InvokeAsync(username)">@label</button>
+                                }
+                                else
+                                {
+                                    @label
+                                }
+                                @if(member.IsCaptain)
+                                {
+                                    <span class="admin-roster-dialog-captain">@Localization["shared.captain"]</span>
+                                }
+                            </span>
+                            <span class="admin-roster-dialog-status">@GetConfirmationLabel(member.ConfirmationStatus)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+}

@@ -8,6 +8,7 @@ using Mercurius.LAN.Web.Models.Matches;
 using Mercurius.LAN.Web.Models.Tournaments;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Refit;
 
 namespace Mercurius.LAN.Web.Components.Pages.Tournaments.Matches.DetailView;
@@ -36,6 +37,23 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
     [Inject] private ITournamentService TournamentService { get; set; } = null!;
     [Inject] private IToastService ToastService { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private bool _isAdmin;
+    private TournamentAdminParticipantDetails? _adminDetails;
+
+    private IReadOnlyList<ParticipantViewModel> MatchParticipants =>
+        new[] { HeaderParticipant1, HeaderParticipant2 }
+            .OfType<ParticipantViewModel>()
+            .ToList();
+
+    private EventCallback<PublicUserDTO> UserSelectedCallback => _isAdmin
+        ? EventCallback.Factory.Create<PublicUserDTO>(this, OpenAdminPlayerAsync)
+        : EventCallback.Factory.Create<PublicUserDTO>(this, DisplayUserPopup);
+
+    private Task OpenAdminPlayerAsync(PublicUserDTO user) =>
+        _adminDetails?.OpenPlayerAsync(user.Username ?? string.Empty) ?? Task.CompletedTask;
 
     private Guid? Participant1Id => Match.ParticipationMode == ParticipationMode.Team ? Match.TeamParticipant1Id : Match.UserParticipant1Id;
     private Guid? Participant2Id => Match.ParticipationMode == ParticipationMode.Team ? Match.TeamParticipant2Id : Match.UserParticipant2Id;
@@ -76,6 +94,8 @@ public partial class TournamentMatchDetailsDialog : IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
+        _isAdmin = AuthenticationStateTask is not null &&
+            (await AuthenticationStateTask).User.IsInRole("admin");
         _participantLookup = TournamentParticipantLookup.FromTournament(Tournament);
         if(_loadedMatchId == Match.Id)
         {

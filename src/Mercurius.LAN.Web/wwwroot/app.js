@@ -126,6 +126,8 @@ function addNavInfoMenuListener(elementId, dotNetHelper) {
     };
 }
 
+const modalInertOwners = new WeakMap();
+
 function activateTeamModalFocusTrap(dialog) {
     if (!dialog) {
         return { dispose: () => {} };
@@ -138,10 +140,12 @@ function activateTeamModalFocusTrap(dialog) {
     while (current && current.parentElement) {
         const parent = current.parentElement;
         for (const sibling of parent.children) {
-            if (sibling === current || sibling.hasAttribute('inert')) {
+            const owners = modalInertOwners.get(sibling);
+            if (sibling === current || (owners === undefined && sibling.hasAttribute('inert'))) {
                 continue;
             }
 
+            modalInertOwners.set(sibling, (owners ?? 0) + 1);
             sibling.setAttribute('inert', '');
             inertedElements.push(sibling);
         }
@@ -199,7 +203,15 @@ function activateTeamModalFocusTrap(dialog) {
         dispose: () => {
             dialog.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('focusin', handleFocusIn, true);
-            inertedElements.forEach(element => element.removeAttribute('inert'));
+            inertedElements.forEach(element => {
+                const owners = (modalInertOwners.get(element) ?? 1) - 1;
+                if (owners > 0) {
+                    modalInertOwners.set(element, owners);
+                } else {
+                    modalInertOwners.delete(element);
+                    element.removeAttribute('inert');
+                }
+            });
             if (previousFocus && previousFocus.isConnected && typeof previousFocus.focus === 'function') {
                 previousFocus.focus();
             }

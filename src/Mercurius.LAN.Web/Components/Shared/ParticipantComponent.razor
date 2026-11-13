@@ -77,7 +77,7 @@ else if(Participant?.Team is Models.Participants.Team team)
                     {
                         var isCaptain = member.Id == team.CaptainUserId;
 
-                        @if(CanOpenUserInfo && CanViewUserDetails && isCaptain)
+                        @if(CanOpenUserInfo && CanViewUserDetails && (isCaptain || CanSelectAllMembers))
                         {
                             <button type="button"
                                     class="participant-member-chip participant-member-link @(isCaptain ? "participant-member-chip--captain" : null)"

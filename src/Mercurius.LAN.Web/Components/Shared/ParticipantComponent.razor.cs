@@ -11,6 +11,8 @@ public partial class ParticipantComponent
     [Parameter] public bool CanViewUserDetails { get; set; }
     [Parameter] public EventCallback<PublicUserDTO> OnUserSelected { get; set; }
 
+    [Parameter] public bool CanSelectAllMembers { get; set; }
+
     private bool CanOpenUserInfo => OnUserSelected.HasDelegate;
 
     private string GetUserLabel(PublicUserDTO user)

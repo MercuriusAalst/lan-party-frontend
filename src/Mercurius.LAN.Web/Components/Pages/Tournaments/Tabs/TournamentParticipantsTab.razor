@@ -1,3 +1,4 @@
+@using Mercurius.LAN.Web.Components.Pages.Tournaments
 @using Mercurius.LAN.Web.Components.Shared
 @using Mercurius.LAN.Web.DTOs.Registrations
 @using Mercurius.LAN.Web.Models.Tournaments
@@ -28,9 +29,15 @@
                 <div class="participants-overview-grid">
                     @foreach(var participant in _participants)
                     {
-                        <ParticipantCardComponent Participant="participant" />
+                        <ParticipantCardComponent Participant="participant" OnParticipantSelected="@GetAdminCardCallback(participant)" />
                     }
                 </div>
+
+                <TournamentAdminParticipantDetails @ref="_adminDetails"
+                                                   TournamentId="Tournament.Id"
+                                                   Enabled="AdminDetailsEnabled"
+                                                   Participants="_participants"
+                                                   KnownRegistrations="_adminRegistrations" />
             }
 
         <section id="registration" class="registration-panel brand-section-anchor" aria-labelledby="registration-panel-heading">

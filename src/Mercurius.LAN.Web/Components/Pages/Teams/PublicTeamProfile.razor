@@ -67,19 +67,27 @@ else
                             {
                                 var isCaptain = !string.IsNullOrWhiteSpace(_team.CaptainUsername) &&
                                     string.Equals(member.Username, _team.CaptainUsername, StringComparison.OrdinalIgnoreCase);
+                                RenderFragment memberContent =@<text>
+                                    <UserAvatar Name="@member.Username" PictureUrl="@member.ProfilePictureUrl" Size="regular" Decorative="true" />
+                                    <span class="public-team-member-copy">
+                                        <strong>
+                                            @member.Username
+                                            @if(isCaptain)
+                                            {
+                                                <span class="public-team-captain-badge">@Localization["team.captain"]</span>
+                                            }
+                                        </strong>
+                                    </span>
+                                </text>;
                                 <li>
-                                    <div class="public-team-member">
-                                        <UserAvatar Name="@member.Username" PictureUrl="@member.ProfilePictureUrl" Size="regular" Decorative="true" />
-                                        <span class="public-team-member-copy">
-                                            <strong>
-                                                @member.Username
-                                                @if(isCaptain)
-                                                {
-                                                    <span class="public-team-captain-badge">@Localization["team.captain"]</span>
-                                                }
-                                            </strong>
-                                        </span>
-                                    </div>
+                                    @if(_isAdmin && !string.IsNullOrWhiteSpace(member.Username))
+                                    {
+                                        <a class="public-team-member public-team-member--link" href="/users/@Uri.EscapeDataString(member.Username.Trim())">@memberContent</a>
+                                    }
+                                    else
+                                    {
+                                        <div class="public-team-member">@memberContent</div>
+                                    }
                                 </li>
                             }
                         </ul>

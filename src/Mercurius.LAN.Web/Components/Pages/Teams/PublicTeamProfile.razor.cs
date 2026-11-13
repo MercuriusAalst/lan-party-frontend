@@ -1,6 +1,7 @@
 using Mercurius.LAN.Web.DTOs.PublicProfiles;
 using Mercurius.LAN.Web.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 
 namespace Mercurius.LAN.Web.Components.Pages.Teams;
 
@@ -10,6 +11,10 @@ public partial class PublicTeamProfile
     [Inject] private ITeamService TeamService { get; set; } = null!;
 
     [Parameter] public string TeamName { get; set; } = string.Empty;
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private bool _isAdmin;
 
     private PublicTeamProfileDTO? _team;
     private PublicProfileMatchSummariesDTO? _matchSummaries;
@@ -43,6 +48,11 @@ public partial class PublicTeamProfile
         var decodedTeamName = Uri.UnescapeDataString(TeamName ?? string.Empty).Trim();
         try
         {
+            _isAdmin = AuthenticationStateTask is not null &&
+                (await AuthenticationStateTask).User.IsInRole("admin");
+            if(!IsCurrentLoad(cancellation))
+                return;
+
             if(string.IsNullOrWhiteSpace(decodedTeamName))
             {
                 _isLoading = false;

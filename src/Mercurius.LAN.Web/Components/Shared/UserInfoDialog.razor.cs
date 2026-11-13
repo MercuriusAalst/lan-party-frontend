@@ -1,7 +1,6 @@
 using Mercurius.LAN.Web.DTOs.Users;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
 
 namespace Mercurius.LAN.Web.Components.Shared;
 
@@ -10,24 +9,16 @@ public partial class UserInfoDialog
     [Parameter] public PublicUserDTO? User { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public string? BackLabel { get; set; }
+
     private ElementReference _dialogElement;
-    private IJSObjectReference? _focusTrap;
+    private ModalFocusTrap? _focusTrap;
     private string DialogTitleId => $"user-info-dialog-title-{User?.Id.ToString("N") ?? "details"}";
     private string DialogDescriptionId => $"user-info-dialog-description-{User?.Id.ToString("N") ?? "details"}";
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if(User is not null && _focusTrap is null)
-        {
-            _focusTrap = await JSRuntime.InvokeAsync<IJSObjectReference>(
-                "activateTeamModalFocusTrap",
-                _dialogElement);
-        }
-        else if(User is null && _focusTrap is not null)
-        {
-            await DisposeFocusTrapAsync();
-        }
-    }
+    protected override Task OnAfterRenderAsync(bool firstRender) =>
+        (_focusTrap ??= new ModalFocusTrap(JSRuntime)).SyncAsync(User is not null, _dialogElement);
 
     private Task HandleKeyDown(KeyboardEventArgs args) =>
         string.Equals(args.Key, "Escape", StringComparison.Ordinal)
@@ -58,22 +49,5 @@ public partial class UserInfoDialog
 
     private static bool HasValue(string? value) => !string.IsNullOrWhiteSpace(value);
 
-    private async ValueTask DisposeFocusTrapAsync()
-    {
-        var focusTrap = _focusTrap;
-        _focusTrap = null;
-        if(focusTrap is null)
-            return;
-
-        try
-        {
-            await focusTrap.InvokeVoidAsync("dispose");
-            await focusTrap.DisposeAsync();
-        }
-        catch(JSDisconnectedException)
-        {
-        }
-    }
-
-    public ValueTask DisposeAsync() => DisposeFocusTrapAsync();
+    public ValueTask DisposeAsync() => _focusTrap?.DisposeAsync() ?? ValueTask.CompletedTask;
 }

@@ -24,6 +24,14 @@
                 <span class="bi bi-x-lg" aria-hidden="true"></span>
             </button>
 
+            @if(OnBack.HasDelegate)
+            {
+                <button type="button" class="user-info-dialog-back" @onclick="() => OnBack.InvokeAsync()">
+                    <span class="bi bi-arrow-left" aria-hidden="true"></span>
+                    @BackLabel
+                </button>
+            }
+
             <header class="user-info-dialog-header">
                 <UserAvatar Name="@GetDialogTitle(user)" PictureUrl="@user.ProfilePictureUrl" Size="prominent" Decorative="true" />
                 <span class="user-info-dialog-eyebrow">@Localization["shared.playerDetails"]</span>

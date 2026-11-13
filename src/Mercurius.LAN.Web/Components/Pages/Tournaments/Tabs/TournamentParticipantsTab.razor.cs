@@ -2212,15 +2212,31 @@ public partial class TournamentParticipantsTab : IDisposable, IAsyncDisposable
         _ => Localization.Get("Feature.tournaments.registrationStatus", GetRegistrationStatusLabel(status))
     };
 
+    private TournamentAdminParticipantDetails? _adminDetails;
 
+    private bool AdminDetailsEnabled => _isAdmin && !PopupOnly && !_isLoadingAdmin && _adminError is null;
 
-    private string GetConfirmationLabel(RosterMemberConfirmationStatus status) => status switch
+    private EventCallback<ParticipantViewModel> GetAdminCardCallback(ParticipantViewModel participant)
     {
-        RosterMemberConfirmationStatus.AutoConfirmed => Localization["Feature.tournaments.confirmationCaptain"],
-        RosterMemberConfirmationStatus.Pending => Localization["Feature.tournaments.confirmationPending"],
-        RosterMemberConfirmationStatus.Confirmed => Localization["Feature.tournaments.confirmationConfirmed"],
-        _ => Localization.Get("Feature.tournaments.confirmationStatus", status.ToString())
-    };
+        if(!AdminDetailsEnabled)
+            return default;
+
+        if(participant.Team is not null)
+            return EventCallback.Factory.Create<ParticipantViewModel>(this, OpenAdminTeamAsync);
+
+        return string.IsNullOrWhiteSpace(participant.User?.Username)
+            ? default
+            : EventCallback.Factory.Create<ParticipantViewModel>(this, OpenAdminPlayerAsync);
+    }
+
+    private Task OpenAdminTeamAsync(ParticipantViewModel participant) =>
+        _adminDetails?.OpenTeamAsync(participant) ?? Task.CompletedTask;
+
+    private Task OpenAdminPlayerAsync(ParticipantViewModel participant) =>
+        _adminDetails?.OpenPlayerAsync(participant.User?.Username ?? string.Empty) ?? Task.CompletedTask;
+
+    private string GetConfirmationLabel(RosterMemberConfirmationStatus status) =>
+        RosterConfirmationLabels.Get(Localization, status);
 
     private string GetTeamRegistrationStateMessage()
     {
