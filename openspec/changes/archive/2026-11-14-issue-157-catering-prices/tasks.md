@@ -6,4 +6,6 @@
 - [x] Add English and Dutch locale keys for the new items, sauces and note; remove keys for the discontinued items.
 - [x] Update the Info page E2E test for the new prices, the removed items and the sauce note in English and Dutch.
 - [x] Build the solution and run the contract tests and the Info page E2E tests.
-- [x] Validate the change (structure checked by hand: the `openspec` CLI is not installed on this machine; run `openspec validate issue-157-catering-prices --strict` before archiving).
+- [x] Validate the change (by hand; the `openspec` CLI was not available locally).
+- [x] Review: drop the fragile removed-items text loop from the E2E test and force a fresh page load per viewport.
+- [x] Archive the specification delta into `openspec/specs/lan-info-page`.

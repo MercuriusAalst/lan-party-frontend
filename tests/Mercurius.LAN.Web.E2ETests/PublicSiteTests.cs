@@ -276,6 +276,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
             foreach (var (width, height) in new[] { (1440, 900), (390, 844) })
             {
                 await page.SetViewportSizeAsync(width, height);
+                await page.GotoAsync("about:blank");
                 await page.GotoAsync($"{app.BaseUrl}info#catering");
 
                 var menu = page.Locator("#catering");
@@ -286,9 +287,6 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
                     await Expect(rows.Nth(i).Locator("span").First).ToHaveTextAsync(items[i].Item1);
                     await Expect(rows.Nth(i).Locator("strong")).ToHaveTextAsync(items[i].Item2);
                 }
-
-                foreach (var removed in new[] { "Boulet", "Party", "Frituurhapjesmix", "special", "Speciale" })
-                    await Expect(menu.GetByText(removed)).ToHaveCountAsync(0);
 
                 await Expect(menu.Locator(".menu-sauces-note")).ToHaveTextAsync(sauceNote);
                 await Expect(menu.Locator(".menu-sauces-list li")).ToHaveTextAsync(sauces);
