@@ -136,12 +136,19 @@ public partial class Info
         "Cola (zero)" => Localization["General.Info.MenuItem.ColaZero"],
         "Monster Energy" => Localization["General.Info.MenuItem.MonsterEnergy"],
         "Beer" => Localization["General.Info.MenuItem.Beer"],
+        "Bell For (6.2°)" => Localization["General.Info.MenuItem.BellFor"],
         "Croque Monsieur" => Localization["General.Info.MenuItem.CroqueMonsieur"],
-        "Fryer Snacks Party Mix (8pcs)" => Localization["General.Info.MenuItem.FryerSnacksPartyMix"],
-        "Boulet" => Localization["General.Info.MenuItem.Boulet"],
-        "Boulet Special" => Localization["General.Info.MenuItem.BouletSpecial"],
-        "Curryworst" => Localization["General.Info.MenuItem.Curryworst"],
-        "Curryworst special" => Localization["General.Info.MenuItem.CurryworstSpecial"],
+        "Frikandel / curryworst" => Localization["General.Info.MenuItem.FrikandelCurryworst"],
+        "Bitterballen (6 pcs)" => Localization["General.Info.MenuItem.Bitterballen"],
+        "Chicken nuggets (6 pcs)" => Localization["General.Info.MenuItem.ChickenNuggets"],
+        _ => name
+    };
+
+    private string GetSauceName(string name) => name switch
+    {
+        "Ketchup (tomato / curry)" => Localization["General.Info.Sauce.Ketchup"],
+        "Mayonnaise" => Localization["General.Info.Sauce.Mayonnaise"],
+        "Andalouse" => Localization["General.Info.Sauce.Andalouse"],
         _ => name
     };
 

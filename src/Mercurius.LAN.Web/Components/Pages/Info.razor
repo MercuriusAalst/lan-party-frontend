@@ -150,6 +150,22 @@
                                 <strong>@FormatMenuPrice(item.Price)</strong>
                             </div>
                         }
+
+                        @if(menuSection.IncludedSauces.Count > 0)
+                        {
+                            <div class="menu-sauces">
+                                <p class="menu-sauces-note">
+                                    <span class="bi bi-check-circle" aria-hidden="true"></span>
+                                    @Localization["General.Info.SauceIncluded"]
+                                </p>
+                                <ul class="menu-sauces-list">
+                                    @foreach(var sauce in menuSection.IncludedSauces)
+                                    {
+                                        <li>@GetSauceName(sauce)</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
                     </article>
                 }
             </div>

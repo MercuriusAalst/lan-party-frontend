@@ -91,6 +91,8 @@ public sealed class MenuSectionOptions
     public string Icon { get; set; } = string.Empty;
 
     public List<MenuItemOptions> Items { get; set; } = [];
+
+    public List<string> IncludedSauces { get; set; } = [];
 }
 
 public sealed class MenuItemOptions
