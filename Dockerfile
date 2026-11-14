@@ -27,7 +27,7 @@ RUN dotnet publish \
 
 # Run Stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-azurelinux3.0 AS run
-RUN tdnf upgrade -y pcre2 \
+RUN tdnf upgrade -y pcre2 curl curl-libs \
     && tdnf clean all
 WORKDIR /app
 COPY --from=build /app/publish .

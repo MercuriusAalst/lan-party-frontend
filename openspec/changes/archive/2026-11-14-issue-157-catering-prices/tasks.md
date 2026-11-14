@@ -1,6 +1,6 @@
 # Tasks
 
-- [x] Update `LanEvent:MenuSections` in `appsettings.json`: drink prices (+0.50 EUR except water and beer), add Bell For (6.2°) at 3 EUR, remove the four discontinued snacks, add bitterballen and chicken nuggets (6 pcs) at 2.50 EUR, set croque and frikandel / curryworst to 2 EUR.
+- [x] Update `LanEvent:MenuSections` in `appsettings.json`: drink prices (+0.50 EUR except water and beer), add Bell For (6.2°) at 3 EUR, remove the four discontinued snacks, add bitterballen and chicken nuggets (6 pcs) at 2.50 EUR, set croque and curryworst to 2 EUR.
 - [x] Add an optional `IncludedSauces` list to `MenuSectionOptions` and configure Ketchup (tomato / curry), Mayonnaise and Andalouse on Snacks.
 - [x] Render the included sauces and the included-sauce note in the menu column on the Info page, reusing the menu-board styling.
 - [x] Add English and Dutch locale keys for the new items, sauces and note; remove keys for the discontinued items.

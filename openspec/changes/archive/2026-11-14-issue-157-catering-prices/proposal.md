@@ -7,7 +7,7 @@ Issue #157: the catering menu on the Info page no longer matches the menu and pr
 ## What Changes
 
 - Drinks: Fuze Tea, Cola (zero) and Monster Energy each go up by exactly 0.50 EUR. Water and Beer keep their prices. Bell For (6.2°) is added at 3 EUR.
-- Snacks: Boulet, Boulet special, Curryworst special (frikandel special) and the Fryer Snacks Party Mix are removed. Bitterballen (6 pcs) and Chicken nuggets (6 pcs) are added at 2.50 EUR. Croque Monsieur goes to 2 EUR and Curryworst becomes "Frikandel / curryworst" at 2 EUR.
+- Snacks: Boulet, Boulet special, Curryworst special (frikandel special) and the Fryer Snacks Party Mix are removed. Bitterballen (6 pcs) and Chicken nuggets (6 pcs) are added at 2.50 EUR. Croque Monsieur goes to 2 EUR and Curryworst goes to 2 EUR.
 - Menu sections may list available sauces in configuration. The Snacks section lists Ketchup (tomato / curry), Mayonnaise and Andalouse and shows that sauce is included with every snack, without any sauce price.
 - All values stay in the existing `LanEvent:MenuSections` configuration; display names are localized in English and Dutch. Layout and styling are kept; the sauce note reuses the existing menu-board styling.
 

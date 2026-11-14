@@ -138,7 +138,7 @@ public partial class Info
         "Beer" => Localization["General.Info.MenuItem.Beer"],
         "Bell For (6.2°)" => Localization["General.Info.MenuItem.BellFor"],
         "Croque Monsieur" => Localization["General.Info.MenuItem.CroqueMonsieur"],
-        "Frikandel / curryworst" => Localization["General.Info.MenuItem.FrikandelCurryworst"],
+        "Curryworst" => Localization["General.Info.MenuItem.Curryworst"],
         "Bitterballen (6 pcs)" => Localization["General.Info.MenuItem.Bitterballen"],
         "Chicken nuggets (6 pcs)" => Localization["General.Info.MenuItem.ChickenNuggets"],
         _ => name

@@ -249,7 +249,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
                 {
                     ("Water (still/sparkling)", "1 EUR"), ("Fuze Tea", "1.50 EUR"), ("Cola (zero)", "1.50 EUR"),
                     ("Monster Energy", "2 EUR"), ("Beer", "1.50 EUR"), ("Bell For (6.2°)", "3 EUR"),
-                    ("Croque Monsieur", "2 EUR"), ("Frikandel / curryworst", "2 EUR"),
+                    ("Croque Monsieur", "2 EUR"), ("Curryworst", "2 EUR"),
                     ("Bitterballen (6 pcs)", "2.50 EUR"), ("Chicken nuggets (6 pcs)", "2.50 EUR")
                 },
                 "Sauce included with every snack. Choose from:",
@@ -259,7 +259,7 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
                 {
                     ("Water (plat of bruisend)", "1 EUR"), ("Fuze Tea", "1.50 EUR"), ("Cola zero", "1.50 EUR"),
                     ("Monster Energy", "2 EUR"), ("Bier", "1.50 EUR"), ("Bell For (6,2°)", "3 EUR"),
-                    ("Croque monsieur", "2 EUR"), ("Frikandel / curryworst", "2 EUR"),
+                    ("Croque monsieur", "2 EUR"), ("Curryworst", "2 EUR"),
                     ("Bitterballen (6 stuks)", "2.50 EUR"), ("Kipnuggets (6 stuks)", "2.50 EUR")
                 },
                 "Saus inbegrepen bij elke snack. Kies uit:",
