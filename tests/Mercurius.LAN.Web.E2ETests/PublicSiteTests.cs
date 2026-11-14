@@ -237,6 +237,68 @@ public class PublicSiteTests(PlaywrightE2EFixture app) : E2ETestBase(app)
     }
 
     [Fact]
+    public async Task CateringMenuShowsCurrentPricesAndIncludedSaucesAcrossLocalesAndViewports()
+    {
+        await using var context = await app.NewContextAsync();
+        var page = await context.NewPageAsync();
+
+        foreach (var (language, items, sauceNote, sauces) in new[]
+        {
+            ("en-US",
+                new[]
+                {
+                    ("Water (still/sparkling)", "1 EUR"), ("Fuze Tea", "1.50 EUR"), ("Cola (zero)", "1.50 EUR"),
+                    ("Monster Energy", "2 EUR"), ("Beer", "1.50 EUR"), ("Bell For (6.2°)", "3 EUR"),
+                    ("Croque Monsieur", "2 EUR"), ("Curryworst", "2 EUR"),
+                    ("Bitterballen (6 pcs)", "2.50 EUR"), ("Chicken nuggets (6 pcs)", "2.50 EUR")
+                },
+                "Sauce included with every snack. Choose from:",
+                new[] { "Ketchup (tomato / curry)", "Mayonnaise", "Andalouse" }),
+            ("nl-BE",
+                new[]
+                {
+                    ("Water (plat of bruisend)", "1 EUR"), ("Fuze Tea", "1.50 EUR"), ("Cola zero", "1.50 EUR"),
+                    ("Monster Energy", "2 EUR"), ("Bier", "1.50 EUR"), ("Bell For (6,2°)", "3 EUR"),
+                    ("Croque monsieur", "2 EUR"), ("Curryworst", "2 EUR"),
+                    ("Bitterballen (6 stuks)", "2.50 EUR"), ("Kipnuggets (6 stuks)", "2.50 EUR")
+                },
+                "Saus inbegrepen bij elke snack. Kies uit:",
+                new[] { "Ketchup (tomaat / curry)", "Mayonaise", "Andalouse" })
+        })
+        {
+            await page.SetViewportSizeAsync(1440, 900);
+            await page.GotoAsync($"{app.BaseUrl}");
+            await page.WaitForInteractiveAsync();
+            await page.SelectOptionAsync("#footer-language-select", language);
+            await Expect(page.GetByRole(AriaRole.Button, new() { Name = language == "en-US" ? "Log in" : "Inloggen" }))
+                .ToBeVisibleAsync();
+
+            foreach (var (width, height) in new[] { (1440, 900), (390, 844) })
+            {
+                await page.SetViewportSizeAsync(width, height);
+                await page.GotoAsync("about:blank");
+                await page.GotoAsync($"{app.BaseUrl}info#catering");
+
+                var menu = page.Locator("#catering");
+                var rows = menu.Locator(".menu-item");
+                await Expect(rows).ToHaveCountAsync(items.Length);
+                for (var i = 0; i < items.Length; i++)
+                {
+                    await Expect(rows.Nth(i).Locator("span").First).ToHaveTextAsync(items[i].Item1);
+                    await Expect(rows.Nth(i).Locator("strong")).ToHaveTextAsync(items[i].Item2);
+                }
+
+                await Expect(menu.Locator(".menu-sauces-note")).ToHaveTextAsync(sauceNote);
+                await Expect(menu.Locator(".menu-sauces-list li")).ToHaveTextAsync(sauces);
+                await Expect(menu.Locator(".menu-sauces")).Not.ToContainTextAsync("EUR");
+
+                Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= window.innerWidth"),
+                    $"Info page overflowed at {width}px ({language}).");
+            }
+        }
+    }
+
+    [Fact]
     public async Task InfoNavigationAndTicketGuidanceStayCurrentAcrossLocalesAndViewports()
     {
         await using var context = await app.NewContextAsync();
