@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.10.1...frontend-v0.11.0) (2026-11-14)
+
+
+### Features
+
+* Show Team Members To Admins On Tournament Participants ([#155](https://github.com/MercuriusAalst/lan-party-frontend/issues/155)) ([1d41cb7](https://github.com/MercuriusAalst/lan-party-frontend/commit/1d41cb7f3d8edd67c15aab1597fb01ae96b43367))
+* Update LAN Food And Drinks Price List ([#158](https://github.com/MercuriusAalst/lan-party-frontend/issues/158)) ([e62e633](https://github.com/MercuriusAalst/lan-party-frontend/commit/e62e633fd85319681ff8894aff6922a9e9a83194))
+
 ## [0.10.1](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.10.0...frontend-v0.10.1) (2026-11-07)
 
 
