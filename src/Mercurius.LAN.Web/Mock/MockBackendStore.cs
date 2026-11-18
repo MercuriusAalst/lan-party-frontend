@@ -2791,7 +2791,7 @@ internal sealed class MockBackendStore
                 throw new InvalidOperationException("Mock validation: choose an image file for the team logo.");
 
             var extension = Path.GetExtension(fileName);
-            team.LogoUrl = $"/img/mock/sponsor.svg?team={team.Id:N}{extension}";
+            team.LogoUrl = $"/img/mock/team.svg?team={team.Id:N}{extension}";
             AddOrReplaceTeam(team);
             return new TeamLogoResponseDTO { TeamId = team.Id, LogoUrl = team.LogoUrl };
         }
@@ -4659,7 +4659,7 @@ internal sealed class MockBackendStore
                 Id = captainedId,
                 Name = "Mock Captains",
                 CaptainUserId = currentUser.Id,
-                LogoUrl = "/img/mock/sponsor.svg",
+                LogoUrl = "/img/mock/team.svg",
                 Members = [ToPublicUser(currentUser), PublicUserDTO.FromUser(teammate)],
                 TeamInvites =
                 [
