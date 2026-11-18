@@ -69,6 +69,61 @@
     overflow-wrap: anywhere;
 }
 
+.tournaments-card-media {
+    position: relative;
+}
+
+.tournaments-card-sponsor {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    max-width: calc(100% - 1.5rem);
+    padding: 0.45rem 0.75rem 0.45rem 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme-state="dark"] .tournaments-card-sponsor:not(.tournaments-card-sponsor--has-light) {
+    border-color: color-mix(in srgb, var(--color-dark-navy) 12%, transparent);
+    background: color-mix(in srgb, var(--color-soft-white) 92%, transparent);
+}
+
+.tournaments-card-sponsor-label {
+    color: var(--color-muted-text);
+    font-family: "Saira", system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+[data-theme-state="dark"] .tournaments-card-sponsor:not(.tournaments-card-sponsor--has-light) .tournaments-card-sponsor-label {
+    color: var(--color-dark-navy);
+}
+
+.tournaments-card-sponsor-logo {
+    display: flex;
+    flex-shrink: 0;
+    height: 1.25rem;
+}
+
+.tournaments-card-sponsor-logo ::deep .theme-aware-sponsor-logo {
+    width: auto;
+}
+
+.tournaments-card-sponsor .tournaments-card-sponsor-logo ::deep .theme-aware-sponsor-logo img {
+    width: auto;
+    max-width: 6.5rem;
+}
+
 .tournaments-browse-copy p,
 .tournaments-filter-caption {
     color: var(--color-muted-text);
