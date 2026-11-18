@@ -117,19 +117,20 @@
     width: 1.6rem;
     height: 1.6rem;
     border-radius: 50%;
-    background: #facc15;
-    color: #0b1118;
+    background: var(--color-medal-gold);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-medal-ink) 40%, transparent);
+    color: var(--color-medal-ink);
     font-family: "Saira", system-ui, sans-serif;
     font-size: 0.8rem;
     font-weight: 800;
 }
 
 .Tournament-detail-prize-medal--2 {
-    background: #cbd5e1;
+    background: var(--color-medal-silver);
 }
 
 .Tournament-detail-prize-medal--3 {
-    background: #fb923c;
+    background: var(--color-medal-bronze);
 }
 
 .Tournament-detail-prize-copy {
@@ -138,8 +139,8 @@
 }
 
 .Tournament-detail-prize-copy small {
-    color: var(--color-subtle);
-    font-size: 0.7rem;
+    color: var(--color-muted-text);
+    font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;

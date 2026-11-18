@@ -13,17 +13,10 @@ public partial class TournamentPlacementsTab
     [Parameter] public ParticipationMode ParticipationMode { get; set; }
     [Parameter] public BracketType BracketType { get; set; }
     [Parameter] public LeaderboardRankingMetric? RankingMetric { get; set; }
-    [Parameter] public string? FirstPlacePrize { get; set; }
-    [Parameter] public string? SecondPlacePrize { get; set; }
-    [Parameter] public string? ThirdPlacePrize { get; set; }
+    [Parameter] public IReadOnlyList<(int Place, string Prize)> Prizes { get; set; } = [];
 
-    private string? GetPrizeForPlace(int place) => place switch
-    {
-        1 => string.IsNullOrWhiteSpace(FirstPlacePrize) ? null : FirstPlacePrize,
-        2 => string.IsNullOrWhiteSpace(SecondPlacePrize) ? null : SecondPlacePrize,
-        3 => string.IsNullOrWhiteSpace(ThirdPlacePrize) ? null : ThirdPlacePrize,
-        _ => null
-    };
+    private string? GetPrizeForPlace(int place) =>
+        Prizes.Where(p => p.Place == place).Select(p => p.Prize).FirstOrDefault();
 
     private string FormatLeaderboardParticipantValue(LeaderboardRowDTO participant) =>
         LeaderboardFormattingExtensions.FormatLeaderboardValue(
@@ -49,27 +42,5 @@ public partial class TournamentPlacementsTab
             return user.Username.Trim();
 
         return Localization["Feature.tournaments.participant"];
-    }
-
-    internal static string GetOrdinalLabel(ILocalizationService localization, int number)
-    {
-        // English needs 1st/2nd/3rd suffixes, but the 11th-13th teens keep the default suffix.
-        var key = number % 100 is >= 11 and <= 13
-            ? "Feature.tournaments.placementOrdinal"
-            : (number % 10) switch
-            {
-                1 => "Feature.tournaments.placementOrdinalFirst",
-                2 => "Feature.tournaments.placementOrdinalSecond",
-                3 => "Feature.tournaments.placementOrdinalThird",
-                _ => "Feature.tournaments.placementOrdinal"
-            };
-
-        return localization.Get(key, number);
-    }
-
-    internal static string GetPlacementLabel(ILocalizationService localization, int number)
-    {
-        // The ordinal already carries the language suffix, so the composed template only adds the noun.
-        return localization.Get("Feature.tournaments.placementPlace", GetOrdinalLabel(localization, number));
     }
 }

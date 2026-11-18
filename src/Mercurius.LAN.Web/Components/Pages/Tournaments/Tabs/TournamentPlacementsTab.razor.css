@@ -60,7 +60,7 @@
     min-width: 8rem;
     padding: 1rem;
     border-radius: 20px 20px 0 0;
-    color: #0b1118;
+    color: var(--color-medal-ink);
     text-align: center;
     box-shadow: none;
 }
@@ -68,19 +68,19 @@
 .podium-step.gold {
     order: 1;
     min-height: 8rem;
-    background: #facc15;
+    background: var(--color-medal-gold);
 }
 
 .podium-step.silver {
     order: 0;
     min-height: 6.5rem;
-    background: #cbd5e1;
+    background: var(--color-medal-silver);
 }
 
 .podium-step.bronze {
     order: 2;
     min-height: 5rem;
-    background: #fb923c;
+    background: var(--color-medal-bronze);
 }
 
 .podium-step .participant-name {

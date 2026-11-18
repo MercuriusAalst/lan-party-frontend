@@ -1,6 +1,7 @@
 @rendermode InteractiveServer
 @using Mercurius.LAN.Web.DTOs.Leaderboards
 @using Mercurius.LAN.Web.DTOs.Users
+@using Mercurius.LAN.Web.Extensions
 @using Mercurius.LAN.Web.Models.Tournaments
 @using Mercurius.LAN.Web.Models.Matches
 @using Mercurius.LAN.Web.Models.Participants
@@ -52,7 +53,7 @@
                             }
                         }
                     </div>
-                    <div class="placement-title">@GetOrdinalLabel(Localization, placement.Place)</div>
+                    <div class="placement-title">@TournamentExtensions.GetOrdinalLabel(Localization, placement.Place)</div>
                     @if(GetPrizeForPlace(placement.Place) is { } prize)
                     {
                         <div class="podium-prize">@prize</div>
@@ -64,7 +65,7 @@
             @foreach(var placement in Placements.OrderBy(p => p.Place).Skip(3))
             {
                 <li class="placement-item">
-                    <span class="placement-title">@GetPlacementLabel(Localization, placement.Place)</span>
+                    <span class="placement-title">@TournamentExtensions.GetPlacementLabel(Localization, placement.Place)</span>
                     <ul class="participant-list">
                         @if(BracketType == BracketType.Leaderboard)
                         {

@@ -89,4 +89,26 @@ public static class TournamentExtensions
         if(!string.IsNullOrWhiteSpace(tournament.ThirdPlacePrize))
             yield return (3, tournament.ThirdPlacePrize);
     }
+
+    public static string GetOrdinalLabel(ILocalizationService localization, int number)
+    {
+        // English needs 1st/2nd/3rd suffixes, but the 11th-13th teens keep the default suffix.
+        var key = number % 100 is >= 11 and <= 13
+            ? "Feature.tournaments.placementOrdinal"
+            : (number % 10) switch
+            {
+                1 => "Feature.tournaments.placementOrdinalFirst",
+                2 => "Feature.tournaments.placementOrdinalSecond",
+                3 => "Feature.tournaments.placementOrdinalThird",
+                _ => "Feature.tournaments.placementOrdinal"
+            };
+
+        return localization.Get(key, number);
+    }
+
+    public static string GetPlacementLabel(ILocalizationService localization, int number)
+    {
+        // The ordinal already carries the language suffix, so the composed template only adds the noun.
+        return localization.Get("Feature.tournaments.placementPlace", GetOrdinalLabel(localization, number));
+    }
 }
