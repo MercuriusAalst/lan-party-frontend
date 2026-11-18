@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="TRACKMANIA">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#173a2a"/><stop offset="1" stop-color="#14181d"/></linearGradient>
+    <radialGradient id="glow" cx="0.78" cy="0.25" r="0.6"><stop offset="0" stop-color="#2fd166" stop-opacity="0.75"/><stop offset="1" stop-color="#2fd166" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g opacity="0.22" stroke="#ffffff" stroke-width="2" fill="none"><path d="M0 520 C300 380 520 640 820 480 S1300 260 1600 380"/><path d="M0 580 C300 440 520 700 820 540 S1300 320 1600 440"/></g>
+  <text x="110" y="660" font-family="Saira, Arial Black, Arial, sans-serif" font-size="150" font-weight="900" textLength="920" lengthAdjust="spacingAndGlyphs" fill="#f1f3f5">TRACKMANIA</text>
+  <text x="116" y="740" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="600" letter-spacing="10" fill="#2fd166">TIME ATTACK · LEADERBOARD</text>
+</svg>
