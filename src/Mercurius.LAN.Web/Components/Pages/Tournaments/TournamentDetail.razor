@@ -74,6 +74,22 @@ else
                     <span class="badge tournament-status @_tournament.Status.GetStatusClass()">@GetStatusLabel(_tournament.Status)</span>
                 </div>
 
+                @if(_tournament.GetConfiguredPrizes().ToList() is { Count: > 0 } prizes)
+                {
+                    <ul class="Tournament-detail-prizes" aria-label='@Localization["Feature.tournaments.prizes"]'>
+                        @foreach(var (place, prize) in prizes)
+                        {
+                            <li class="Tournament-detail-prize">
+                                <span class="Tournament-detail-prize-medal Tournament-detail-prize-medal--@place" aria-hidden="true">@place</span>
+                                <span class="Tournament-detail-prize-copy">
+                                    <span class="visually-hidden">@TournamentExtensions.GetPlacementLabel(Localization, place)</span>
+                                    <strong>@prize</strong>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+
                 <div class="Tournament-detail-hero-actions">
                     @if(IsLeaderboard)
                     {
@@ -304,9 +320,7 @@ else
                                              ParticipationMode="@_tournament.ParticipationMode"
                                              BracketType="@_tournament.BracketType"
                                              RankingMetric="@_tournament.LeaderboardRankingMetric"
-                                             FirstPlacePrize="@_tournament.FirstPlacePrize"
-                                             SecondPlacePrize="@_tournament.SecondPlacePrize"
-                                             ThirdPlacePrize="@_tournament.ThirdPlacePrize" />
+                                             Prizes="@_tournament.GetConfiguredPrizes().ToList()" />
                 </section>
 
                 <AuthorizeView Roles="admin">

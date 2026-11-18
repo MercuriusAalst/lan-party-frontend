@@ -53,6 +53,11 @@
     --sponsor-card-shadow-hover: var(--shadow-brand-hover);
     --sponsor-logo-bg: var(--color-surface-muted);
 
+    --color-medal-gold: #facc15;
+    --color-medal-silver: #cbd5e1;
+    --color-medal-bronze: #fb923c;
+    --color-medal-ink: #0b1118;
+
     --radius-card: 16px;
     --radius-button: 10px;
     --radius-control: 10px;

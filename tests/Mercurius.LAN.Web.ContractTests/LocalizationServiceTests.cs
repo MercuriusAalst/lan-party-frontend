@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Mercurius.LAN.Web.Components.Pages.Tournaments;
-using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
+using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Localization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -118,8 +118,8 @@ public sealed class LocalizationServiceTests
         var english = resources.CreateService();
         var dutch = resources.CreateService(ILocalizationService.DutchLanguage);
 
-        Assert.Equal(expectedEnglish, TournamentPlacementsTab.GetOrdinalLabel(english, place));
-        Assert.Equal(expectedDutch, TournamentPlacementsTab.GetOrdinalLabel(dutch, place));
+        Assert.Equal(expectedEnglish, TournamentExtensions.GetOrdinalLabel(english, place));
+        Assert.Equal(expectedDutch, TournamentExtensions.GetOrdinalLabel(dutch, place));
     }
 
     [Theory]
@@ -142,8 +142,8 @@ public sealed class LocalizationServiceTests
         var dutch = resources.CreateService(ILocalizationService.DutchLanguage);
 
         // The Dutch ordinal already ends in "e", so the composed template must not add a second one.
-        Assert.Equal(expectedEnglish, TournamentPlacementsTab.GetPlacementLabel(english, place));
-        Assert.Equal(expectedDutch, TournamentPlacementsTab.GetPlacementLabel(dutch, place));
+        Assert.Equal(expectedEnglish, TournamentExtensions.GetPlacementLabel(english, place));
+        Assert.Equal(expectedDutch, TournamentExtensions.GetPlacementLabel(dutch, place));
     }
 
     [Fact]

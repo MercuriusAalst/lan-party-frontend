@@ -1,6 +1,7 @@
 @rendermode InteractiveServer
 @using Mercurius.LAN.Web.DTOs.Leaderboards
 @using Mercurius.LAN.Web.DTOs.Users
+@using Mercurius.LAN.Web.Extensions
 @using Mercurius.LAN.Web.Models.Tournaments
 @using Mercurius.LAN.Web.Models.Matches
 @using Mercurius.LAN.Web.Models.Participants
@@ -12,27 +13,9 @@
 
     @if(Placements == null || !Placements.Any())
     {
-        @if(HasPrizes)
-        {
-            <div class="placements-prizes">
-                <h3 class="prizes-heading">@Localization["Feature.tournaments.prizes"]</h3>
-                <ul class="prizes-list">
-                    @foreach(var (place, prize) in GetConfiguredPrizes())
-                    {
-                        <li class="prize-item">
-                            <span class="prize-place">@GetOrdinalLabel(Localization, place)</span>
-                            <span class="prize-value">@prize</span>
-                        </li>
-                    }
-                </ul>
-            </div>
-        }
-        else
-        {
-            <div class="brand-card placements-empty-state">
-                <p>@Localization["status.noResults"]</p>
-            </div>
-        }
+        <div class="brand-card placements-empty-state">
+            <p>@Localization["status.noResults"]</p>
+        </div>
     }
     else
     {
@@ -70,7 +53,7 @@
                             }
                         }
                     </div>
-                    <div class="placement-title">@GetOrdinalLabel(Localization, placement.Place)</div>
+                    <div class="placement-title">@TournamentExtensions.GetOrdinalLabel(Localization, placement.Place)</div>
                     @if(GetPrizeForPlace(placement.Place) is { } prize)
                     {
                         <div class="podium-prize">@prize</div>
@@ -82,7 +65,7 @@
             @foreach(var placement in Placements.OrderBy(p => p.Place).Skip(3))
             {
                 <li class="placement-item">
-                    <span class="placement-title">@GetPlacementLabel(Localization, placement.Place)</span>
+                    <span class="placement-title">@TournamentExtensions.GetPlacementLabel(Localization, placement.Place)</span>
                     <ul class="participant-list">
                         @if(BracketType == BracketType.Leaderboard)
                         {
