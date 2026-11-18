@@ -79,4 +79,14 @@ public static class TournamentExtensions
             _ => participationMode.ToString()
         };
     }
+
+    public static IEnumerable<(int Place, string Prize)> GetConfiguredPrizes(this Tournament tournament)
+    {
+        if(!string.IsNullOrWhiteSpace(tournament.FirstPlacePrize))
+            yield return (1, tournament.FirstPlacePrize);
+        if(!string.IsNullOrWhiteSpace(tournament.SecondPlacePrize))
+            yield return (2, tournament.SecondPlacePrize);
+        if(!string.IsNullOrWhiteSpace(tournament.ThirdPlacePrize))
+            yield return (3, tournament.ThirdPlacePrize);
+    }
 }

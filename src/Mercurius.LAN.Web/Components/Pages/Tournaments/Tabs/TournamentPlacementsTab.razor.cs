@@ -17,21 +17,6 @@ public partial class TournamentPlacementsTab
     [Parameter] public string? SecondPlacePrize { get; set; }
     [Parameter] public string? ThirdPlacePrize { get; set; }
 
-    private bool HasPrizes =>
-        !string.IsNullOrWhiteSpace(FirstPlacePrize) ||
-        !string.IsNullOrWhiteSpace(SecondPlacePrize) ||
-        !string.IsNullOrWhiteSpace(ThirdPlacePrize);
-
-    private IEnumerable<(int Place, string Prize)> GetConfiguredPrizes()
-    {
-        if(!string.IsNullOrWhiteSpace(FirstPlacePrize))
-            yield return (1, FirstPlacePrize!);
-        if(!string.IsNullOrWhiteSpace(SecondPlacePrize))
-            yield return (2, SecondPlacePrize!);
-        if(!string.IsNullOrWhiteSpace(ThirdPlacePrize))
-            yield return (3, ThirdPlacePrize!);
-    }
-
     private string? GetPrizeForPlace(int place) => place switch
     {
         1 => string.IsNullOrWhiteSpace(FirstPlacePrize) ? null : FirstPlacePrize,
