@@ -115,6 +115,30 @@
     height: 1.25rem;
 }
 
+.tournaments-card-sponsor-name {
+    display: none;
+    min-width: 0;
+    color: var(--color-ink);
+    font-family: "Saira", system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+[data-theme-state="dark"] .tournaments-card-sponsor:not(.tournaments-card-sponsor--has-light) .tournaments-card-sponsor-name {
+    color: var(--color-dark-navy);
+}
+
+.tournaments-card-sponsor[data-logo-failed] .tournaments-card-sponsor-logo {
+    display: none;
+}
+
+.tournaments-card-sponsor[data-logo-failed] .tournaments-card-sponsor-name {
+    display: inline;
+}
+
 .tournaments-card-sponsor-logo ::deep .theme-aware-sponsor-logo {
     width: auto;
 }

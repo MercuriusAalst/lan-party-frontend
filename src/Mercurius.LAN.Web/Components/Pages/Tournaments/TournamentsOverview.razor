@@ -109,21 +109,20 @@ else
             @foreach(var tournament in FilteredTournaments)
             {
                 var imageUrl = AssetUrlResolver.Resolve(Configuration, tournament.ImageUrl);
-                var sponsor = tournament.SponsorPlacement;
-                var sponsorLogoUrl = string.IsNullOrWhiteSpace(sponsor?.SponsorName) ? string.Empty : AssetUrlResolver.Resolve(Configuration, sponsor.SponsorLogoUrl);
-                var sponsorLightLogoUrl = AssetUrlResolver.Resolve(Configuration, sponsor?.SponsorLightLogoUrl);
+                var sponsorBadge = tournament.GetSponsorBadge(Configuration);
                 <article class="brand-card brand-tournament-card tournaments-card">
                     <div class="tournaments-card-media">
                         <img src="@imageUrl" alt="@tournament.Name" class="brand-tournament-card-image tournaments-card-image" />
-                        @if(!string.IsNullOrEmpty(sponsorLogoUrl))
+                        @if(sponsorBadge is not null)
                         {
-                            <span class="tournaments-card-sponsor @(string.IsNullOrEmpty(sponsorLightLogoUrl) ? null : "tournaments-card-sponsor--has-light")">
+                            <span class="tournaments-card-sponsor @(sponsorBadge.LightLogoUrl is null ? null : "tournaments-card-sponsor--has-light")" data-logo-fallback="">
                                 <span class="tournaments-card-sponsor-label">@Localization["Feature.tournaments.presentedBy"]</span>
                                 <span class="tournaments-card-sponsor-logo">
-                                    <ThemeAwareSponsorLogo LogoUrl="@sponsorLogoUrl"
-                                                           LightLogoUrl="@(string.IsNullOrEmpty(sponsorLightLogoUrl) ? null : sponsorLightLogoUrl)"
-                                                           AltText='@Localization.Get("Feature.tournaments.partnerLogoAlt", sponsor!.SponsorName)' />
+                                    <ThemeAwareSponsorLogo LogoUrl="@sponsorBadge.LogoUrl"
+                                                           LightLogoUrl="@sponsorBadge.LightLogoUrl"
+                                                           AltText='@Localization.Get("Feature.tournaments.partnerLogoAlt", sponsorBadge.SponsorName)' />
                                 </span>
+                                <span class="tournaments-card-sponsor-name">@sponsorBadge.SponsorName</span>
                             </span>
                         }
                     </div>
@@ -135,7 +134,7 @@ else
 
                         <h3>@tournament.Name</h3>
 
-                        @if(string.IsNullOrEmpty(sponsorLogoUrl) && tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+                        @if(sponsorBadge is null && tournament.GetPresentedByLabel(Localization) is { } presentedBy)
                         {
                             <p class="tournaments-card-presented-by">@presentedBy</p>
                         }
