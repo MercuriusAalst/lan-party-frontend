@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.11.0...frontend-v0.12.0) (2026-11-18)
+
+
+### Features
+
+* Show Sponsor Logo Badge On Tournament Overview Cards ([#160](https://github.com/MercuriusAalst/lan-party-frontend/issues/160)) ([e54340e](https://github.com/MercuriusAalst/lan-party-frontend/commit/e54340e13e0926b524178479c2e56f049147ac6c))
+* Show Tournament Prizes In The Detail Hero ([#159](https://github.com/MercuriusAalst/lan-party-frontend/issues/159)) ([95d2ba7](https://github.com/MercuriusAalst/lan-party-frontend/commit/95d2ba75abde860e379ce8068cdc31b7cf6e47c5))
+
 ## [0.11.0](https://github.com/MercuriusAalst/lan-party-frontend/compare/frontend-v0.10.1...frontend-v0.11.0) (2026-11-14)
 
 
