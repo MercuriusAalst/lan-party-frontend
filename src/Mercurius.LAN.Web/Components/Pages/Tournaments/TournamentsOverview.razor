@@ -110,19 +110,21 @@ else
             {
                 var imageUrl = AssetUrlResolver.Resolve(Configuration, tournament.ImageUrl);
                 var sponsorBadge = tournament.GetSponsorBadge(Configuration);
-                <article class="brand-card brand-tournament-card tournaments-card">
+                var sponsorLightLogoUrl = _failedLightLogos.Contains(tournament.Id) ? null : sponsorBadge?.LightLogoUrl;
+                <article @key="tournament.Id" class="brand-card brand-tournament-card tournaments-card">
                     <div class="tournaments-card-media">
                         <img src="@imageUrl" alt="@tournament.Name" class="brand-tournament-card-image tournaments-card-image" />
                         @if(sponsorBadge is not null)
                         {
-                            <span class="tournaments-card-sponsor @(sponsorBadge.LightLogoUrl is null ? null : "tournaments-card-sponsor--has-light")" data-logo-fallback="">
+                            <span class="tournaments-card-sponsor @(sponsorLightLogoUrl is null ? null : "tournaments-card-sponsor--has-light")">
                                 <span class="tournaments-card-sponsor-label">@Localization["Feature.tournaments.presentedBy"]</span>
                                 <span class="tournaments-card-sponsor-logo">
                                     <ThemeAwareSponsorLogo LogoUrl="@sponsorBadge.LogoUrl"
-                                                           LightLogoUrl="@sponsorBadge.LightLogoUrl"
-                                                           AltText='@Localization.Get("Feature.tournaments.partnerLogoAlt", sponsorBadge.SponsorName)' />
+                                                           LightLogoUrl="@sponsorLightLogoUrl"
+                                                           AltText='@Localization.Get("Feature.tournaments.partnerLogoAlt", sponsorBadge.SponsorName)'
+                                                           EmptyText="@sponsorBadge.SponsorName"
+                                                           OnLightLogoFailed="() => _failedLightLogos.Add(tournament.Id)" />
                                 </span>
-                                <span class="tournaments-card-sponsor-name">@sponsorBadge.SponsorName</span>
                             </span>
                         }
                     </div>

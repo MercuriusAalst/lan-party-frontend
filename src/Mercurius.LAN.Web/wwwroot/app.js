@@ -218,17 +218,3 @@ function activateTeamModalFocusTrap(dialog) {
         }
     };
 }
-
-(() => {
-    const markLogoFailed = image => image.closest('[data-logo-fallback]')?.setAttribute('data-logo-failed', '');
-    document.addEventListener('error', event => {
-        if (event.target instanceof HTMLImageElement) {
-            markLogoFailed(event.target);
-        }
-    }, true);
-    document.querySelectorAll('[data-logo-fallback] img').forEach(image => {
-        if (image.complete && image.naturalWidth === 0) {
-            markLogoFailed(image);
-        }
-    });
-})();

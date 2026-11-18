@@ -19,6 +19,12 @@ Prominent public tournament titles MUST show a localized presented-by attributio
 - **THEN** the badge MUST use a dark translucent surface and show the light logo
 - **AND** when the sponsor has no light logo the badge MUST keep a light surface with the default logo
 
+#### Scenario: Overview sponsor logo fails to load
+
+- **WHEN** the light logo of an overview sponsor badge fails to load
+- **THEN** the badge MUST behave as if the sponsor has no light logo
+- **AND** when the default logo fails to load the badge MUST show the sponsor name instead of the logo
+
 #### Scenario: Overview sponsor without a logo
 
 - **WHEN** a sponsored tournament card renders and the placement has no sponsor logo

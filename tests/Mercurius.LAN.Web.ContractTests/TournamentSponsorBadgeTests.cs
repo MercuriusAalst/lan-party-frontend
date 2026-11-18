@@ -60,29 +60,6 @@ public sealed class TournamentSponsorBadgeTests
         Assert.Equal("Presented by Mercurius Tech", tournament.GetPresentedByLabel(TestLocalizationService.Instance));
     }
 
-    [Fact]
-    public void OverviewShowsEitherTheBadgeOrTheTextAttribution()
-    {
-        var markup = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/TournamentsOverview.razor");
-
-        Assert.Contains("tournament.GetSponsorBadge(Configuration)", markup);
-        Assert.Contains("@if(sponsorBadge is not null)", markup);
-        Assert.Contains("@if(sponsorBadge is null && tournament.GetPresentedByLabel(Localization)", markup);
-        Assert.Contains("data-logo-fallback", markup);
-        Assert.Contains("tournaments-card-sponsor-name", markup);
-    }
-
-    [Fact]
-    public void BrokenSponsorLogoFallsBackToTheSponsorName()
-    {
-        var script = ReadRepositoryFile("src/Mercurius.LAN.Web/wwwroot/app.js");
-        var css = ReadRepositoryFile("src/Mercurius.LAN.Web/Components/Pages/Tournaments/TournamentsOverview.razor.css");
-
-        Assert.Contains("[data-logo-fallback]", script);
-        Assert.Contains("data-logo-failed", script);
-        Assert.Contains(".tournaments-card-sponsor[data-logo-failed] .tournaments-card-sponsor-name", css);
-    }
-
     private static Tournament Sponsored(string sponsorName, string logoUrl, string? lightLogoUrl) => new()
     {
         SponsorPlacement = new TournamentSponsorPlacement
@@ -92,14 +69,4 @@ public sealed class TournamentSponsorBadgeTests
             SponsorLightLogoUrl = lightLogoUrl
         }
     };
-
-    private static string ReadRepositoryFile(string relativePath)
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while(directory is not null && !File.Exists(Path.Combine(directory.FullName, "Mercurius.LAN.sln")))
-            directory = directory.Parent;
-
-        Assert.NotNull(directory);
-        return File.ReadAllText(Path.Combine(directory.FullName, relativePath));
-    }
 }

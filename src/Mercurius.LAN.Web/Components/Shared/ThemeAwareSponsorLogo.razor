@@ -1,19 +1,24 @@
 <span class="@RootClass">
-    @if(string.IsNullOrWhiteSpace(LogoUrl))
+    @if(string.IsNullOrWhiteSpace(LogoUrl) || (_defaultFailed && !string.IsNullOrEmpty(EmptyText)))
     {
         <span class="theme-aware-sponsor-logo__empty">@EmptyText</span>
     }
     else
     {
-        <img class="theme-aware-sponsor-logo__default" src="@LogoUrl" alt="@AltText" />
-        @if(!string.IsNullOrWhiteSpace(LightLogoUrl))
+        <img class="theme-aware-sponsor-logo__default" src="@LogoUrl" alt="@AltText" @onerror="() => _defaultFailed = true" />
+        @if(HasLightLogo)
         {
-            <img class="theme-aware-sponsor-logo__light" src="@LightLogoUrl" alt="@AltText" />
+            <img class="theme-aware-sponsor-logo__light" src="@LightLogoUrl" alt="@AltText" @onerror="OnLightLogoFailedAsync" />
         }
     }
 </span>
 
 @code {
+    private bool _defaultFailed;
+    private bool _lightFailed;
+    private string? _renderedLogoUrl;
+    private string? _renderedLightLogoUrl;
+
     [Parameter, EditorRequired]
     public string LogoUrl { get; set; } = string.Empty;
 
@@ -29,10 +34,36 @@
     [Parameter]
     public string? ForcedTheme { get; set; }
 
+    [Parameter]
+    public EventCallback OnLightLogoFailed { get; set; }
+
+    private bool HasLightLogo => !string.IsNullOrWhiteSpace(LightLogoUrl) && !_lightFailed;
+
+    protected override void OnParametersSet()
+    {
+        if(LogoUrl != _renderedLogoUrl)
+        {
+            _renderedLogoUrl = LogoUrl;
+            _defaultFailed = false;
+        }
+
+        if(LightLogoUrl != _renderedLightLogoUrl)
+        {
+            _renderedLightLogoUrl = LightLogoUrl;
+            _lightFailed = false;
+        }
+    }
+
+    private Task OnLightLogoFailedAsync()
+    {
+        _lightFailed = true;
+        return OnLightLogoFailed.InvokeAsync();
+    }
+
     private string RootClass => string.Join(' ', new[]
     {
         "theme-aware-sponsor-logo",
-        string.IsNullOrWhiteSpace(LightLogoUrl) ? null : "theme-aware-sponsor-logo--has-light",
+        HasLightLogo ? "theme-aware-sponsor-logo--has-light" : null,
         ForcedTheme is "light" or "dark" ? $"theme-aware-sponsor-logo--{ForcedTheme}" : null
     }.Where(value => value is not null));
 }
