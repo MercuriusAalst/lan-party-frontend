@@ -83,11 +83,11 @@ public static class TournamentExtensions
     public static IEnumerable<(int Place, string Prize)> GetConfiguredPrizes(this Tournament tournament)
     {
         if(!string.IsNullOrWhiteSpace(tournament.FirstPlacePrize))
-            yield return (1, tournament.FirstPlacePrize);
+            yield return (1, tournament.FirstPlacePrize.Trim());
         if(!string.IsNullOrWhiteSpace(tournament.SecondPlacePrize))
-            yield return (2, tournament.SecondPlacePrize);
+            yield return (2, tournament.SecondPlacePrize.Trim());
         if(!string.IsNullOrWhiteSpace(tournament.ThirdPlacePrize))
-            yield return (3, tournament.ThirdPlacePrize);
+            yield return (3, tournament.ThirdPlacePrize.Trim());
     }
 
     public static string GetOrdinalLabel(ILocalizationService localization, int number)

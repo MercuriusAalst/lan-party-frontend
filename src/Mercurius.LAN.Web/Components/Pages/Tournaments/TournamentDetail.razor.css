@@ -97,7 +97,8 @@
     overflow: hidden;
     border: 1px solid var(--color-border);
     border-radius: 14px;
-    background: var(--color-border);
+    /* Item outlines fill the 1px gap as dividers; an empty cell in a partial last row stays surface-coloured. */
+    background: var(--color-surface-raised);
     list-style: none;
 }
 
@@ -107,6 +108,7 @@
     gap: 0.6rem;
     min-width: 0;
     padding: 0.65rem 0.8rem;
+    outline: 1px solid var(--color-border);
     background: var(--color-surface-raised);
 }
 

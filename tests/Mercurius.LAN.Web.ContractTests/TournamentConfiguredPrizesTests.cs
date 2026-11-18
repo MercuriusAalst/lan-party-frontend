@@ -7,9 +7,9 @@ namespace Mercurius.LAN.Web.ContractTests;
 public sealed class TournamentConfiguredPrizesTests
 {
     [Fact]
-    public void ConfiguredPrizesKeepPlaceOrderAndSkipBlankPlaces()
+    public void ConfiguredPrizesKeepPlaceOrderSkipBlankPlacesAndTrim()
     {
-        var tournament = new Tournament { FirstPlacePrize = "Keyboard", SecondPlacePrize = "   ", ThirdPlacePrize = "Mouse" };
+        var tournament = new Tournament { FirstPlacePrize = "Keyboard", SecondPlacePrize = "   ", ThirdPlacePrize = " Mouse " };
 
         Assert.Equal([(1, "Keyboard"), (3, "Mouse")], tournament.GetConfiguredPrizes());
     }

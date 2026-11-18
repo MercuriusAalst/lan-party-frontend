@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Mercurius.LAN.Web.Components.Pages.Tournaments;
-using Mercurius.LAN.Web.Components.Pages.Tournaments.Tabs;
 using Mercurius.LAN.Web.Extensions;
 using Mercurius.LAN.Web.Localization;
 using Microsoft.AspNetCore.Hosting;
