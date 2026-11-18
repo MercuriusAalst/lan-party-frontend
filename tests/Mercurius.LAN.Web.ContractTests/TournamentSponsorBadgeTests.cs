@@ -28,10 +28,10 @@ public sealed class TournamentSponsorBadgeTests
     [InlineData("  ")]
     public void MissingLightLogoProducesNullLightLogo(string? lightLogoUrl)
     {
-        var badge = Sponsored("Mercurius Tech", "/img/mock/sponsor.svg", lightLogoUrl).GetSponsorBadge(Configuration);
+        var badge = Sponsored("Mercurius Tech", "/media/logo.svg", lightLogoUrl).GetSponsorBadge(Configuration);
 
         Assert.NotNull(badge);
-        Assert.Equal("/img/mock/sponsor.svg", badge.LogoUrl);
+        Assert.Equal(AssetUrlResolver.Resolve(Configuration, "/media/logo.svg"), badge.LogoUrl);
         Assert.Null(badge.LightLogoUrl);
     }
 

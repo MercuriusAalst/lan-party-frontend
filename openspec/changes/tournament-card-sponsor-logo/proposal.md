@@ -11,7 +11,6 @@ Sponsored tournament cards on the tournaments overview only show the text "Prese
 - When the sponsor has no light logo, the badge stays light in dark mode so the default logo keeps its contrast.
 - When the placement has a sponsor name but no logo, the card keeps the existing text attribution.
 - When the logo fails to load, the badge shows the sponsor name instead.
-- Mock mode uses committed tournament artwork and sponsor logos under `wwwroot/img/mock/`; the old `/mock-data-local/` paths were excluded from static assets and never loaded.
 
 ## Impact
 

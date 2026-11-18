@@ -656,7 +656,7 @@ internal sealed class MockBackendStore
                 AverageGameDurationMinutes = NormalizeLeaderboardScheduleDuration(bracketType, dto.AverageGameDurationMinutes),
                 RoundBreakDurationMinutes = NormalizeLeaderboardScheduleDuration(bracketType, dto.RoundBreakDurationMinutes),
                 EstimatedEndTime = null,
-                ImageUrl = "/img/mock/tournaments/generated.svg",
+                ImageUrl = "/mock-data-local/generated-tournament.svg",
                 Status = TournamentStatus.Scheduled,
                 BracketType = bracketType,
                 LeaderboardRankingMetric = leaderboardRankingMetric,
@@ -705,7 +705,7 @@ internal sealed class MockBackendStore
             tournament.ThirdPlacePrize = NormalizePrize(dto.ThirdPlacePrize);
 
             if(dto.Image != null)
-                tournament.ImageUrl = "/img/mock/tournaments/generated.svg";
+                tournament.ImageUrl = "/mock-data-local/generated-tournament.svg";
 
             return WithContactAdminProjection(Clone(tournament)!);
         }
@@ -2791,7 +2791,7 @@ internal sealed class MockBackendStore
                 throw new InvalidOperationException("Mock validation: choose an image file for the team logo.");
 
             var extension = Path.GetExtension(fileName);
-            team.LogoUrl = $"/img/mock/team.svg?team={team.Id:N}{extension}";
+            team.LogoUrl = $"/mock-data-local/sponsors/mock-sponsor.svg?team={team.Id:N}{extension}";
             AddOrReplaceTeam(team);
             return new TeamLogoResponseDTO { TeamId = team.Id, LogoUrl = team.LogoUrl };
         }
@@ -2883,8 +2883,8 @@ internal sealed class MockBackendStore
                 SponsorTier = dto.SponsorTier,
                 InfoUrl = dto.InfoUrl,
                 Description = dto.Description,
-                LogoUrl = "/img/mock/sponsor.svg",
-                LightLogoUrl = dto.LightLogo is null ? null : "/img/mock/sponsor-light.svg"
+                LogoUrl = "/mock-data-local/sponsors/mock-sponsor.svg",
+                LightLogoUrl = dto.LightLogo is null ? null : "/img/lan_logo_wide_light.svg"
             };
 
             _document.Sponsors.Add(sponsor);
@@ -2903,9 +2903,9 @@ internal sealed class MockBackendStore
             sponsor.Description = dto.Description;
 
             if(dto.Logo != null)
-                sponsor.LogoUrl = "/img/mock/sponsor.svg";
+                sponsor.LogoUrl = "/mock-data-local/sponsors/mock-sponsor.svg";
             if(dto.LightLogo != null)
-                sponsor.LightLogoUrl = "/img/mock/sponsor-light.svg";
+                sponsor.LightLogoUrl = "/img/lan_logo_wide_light.svg";
             else if(dto.RemoveLightLogo)
                 sponsor.LightLogoUrl = null;
 
@@ -3425,7 +3425,6 @@ internal sealed class MockBackendStore
         {
             Id = IndividualProfileFixtureTournamentId,
             Name = "Trackmania Showcase",
-            ImageUrl = "/img/mock/tournaments/trackmania.svg",
             StartTime = previousStart,
             EndTime = default,
             PlannedStartTime = previousStart,
@@ -4659,7 +4658,7 @@ internal sealed class MockBackendStore
                 Id = captainedId,
                 Name = "Mock Captains",
                 CaptainUserId = currentUser.Id,
-                LogoUrl = "/img/mock/team.svg",
+                LogoUrl = "/mock-data-local/sponsors/mock-sponsor.svg",
                 Members = [ToPublicUser(currentUser), PublicUserDTO.FromUser(teammate)],
                 TeamInvites =
                 [
