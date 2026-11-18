@@ -58,6 +58,20 @@ public static class TournamentExtensions
             : localization.Get("Feature.tournaments.partnerHeading", sponsorName);
     }
 
+    public static TournamentSponsorBadge? GetSponsorBadge(this Tournament tournament, IConfiguration configuration)
+    {
+        var placement = tournament.SponsorPlacement;
+        if(placement is null || string.IsNullOrWhiteSpace(placement.SponsorName))
+            return null;
+
+        var logoUrl = AssetUrlResolver.Resolve(configuration, placement.SponsorLogoUrl);
+        if(logoUrl.Length == 0)
+            return null;
+
+        var lightLogoUrl = AssetUrlResolver.Resolve(configuration, placement.SponsorLightLogoUrl);
+        return new TournamentSponsorBadge(placement.SponsorName, logoUrl, lightLogoUrl.Length == 0 ? null : lightLogoUrl);
+    }
+
     public static string GetStatusClass(this TournamentStatus status)
     {
         return status switch

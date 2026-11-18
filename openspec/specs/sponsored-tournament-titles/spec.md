@@ -5,12 +5,30 @@ TBD - created by archiving change issue-93-presented-by-sponsor. Update Purpose 
 ## Requirements
 ### Requirement: Prominent public tournament titles show the presenting partner
 
-Prominent public tournament titles MUST show a localized presented-by attribution when the tournament has a sponsor placement with a usable sponsor name. The attribution MUST be omitted when the tournament has no placement or the sponsor name is blank or whitespace. The tournament name MUST remain unchanged.
+Prominent public tournament titles MUST show a localized presented-by attribution when the tournament has a sponsor placement with a usable sponsor name. The attribution MUST be omitted when the tournament has no placement or the sponsor name is blank or whitespace. The tournament name MUST remain unchanged. On the tournaments overview the attribution MUST show the sponsor logo when the placement has one.
 
 #### Scenario: Sponsored tournament title on the tournaments overview
 
-- **WHEN** a visitor views the tournaments overview and a sponsored tournament card renders
-- **THEN** the card MUST show the localized presented-by attribution built from the placement sponsor name beside or below the tournament title
+- **WHEN** a visitor views the tournaments overview and a sponsored tournament card renders with a sponsor logo
+- **THEN** the card MUST show a badge over the tournament image with the localized `Feature.tournaments.presentedBy` label and the sponsor logo
+- **AND** the logo MUST use the localized `Feature.tournaments.partnerLogoAlt` alternative text
+
+#### Scenario: Overview sponsor badge follows the theme
+
+- **WHEN** the overview renders a sponsor badge in dark mode and the sponsor has a light logo
+- **THEN** the badge MUST use a dark translucent surface and show the light logo
+- **AND** when the sponsor has no light logo the badge MUST keep a light surface with the default logo
+
+#### Scenario: Overview sponsor logo fails to load
+
+- **WHEN** the light logo of an overview sponsor badge fails to load
+- **THEN** the badge MUST behave as if the sponsor has no light logo
+- **AND** when the default logo fails to load the badge MUST show the sponsor name instead of the logo
+
+#### Scenario: Overview sponsor without a logo
+
+- **WHEN** a sponsored tournament card renders and the placement has no sponsor logo
+- **THEN** the card MUST show the localized presented-by attribution built from the placement sponsor name below the tournament title
 - **AND** the attribution MUST use the existing `Feature.tournaments.partnerHeading` resource for the active language
 
 #### Scenario: Sponsored tournament title on the home featured cards

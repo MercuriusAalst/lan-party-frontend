@@ -9,6 +9,8 @@ namespace Mercurius.LAN.Web.Components.Pages.Tournaments;
 
 public partial class TournamentsOverview : IAsyncDisposable
 {
+    private readonly HashSet<Guid> _failedLightLogos = [];
+
     private enum TournamentSortOption
     {
         StartTime,

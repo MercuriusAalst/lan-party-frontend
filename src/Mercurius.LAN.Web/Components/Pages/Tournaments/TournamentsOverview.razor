@@ -109,8 +109,25 @@ else
             @foreach(var tournament in FilteredTournaments)
             {
                 var imageUrl = AssetUrlResolver.Resolve(Configuration, tournament.ImageUrl);
-                <article class="brand-card brand-tournament-card tournaments-card">
-                    <img src="@imageUrl" alt="@tournament.Name" class="brand-tournament-card-image tournaments-card-image" />
+                var sponsorBadge = tournament.GetSponsorBadge(Configuration);
+                var sponsorLightLogoUrl = _failedLightLogos.Contains(tournament.Id) ? null : sponsorBadge?.LightLogoUrl;
+                <article @key="tournament.Id" class="brand-card brand-tournament-card tournaments-card">
+                    <div class="tournaments-card-media">
+                        <img src="@imageUrl" alt="@tournament.Name" class="brand-tournament-card-image tournaments-card-image" />
+                        @if(sponsorBadge is not null)
+                        {
+                            <span class="tournaments-card-sponsor @(sponsorLightLogoUrl is null ? null : "tournaments-card-sponsor--has-light")">
+                                <span class="tournaments-card-sponsor-label">@Localization["Feature.tournaments.presentedBy"]</span>
+                                <span class="tournaments-card-sponsor-logo">
+                                    <ThemeAwareSponsorLogo LogoUrl="@sponsorBadge.LogoUrl"
+                                                           LightLogoUrl="@sponsorLightLogoUrl"
+                                                           AltText='@Localization.Get("Feature.tournaments.partnerLogoAlt", sponsorBadge.SponsorName)'
+                                                           EmptyText="@sponsorBadge.SponsorName"
+                                                           OnLightLogoFailed="() => _failedLightLogos.Add(tournament.Id)" />
+                                </span>
+                            </span>
+                        }
+                    </div>
                     <div class="brand-tournament-card-body tournaments-card-body">
                         <div class="brand-tournament-card-topline tournaments-card-topline">
                             <span class="brand-tournament-card-date tournaments-card-date">@GetPlannedStartLabel(tournament)</span>
@@ -119,7 +136,7 @@ else
 
                         <h3>@tournament.Name</h3>
 
-                        @if(tournament.GetPresentedByLabel(Localization) is { } presentedBy)
+                        @if(sponsorBadge is null && tournament.GetPresentedByLabel(Localization) is { } presentedBy)
                         {
                             <p class="tournaments-card-presented-by">@presentedBy</p>
                         }
