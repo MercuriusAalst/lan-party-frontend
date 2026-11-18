@@ -6,7 +6,7 @@ The configured prizes only appear in the Eindresultaten section, below the brack
 
 ## What Changes
 
-- The tournament detail hero shows a prize strip under the badges with a gold, silver or bronze medal, the place label and the prize for every configured top-three prize. The strip stays visible before and after the tournament.
+- The tournament detail hero shows a prize strip under the badges with a numbered gold, silver or bronze medal and the prize for every configured top-three prize; the place label is kept for screen readers only. The strip stays visible before and after the tournament.
 - The placements area no longer repeats the prize list before placements are known; it shows its normal empty state. Prizes under the podium after placements are known are unchanged.
 - The strip wraps to one column at narrow widths and uses the existing theme tokens, so it works in light and dark themes.
 

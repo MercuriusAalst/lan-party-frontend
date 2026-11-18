@@ -23,8 +23,9 @@ unconfigured values MUST be omitted without placeholder noise.
 #### Scenario: Prizes are shown in the hero
 
 - **WHEN** a tournament has one or more configured prizes
-- **THEN** the hero MUST present each configured prize with its matching place label and a
-  gold, silver, or bronze place marker, in place order
+- **THEN** the hero MUST present each configured prize with a numbered gold, silver, or bronze
+  place marker, in place order
+- **AND** each prize MUST expose its place label to assistive technology
 - **AND** a place without a configured prize MUST be omitted from the hero
 - **AND** the prizes MUST remain readable without horizontal overflow at narrow supported widths
   and in light and dark themes
